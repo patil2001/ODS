@@ -42,10 +42,12 @@ def test_callback_builds_metadata_only_event(monkeypatch):
     start = datetime.now(timezone.utc)
     response = {
         "model": "Qwen3.5-2B-Q4_K_M.gguf",
-        "choices": [{
-            "message": {"content": "private answer"},
-            "finish_reason": "stop",
-        }],
+        "choices": [
+            {
+                "message": {"content": "private answer"},
+                "finish_reason": "stop",
+            }
+        ],
         "usage": {
             "prompt_tokens": 18,
             "completion_tokens": 4,
@@ -90,12 +92,14 @@ def test_callback_skips_litellm_event_when_switchboard_is_enabled(
     callback = load_callback(monkeypatch)
     instance = callback.ODSTokenSpyCallback()
 
-    asyncio.run(instance.async_log_success_event(
-        {"model": "default"},
-        {"model": "Concrete.gguf", "usage": {}},
-        1.0,
-        2.0,
-    ))
+    asyncio.run(
+        instance.async_log_success_event(
+            {"model": "default"},
+            {"model": "Concrete.gguf", "usage": {}},
+            1.0,
+            2.0,
+        )
+    )
 
     assert instance.queue.empty()
     assert instance.worker is None
@@ -151,5 +155,39 @@ def test_callback_enqueues_without_waiting_for_token_spy(monkeypatch):
             await instance.worker
         except asyncio.CancelledError:
             pass
+
+    asyncio.run(scenario())
+
+
+def test_worker_closes_http_client_when_cancelled(monkeypatch):
+    monkeypatch.setenv("TOKEN_SPY_URL", "http://token-spy:8080")
+    monkeypatch.setenv("TOKEN_SPY_API_KEY", "shared-secret")
+    monkeypatch.setenv("ODS_MODEL_SWITCHBOARD", "observe")
+    callback = load_callback(monkeypatch)
+    instance = callback.ODSTokenSpyCallback()
+    instance.enabled = True
+
+    async def scenario():
+        import httpx
+
+        closed = {"value": False}
+
+        class FakeClient:
+            async def aclose(self):
+                closed["value"] = True
+
+            async def post(self, *args, **kwargs):
+                await asyncio.sleep(0.01)
+                return None
+
+        monkeypatch.setattr(httpx, "AsyncClient", lambda *a, **k: FakeClient())
+        worker = asyncio.create_task(instance._run())
+        await asyncio.sleep(0)
+        worker.cancel()
+        try:
+            await worker
+        except asyncio.CancelledError:
+            pass
+        assert closed["value"]
 
     asyncio.run(scenario())

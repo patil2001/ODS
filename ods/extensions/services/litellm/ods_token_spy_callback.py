@@ -59,11 +59,7 @@ def _duration_ms(start_time: Any, end_time: Any) -> int:
 
 def _provider_name(kwargs: dict[str, Any]) -> str:
     litellm_params = _as_dict(kwargs.get("litellm_params"))
-    api_base = str(
-        litellm_params.get("api_base")
-        or kwargs.get("api_base")
-        or ""
-    )
+    api_base = str(litellm_params.get("api_base") or kwargs.get("api_base") or "")
     try:
         hostname = (urlparse(api_base).hostname or "").lower()
     except ValueError:
@@ -96,27 +92,18 @@ def build_event(
     response = _as_dict(response_obj)
     usage = _as_dict(response.get("usage"))
     prompt_details = _as_dict(
-        usage.get("prompt_tokens_details")
-        or usage.get("input_tokens_details")
+        usage.get("prompt_tokens_details") or usage.get("input_tokens_details")
     )
     choices = response.get("choices")
     choices = choices if isinstance(choices, list) else []
     first_choice = _as_dict(choices[0]) if choices else {}
     messages = kwargs.get("messages")
     messages = messages if isinstance(messages, list) else []
-    roles = [
-        item.get("role")
-        for item in messages
-        if isinstance(item, dict)
-    ]
+    roles = [item.get("role") for item in messages if isinstance(item, dict)]
     optional_params = _as_dict(kwargs.get("optional_params"))
     tools = kwargs.get("tools", optional_params.get("tools"))
     tools = tools if isinstance(tools, list) else []
-    model = str(
-        response.get("model")
-        or kwargs.get("model")
-        or "unknown"
-    )
+    model = str(response.get("model") or kwargs.get("model") or "unknown")
     return {
         "agent": "litellm",
         "model": model[:512],
@@ -135,9 +122,7 @@ def build_event(
             usage.get("completion_tokens", usage.get("output_tokens", 0))
         ),
         "cache_read_tokens": _count(
-            prompt_details.get(
-                "cached_tokens", usage.get("cache_read_tokens", 0)
-            )
+            prompt_details.get("cached_tokens", usage.get("cache_read_tokens", 0))
         ),
         "cache_write_tokens": _count(usage.get("cache_write_tokens", 0)),
         "duration_ms": _duration_ms(start_time, end_time),
@@ -181,9 +166,7 @@ class ODSTokenSpyCallback(CustomLogger):
         ):
             return
         if self.worker is None or self.worker.done():
-            self.worker = asyncio.create_task(
-                self._run(), name="litellm-token-spy"
-            )
+            self.worker = asyncio.create_task(self._run(), name="litellm-token-spy")
         try:
             self.queue.put_nowait(
                 build_event(kwargs, response_obj, start_time, end_time)
@@ -192,12 +175,9 @@ class ODSTokenSpyCallback(CustomLogger):
             self._warn("Token Spy callback queue is full; dropping event")
 
     async def _run(self) -> None:
-        timeout = max(
-            0.1, float(os.environ.get("ODS_LITELLM_TELEMETRY_TIMEOUT", "3"))
-        )
-        async with httpx.AsyncClient(
-            follow_redirects=False, timeout=timeout
-        ) as client:
+        timeout = max(0.1, float(os.environ.get("ODS_LITELLM_TELEMETRY_TIMEOUT", "3")))
+        client = httpx.AsyncClient(follow_redirects=False, timeout=timeout)
+        try:
             while True:
                 event = await self.queue.get()
                 try:
@@ -215,6 +195,12 @@ class ODSTokenSpyCallback(CustomLogger):
                     self._warn(f"Token Spy telemetry unavailable: {exc}")
                 finally:
                     self.queue.task_done()
+        finally:
+            # Close the client even when the worker task is cancelled or the
+            # loop unwinds (model swap, gunicorn worker recycle, shutdown
+            # race). Leaking an httpx.AsyncClient across worker restarts
+            # leaves TCP sockets and file descriptors open.
+            await client.aclose()
 
     def _warn(self, message: str) -> None:
         now = time.monotonic()
