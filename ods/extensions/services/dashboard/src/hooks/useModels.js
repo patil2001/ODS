@@ -315,7 +315,10 @@ export function useModels() {
       if (signal?.aborted) return null
       if (requestId >= latestSettledModelsRequestRef.current) {
         latestSettledModelsRequestRef.current = requestId
-        setFetchError(err.message)
+        const timedOut = err?.name === 'AbortError' || /aborted without reason/i.test(err?.message || '')
+        setFetchError(timedOut
+          ? 'The model service did not respond in time. Check the service and retry.'
+          : err.message)
       }
       // No silent fallback - let error propagate to UI
     } finally {

@@ -85,6 +85,28 @@ describe('useModels', () => {
     expect(result.current.error).toBeNull()
   })
 
+  test('turns an aborted models request into actionable retry guidance', async () => {
+    vi.useFakeTimers()
+    fetch.mockImplementation((_url, options) => new Promise((_resolve, reject) => {
+      options.signal.addEventListener('abort', () => {
+        const error = new Error('signal is aborted without reason')
+        error.name = 'AbortError'
+        reject(error)
+      }, { once: true })
+    }))
+
+    try {
+      const { result } = renderHook(() => useModels())
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(30000)
+      })
+      expect(result.current.loading).toBe(false)
+      expect(result.current.error).toBe('The model service did not respond in time. Check the service and retry.')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   test('keeps observed runtime identity separate from catalog activation identity and clears it on unload', async () => {
     fetch.mockResolvedValue(modelsResponse([], { loadedModel: 'owner-native-35b' }))
     const { result } = renderHook(() => useModels())
