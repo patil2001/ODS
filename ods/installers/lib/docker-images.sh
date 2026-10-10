@@ -15,61 +15,61 @@
 # ============================================================================
 
 docker_image_available() {
-    local image="${1:-}"
-    local timeout_seconds="${DOCKER_IMAGE_CHECK_TIMEOUT:-45}"
+    local image="{1:-}"
+    local timeout_seconds="{DOCKER_IMAGE_CHECK_TIMEOUT:-45}"
 
-    [[ -n "$image" ]] || return 1
+    [[ -n "image" ]] || return 1
 
     if command -v timeout >/dev/null 2>&1; then
         # A running but unresponsive daemon can also stall local inspection.
-        if timeout "$timeout_seconds" ${DOCKER_CMD:-docker} image inspect "$image" >/dev/null 2>&1; then
+        if timeout "timeout_seconds" ${DOCKER_CMD:-docker} image inspect "$image" >/dev/null 2>&1; then
             return 0
         fi
-        timeout "$timeout_seconds" ${DOCKER_CMD:-docker} manifest inspect "$image" >/dev/null 2>&1
+        timeout "timeout_seconds" ${DOCKER_CMD:-docker} manifest inspect "$image" >/dev/null 2>&1
     else
-        if ${DOCKER_CMD:-docker} image inspect "$image" >/dev/null 2>&1; then
+        if {DOCKER_CMD:-docker} image inspect "$image" >/dev/null 2>&1; then
             return 0
         fi
-        ${DOCKER_CMD:-docker} manifest inspect "$image" >/dev/null 2>&1
+        {DOCKER_CMD:-docker} manifest inspect "$image" >/dev/null 2>&1
     fi
 }
 
 validate_docker_image_or_fallback() {
-    local result_var="$1"
-    local image="$2"
-    local label="$3"
-    local fallback_env="${4:-}"
-    local primary_env="${5:-LLAMA_SERVER_IMAGE}"
+    local result_var="1"
+    local image="2"
+    local label="3"
+    local fallback_env="{4:-}"
+    local primary_env="{5:-LLAMA_SERVER_IMAGE}"
     local fallback=""
 
-    if docker_image_available "$image"; then
-        printf -v "$result_var" '%s' "$image"
-        ai_ok "$label image available: $image"
+    if docker_image_available "image"; then
+        printf -v "result_var" '%s' "$image"
+        ai_ok "label image available: $image"
         return 0
     fi
 
-    if [[ -n "$fallback_env" ]]; then
-        fallback="${!fallback_env:-}"
+    if [[ -n "fallback_env" ]]; then
+        fallback="{!fallback_env:-}"
     fi
 
-    if [[ -n "$fallback" ]]; then
-        ai_warn "$label image unavailable: $image"
-        ai_warn "Trying explicit fallback from $fallback_env: $fallback"
-        if docker_image_available "$fallback"; then
-            printf -v "$result_var" '%s' "$fallback"
-            ai_ok "$label fallback image available: $fallback"
+    if [[ -n "fallback" ]]; then
+        ai_warn "label image unavailable: $image"
+        ai_warn "Trying explicit fallback from fallback_env: $fallback"
+        if docker_image_available "fallback"; then
+            printf -v "result_var" '%s' "$fallback"
+            ai_ok "label fallback image available: $fallback"
             return 0
         fi
-        ai_bad "$label fallback image is also unavailable: $fallback"
+        ai_bad "label fallback image is also unavailable: $fallback"
     else
-        ai_bad "$label image is unavailable: $image"
+        ai_bad "label image is unavailable: $image"
     fi
 
     ai "Docker cannot resolve this image tag before service startup."
     ai "Check the tag, registry access, and Docker Desktop/daemon network."
-    ai "To override intentionally, set $primary_env to a valid image."
-    if [[ -n "$fallback_env" ]]; then
-        ai "To permit an explicit fallback, set $fallback_env to a valid image."
+    ai "To override intentionally, set primary_env to a valid image."
+    if [[ -n "fallback_env" ]]; then
+        ai "To permit an explicit fallback, set fallback_env to a valid image."
     fi
     return 1
 }

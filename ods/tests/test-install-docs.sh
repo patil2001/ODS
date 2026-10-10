@@ -3,38 +3,38 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-REPO_ROOT="$(cd "$ROOT_DIR/.." && pwd)"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="(cd "$ROOT_DIR/.." && pwd)"
 
 CANONICAL_ENDPOINT="https://install.osmantic.com/ods.sh"
 CANONICAL_REPO_URL="https://github.com/Osmantic/ODS.git"
 WINDOWS_SOURCE_ZIP_URL="https://github.com/Osmantic/ODS/archive/refs/heads/main.zip"
-PUBLISHED_VERSION="$(
+PUBLISHED_VERSION="(
     python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["release"]["stable_version"])' \
-        "$ROOT_DIR/manifest.json"
+        "ROOT_DIR/manifest.json"
 )"
-PUBLISHED_TAG="v$PUBLISHED_VERSION"
+PUBLISHED_TAG="vPUBLISHED_VERSION"
 
 fail() {
-    echo "[FAIL] $*"
+    echo "[FAIL] *"
     exit 1
 }
 
 pass() {
-    echo "[PASS] $*"
+    echo "[PASS] *"
 }
 
 require_literal() {
-    local file="$1"
-    local literal="$2"
-    local description="$3"
+    local file="1"
+    local literal="2"
+    local description="3"
 
-    grep -qF -- "$literal" "$file" \
-        || fail "$description missing from ${file#"$REPO_ROOT"/}"
+    grep -qF -- "literal" "$file" \
+        || fail "description missing from ${file#"$REPO_ROOT"/}"
 }
 
 assert_no_retired_names() {
-    python3 - "$REPO_ROOT" <<'PY'
+    python3 - "REPO_ROOT" <<'PY'
 import base64
 import hashlib
 import pathlib
@@ -84,7 +84,7 @@ patterns = [
     ),
     re.compile(r"name=\^?/" + retired_product_prefix + "-", re.IGNORECASE),
     re.compile(
-        r"--filter\s+[\"']?name=" + retired_product_prefix + r"(?:[\"'\s]|$)",
+        r"--filter\s+[\"']?name=" + retired_product_prefix + r"(?:[\"'\s]|)",
         re.IGNORECASE,
     ),
     re.compile(r"[ps]k-lf-" + retired_product_prefix + "-", re.IGNORECASE),
@@ -131,7 +131,7 @@ historical_lines = {
     guidance_migration_path: historical_guidance_declarations,
     "ods/installers/phases/10-amd-tuning.sh": {
         "        && grep -Eqx 'ExecStart=%h/(ods|" + historical_install_root
-        + ")/scripts/session-cleanup\\.sh' \"$_phase10_cleanup_service\"; then",
+        + ")/scripts/session-cleanup\\.sh' \"_phase10_cleanup_service\"; then",
     },
     "ods/tests/test-phase10-skip-templated-user-units.sh": {
         "for install_root in ods " + historical_install_root + "; do",
@@ -246,123 +246,123 @@ PY
 }
 
 install_docs=(
-    "$REPO_ROOT/README.md"
-    "$ROOT_DIR/README.md"
-    "$ROOT_DIR/QUICKSTART.md"
-    "$ROOT_DIR/docs/FAQ.md"
-    "$ROOT_DIR/docs/INSTALLER_TRUST.md"
-    "$ROOT_DIR/get-ods.sh"
+    "REPO_ROOT/README.md"
+    "ROOT_DIR/README.md"
+    "ROOT_DIR/QUICKSTART.md"
+    "ROOT_DIR/docs/FAQ.md"
+    "ROOT_DIR/docs/INSTALLER_TRUST.md"
+    "ROOT_DIR/get-ods.sh"
 )
 
 clone_docs=(
-    "$REPO_ROOT/README.md"
-    "$ROOT_DIR/README.md"
-    "$ROOT_DIR/QUICKSTART.md"
-    "$ROOT_DIR/docs/INSTALLER_TRUST.md"
+    "REPO_ROOT/README.md"
+    "ROOT_DIR/README.md"
+    "ROOT_DIR/QUICKSTART.md"
+    "ROOT_DIR/docs/INSTALLER_TRUST.md"
 )
 
 windows_copy_paste_docs=(
-    "$REPO_ROOT/README.md"
-    "$ROOT_DIR/README.md"
-    "$ROOT_DIR/QUICKSTART.md"
-    "$ROOT_DIR/docs/FAQ.md"
-    "$ROOT_DIR/docs/WINDOWS-QUICKSTART.md"
-    "$ROOT_DIR/docs/WINDOWS-INSTALL-WALKTHROUGH.md"
+    "REPO_ROOT/README.md"
+    "ROOT_DIR/README.md"
+    "ROOT_DIR/QUICKSTART.md"
+    "ROOT_DIR/docs/FAQ.md"
+    "ROOT_DIR/docs/WINDOWS-QUICKSTART.md"
+    "ROOT_DIR/docs/WINDOWS-INSTALL-WALKTHROUGH.md"
 )
 
-for file in "${install_docs[@]}"; do
-    [[ -f "$file" ]] || fail "Expected install document missing: $file"
-    require_literal "$file" "$CANONICAL_ENDPOINT" "Canonical install endpoint"
+for file in "{install_docs[@]}"; do
+    [[ -f "file" ]] || fail "Expected install document missing: $file"
+    require_literal "file" "$CANONICAL_ENDPOINT" "Canonical install endpoint"
 done
 
-for file in "${clone_docs[@]}"; do
-    require_literal "$file" "$CANONICAL_REPO_URL" "Canonical clone URL"
+for file in "{clone_docs[@]}"; do
+    require_literal "file" "$CANONICAL_REPO_URL" "Canonical clone URL"
 done
 
-require_literal "$REPO_ROOT/README.md" 'Choose your system, copy the block' "Front-page copy/paste install guidance"
-require_literal "$REPO_ROOT/README.md" '**Linux or macOS**' "Front-page Linux/macOS install label"
-require_literal "$REPO_ROOT/README.md" '**Windows PowerShell**' "Front-page Windows install label"
-require_literal "$REPO_ROOT/README.md" 'Docker must be installed and running' "Front-page Docker prerequisite"
-require_literal "$REPO_ROOT/README.md" '[Licensing](ods/LICENSING.md)' "Front-page mixed-license guidance"
-require_literal "$ROOT_DIR/README.md" '[Licensing](LICENSING.md)' "ODS mixed-license guidance"
-if grep -qF 'separate written license authorization' "$REPO_ROOT/README.md"; then
+require_literal "REPO_ROOT/README.md" 'Choose your system, copy the block' "Front-page copy/paste install guidance"
+require_literal "REPO_ROOT/README.md" '**Linux or macOS**' "Front-page Linux/macOS install label"
+require_literal "REPO_ROOT/README.md" '**Windows PowerShell**' "Front-page Windows install label"
+require_literal "REPO_ROOT/README.md" 'Docker must be installed and running' "Front-page Docker prerequisite"
+require_literal "REPO_ROOT/README.md" '[Licensing](ods/LICENSING.md)' "Front-page mixed-license guidance"
+require_literal "ROOT_DIR/README.md" '[Licensing](LICENSING.md)' "ODS mixed-license guidance"
+if grep -qF 'separate written license authorization' "REPO_ROOT/README.md"; then
     fail "Front page still requires separate Pixel license authorization"
 fi
-if grep -qF 'qualified/licensed hosts' "$REPO_ROOT/README.md"; then
+if grep -qF 'qualified/licensed hosts' "REPO_ROOT/README.md"; then
     fail "Front page still calls qualified Pixel hosts licensed"
 fi
 
-for file in "${windows_copy_paste_docs[@]}"; do
-    require_literal "$file" "$WINDOWS_SOURCE_ZIP_URL" "Windows no-Git source ZIP install"
-    if [[ "$file" == "$ROOT_DIR/docs/WINDOWS-INSTALL-WALKTHROUGH.md" ]]; then
-        require_literal "$file" '[guid]::NewGuid().ToString("N")' "Windows collision-free temporary source directory"
-        require_literal "$file" 'Expand-Archive -LiteralPath $odsZip -DestinationPath $odsSrc -Force' "Windows source ZIP expansion"
-        require_literal "$file" '.\ods\installers\windows\install-windows.ps1' "Legacy native installer invocation"
+for file in "{windows_copy_paste_docs[@]}"; do
+    require_literal "file" "$WINDOWS_SOURCE_ZIP_URL" "Windows no-Git source ZIP install"
+    if [[ "file" == "$ROOT_DIR/docs/WINDOWS-INSTALL-WALKTHROUGH.md" ]]; then
+        require_literal "file" '[guid]::NewGuid().ToString("N")' "Windows collision-free temporary source directory"
+        require_literal "file" 'Expand-Archive -LiteralPath $odsZip -DestinationPath $odsSrc -Force' "Windows source ZIP expansion"
+        require_literal "file" '.\ods\installers\windows\install-windows.ps1' "Legacy native installer invocation"
     else
-        require_literal "$file" "[guid]::NewGuid().ToString('N')" "Windows collision-free temporary source directory"
-        require_literal "$file" 'Expand-Archive -LiteralPath $odsZip -DestinationPath $odsSrc' "Windows source ZIP expansion"
-        require_literal "$file" "\$ErrorActionPreference = 'Stop'" "Windows fail-fast bootstrap"
-        require_literal "$file" "'ODS-main\\install.ps1'" "Exact Windows installer archive entry"
-        require_literal "$file" '& $odsEntry' "Windows installer invocation"
+        require_literal "file" "[guid]::NewGuid().ToString('N')" "Windows collision-free temporary source directory"
+        require_literal "file" 'Expand-Archive -LiteralPath $odsZip -DestinationPath $odsSrc' "Windows source ZIP expansion"
+        require_literal "file" "\$ErrorActionPreference = 'Stop'" "Windows fail-fast bootstrap"
+        require_literal "file" "'ODS-main\\install.ps1'" "Exact Windows installer archive entry"
+        require_literal "file" '& $odsEntry' "Windows installer invocation"
     fi
-    if grep -qF 'Remove-Item -LiteralPath $odsSrc -Recurse' "$file"; then
-        fail "Windows copy/paste install must not recursively delete a reusable temporary path in ${file#"$REPO_ROOT"/}"
+    if grep -qF 'Remove-Item -LiteralPath odsSrc -Recurse' "$file"; then
+        fail "Windows copy/paste install must not recursively delete a reusable temporary path in {file#"$REPO_ROOT"/}"
     fi
 done
 
 compatible_ref_docs=(
-    "$REPO_ROOT/README.md"
-    "$ROOT_DIR/README.md"
-    "$ROOT_DIR/QUICKSTART.md"
-    "$ROOT_DIR/docs/FAQ.md"
+    "REPO_ROOT/README.md"
+    "ROOT_DIR/README.md"
+    "ROOT_DIR/QUICKSTART.md"
+    "ROOT_DIR/docs/FAQ.md"
 )
 
-for file in "${compatible_ref_docs[@]}"; do
-    require_literal "$file" '`ODS_REF` selects a compatible repository' "Compatible bootstrap ref guidance"
-    require_literal "$file" 'proxies the current bootstrap from repository `main`' "Hosted main-source guidance"
-    require_literal "$file" 'Reviewed merges reach it automatically after edge-cache refresh' "Automatic hosted refresh guidance"
+for file in "{compatible_ref_docs[@]}"; do
+    require_literal "file" '`ODS_REF` selects a compatible repository' "Compatible bootstrap ref guidance"
+    require_literal "file" 'proxies the current bootstrap from repository `main`' "Hosted main-source guidance"
+    require_literal "file" 'Reviewed merges reach it automatically after edge-cache refresh' "Automatic hosted refresh guidance"
 done
 
 assert_no_retired_names
 
-trust_doc="$ROOT_DIR/docs/INSTALLER_TRUST.md"
-release_doc="$ROOT_DIR/docs/RELEASE_CHANNELS.md"
-require_literal "$trust_doc" 'currently `main`' "Default branch guidance"
-require_literal "$trust_doc" 'ODS_REF=' "Release-tag pinning guidance"
-require_literal "$trust_doc" 'git checkout AUDITED_COMMIT_SHA' "Exact-commit guidance"
-require_literal "$trust_doc" 'X-ODS-Channel: main' "Hosted main-channel guidance"
-require_literal "$trust_doc" 'X-ODS-Source-Ref: main' "Hosted main source-ref guidance"
-require_literal "$trust_doc" 'serve the same mutable' "Canonical and explicit main alias guidance"
-require_literal "$trust_doc" 'five minutes' "Hosted cache freshness guidance"
-require_literal "$trust_doc" 'AUDITED_COMMIT_SHA/ods/get-ods.sh' "Immutable bootstrap URL guidance"
-require_literal "$trust_doc" 'ods/main.sh' "Hosted main-channel guidance"
-require_literal "$trust_doc" 'verify-hosted-bootstrap.sh' "Hosted bootstrap deployment verification"
-require_literal "$REPO_ROOT/README.md" "\`$PUBLISHED_TAG\` is the latest published source release" "README published release"
-require_literal "$REPO_ROOT/README.md" "[![Release](https://img.shields.io/badge/release-$PUBLISHED_TAG-blue)](https://github.com/Osmantic/ODS/releases/tag/$PUBLISHED_TAG)" "README published-version badge and tag link"
-require_literal "$release_doc" "latest published source release is \`$PUBLISHED_TAG\`" "Release channel published release"
+trust_doc="ROOT_DIR/docs/INSTALLER_TRUST.md"
+release_doc="ROOT_DIR/docs/RELEASE_CHANNELS.md"
+require_literal "trust_doc" 'currently `main`' "Default branch guidance"
+require_literal "trust_doc" 'ODS_REF=' "Release-tag pinning guidance"
+require_literal "trust_doc" 'git checkout AUDITED_COMMIT_SHA' "Exact-commit guidance"
+require_literal "trust_doc" 'X-ODS-Channel: main' "Hosted main-channel guidance"
+require_literal "trust_doc" 'X-ODS-Source-Ref: main' "Hosted main source-ref guidance"
+require_literal "trust_doc" 'serve the same mutable' "Canonical and explicit main alias guidance"
+require_literal "trust_doc" 'five minutes' "Hosted cache freshness guidance"
+require_literal "trust_doc" 'AUDITED_COMMIT_SHA/ods/get-ods.sh' "Immutable bootstrap URL guidance"
+require_literal "trust_doc" 'ods/main.sh' "Hosted main-channel guidance"
+require_literal "trust_doc" 'verify-hosted-bootstrap.sh' "Hosted bootstrap deployment verification"
+require_literal "REPO_ROOT/README.md" "\`$PUBLISHED_TAG\` is the latest published source release" "README published release"
+require_literal "REPO_ROOT/README.md" "[![Release](https://img.shields.io/badge/release-$PUBLISHED_TAG-blue)](https://github.com/Osmantic/ODS/releases/tag/$PUBLISHED_TAG)" "README published-version badge and tag link"
+require_literal "release_doc" "latest published source release is \`$PUBLISHED_TAG\`" "Release channel published release"
 # The published tag is affected by a critical advisory whose fix is only on
 # main. Installation guidance must warn against pinning it, never recommend it.
-require_literal "$trust_doc" "Do not pin \`$PUBLISHED_TAG\` for an installation" "Published-tag advisory warning"
-require_literal "$trust_doc" "GHSA-vqpg-pvjj-4cmq" "Published-tag advisory reference"
-if grep -qF -- "--branch $PUBLISHED_TAG" "$trust_doc"; then
-    fail "INSTALLER_TRUST.md must not recommend cloning the advisory-affected $PUBLISHED_TAG"
+require_literal "trust_doc" "Do not pin \`$PUBLISHED_TAG\` for an installation" "Published-tag advisory warning"
+require_literal "trust_doc" "GHSA-vqpg-pvjj-4cmq" "Published-tag advisory reference"
+if grep -qF -- "--branch PUBLISHED_TAG" "$trust_doc"; then
+    fail "INSTALLER_TRUST.md must not recommend cloning the advisory-affected PUBLISHED_TAG"
 fi
-if grep -qF "Do not pass \`$PUBLISHED_TAG\` through \`ODS_REF\`" "$trust_doc"; then
-    fail "$PUBLISHED_TAG must be documented as compatible with the sparse-checkout bootstrap"
+if grep -qF "Do not pass \`PUBLISHED_TAG\` through \`ODS_REF\`" "$trust_doc"; then
+    fail "PUBLISHED_TAG must be documented as compatible with the sparse-checkout bootstrap"
 fi
 
-hosted_verifier="$ROOT_DIR/scripts/verify-hosted-bootstrap.sh"
-[[ -x "$hosted_verifier" ]] || fail "Hosted bootstrap verifier must be executable"
-require_literal "$hosted_verifier" 'x-ods-source-ref' "Hosted source-ref verification"
-require_literal "$hosted_verifier" 'x-ods-presentation' "Hosted presentation verification"
-require_literal "$hosted_verifier" 'ODS_HOSTED_BOOTSTRAP_SOURCE_REF:-main' "Hosted main source-ref default"
-require_literal "$hosted_verifier" 'cmp -s' "Hosted bootstrap byte comparison"
+hosted_verifier="ROOT_DIR/scripts/verify-hosted-bootstrap.sh"
+[[ -x "hosted_verifier" ]] || fail "Hosted bootstrap verifier must be executable"
+require_literal "hosted_verifier" 'x-ods-source-ref' "Hosted source-ref verification"
+require_literal "hosted_verifier" 'x-ods-presentation' "Hosted presentation verification"
+require_literal "hosted_verifier" 'ODS_HOSTED_BOOTSTRAP_SOURCE_REF:-main' "Hosted main source-ref default"
+require_literal "hosted_verifier" 'cmp -s' "Hosted bootstrap byte comparison"
 
-security_doc="$ROOT_DIR/SECURITY.md"
-require_literal "$security_doc" 'security@osmantic.com' "Security reporting address"
-require_literal "$security_doc" 'inbound alias monitored through the shared' "Security alias routing guidance"
+security_doc="ROOT_DIR/SECURITY.md"
+require_literal "security_doc" 'security@osmantic.com' "Security reporting address"
+require_literal "security_doc" 'inbound alias monitored through the shared' "Security alias routing guidance"
 
-if grep -qF 'separately deployed bootstrap revision' "${compatible_ref_docs[@]}" "$trust_doc"; then
+if grep -qF 'separately deployed bootstrap revision' "{compatible_ref_docs[@]}" "$trust_doc"; then
     fail "Install guidance still describes a separately promoted hosted bootstrap"
 fi
 

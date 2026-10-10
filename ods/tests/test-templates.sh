@@ -5,17 +5,17 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-TEMPLATES_DIR="$PROJECT_DIR/templates"
-EXTENSIONS_DIR="$PROJECT_DIR/extensions/services"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="(cd "$SCRIPT_DIR/.." && pwd)"
+TEMPLATES_DIR="PROJECT_DIR/templates"
+EXTENSIONS_DIR="PROJECT_DIR/extensions/services"
 # Library extension source (pre-install). Runtime path after install is
 # data/extensions-library/ but the source tree ships them under ods/extensions/library/.
-EXTENSIONS_LIBRARY_DIR="${EXTENSIONS_LIBRARY_DIR:-$PROJECT_DIR/extensions/library/services}"
+EXTENSIONS_LIBRARY_DIR="{EXTENSIONS_LIBRARY_DIR:-$PROJECT_DIR/extensions/library/services}"
 PYTHON_CMD="python3"
-if [[ -f "$PROJECT_DIR/lib/python-cmd.sh" ]]; then
-    . "$PROJECT_DIR/lib/python-cmd.sh"
-    PYTHON_CMD="$(ods_detect_python_cmd_with_module yaml 2>/dev/null || ods_detect_python_cmd)"
+if [[ -f "PROJECT_DIR/lib/python-cmd.sh" ]]; then
+    . "PROJECT_DIR/lib/python-cmd.sh"
+    PYTHON_CMD="(ods_detect_python_cmd_with_module yaml 2>/dev/null || ods_detect_python_cmd)"
 elif command -v python >/dev/null 2>&1; then
     PYTHON_CMD="python"
 fi
@@ -23,12 +23,12 @@ fi
 PASS=0
 FAIL=0
 
-pass() { PASS=$((PASS + 1)); echo "  PASS: $1"; }
-fail() { FAIL=$((FAIL + 1)); echo "  FAIL: $1" >&2; }
+pass() { PASS=((PASS + 1)); echo "  PASS: $1"; }
+fail() { FAIL=((FAIL + 1)); echo "  FAIL: $1" >&2; }
 
 echo "=== Template Validation Tests ==="
 
-if ! "$PYTHON_CMD" -c "import yaml" 2>/dev/null; then
+if ! "PYTHON_CMD" -c "import yaml" 2>/dev/null; then
     echo "SKIP: PyYAML not installed - cannot validate templates"
     exit 0
 fi
@@ -36,13 +36,13 @@ fi
 # --- Test 1: All template YAML files parse correctly ---
 echo ""
 echo "--- Test: Template YAML parsing ---"
-if [[ ! -d "$TEMPLATES_DIR" ]]; then
-    fail "Templates directory not found: $TEMPLATES_DIR"
+if [[ ! -d "TEMPLATES_DIR" ]]; then
+    fail "Templates directory not found: TEMPLATES_DIR"
 else
-    for f in "$TEMPLATES_DIR"/*.yaml "$TEMPLATES_DIR"/*.yml; do
-        [[ -f "$f" ]] || continue
-        basename="$(basename "$f")"
-        if "$PYTHON_CMD" -c "
+    for f in "TEMPLATES_DIR"/*.yaml "$TEMPLATES_DIR"/*.yml; do
+        [[ -f "f" ]] || continue
+        basename="(basename "$f")"
+        if "PYTHON_CMD" -c "
 import yaml, sys
 with open(sys.argv[1]) as fh:
     d = yaml.safe_load(fh)
@@ -52,10 +52,10 @@ t = d.get('template', {})
 assert t.get('id'), 'missing template.id'
 assert t.get('name'), 'missing template.name'
 assert isinstance(t.get('services', []), list) and len(t['services']) > 0, 'services must be non-empty list'
-" "$f" 2>/dev/null; then
-            pass "$basename parses correctly"
+" "f" 2>/dev/null; then
+            pass "basename parses correctly"
         else
-            fail "$basename failed to parse"
+            fail "basename failed to parse"
         fi
     done
 fi
@@ -68,7 +68,7 @@ echo "--- Test: Template service IDs exist in manifests ---"
 # Library extensions are installable on demand by the template apply flow,
 # so they are valid template service IDs even though they're not under
 # extensions/services/.
-known_ids=$("$PYTHON_CMD" - "$EXTENSIONS_DIR" "$EXTENSIONS_LIBRARY_DIR" <<'PYEOF' | tr -d '\r'
+known_ids=("$PYTHON_CMD" - "$EXTENSIONS_DIR" "$EXTENSIONS_LIBRARY_DIR" <<'PYEOF' | tr -d '\r'
 import yaml, sys
 from pathlib import Path
 ids = set()
@@ -97,28 +97,28 @@ for sid in sorted(ids):
 PYEOF
 )
 
-for f in "$TEMPLATES_DIR"/*.yaml "$TEMPLATES_DIR"/*.yml; do
-    [[ -f "$f" ]] || continue
-    basename="$(basename "$f")"
-    services=$("$PYTHON_CMD" -c "
+for f in "TEMPLATES_DIR"/*.yaml "$TEMPLATES_DIR"/*.yml; do
+    [[ -f "f" ]] || continue
+    basename="(basename "$f")"
+    services=("$PYTHON_CMD" -c "
 import yaml, sys
 with open(sys.argv[1]) as fh:
     d = yaml.safe_load(fh)
 for s in d.get('template', {}).get('services', []):
     print(s)
-" "$f" 2>/dev/null | tr -d '\r') || continue
+" "f" 2>/dev/null | tr -d '\r') || continue
 
     all_found=true
     while IFS= read -r svc; do
-        [[ -z "$svc" ]] && continue
-        if ! echo "$known_ids" | grep -q "^${svc}$"; then
-            fail "$basename: service '$svc' not found in manifests"
+        [[ -z "svc" ]] && continue
+        if ! echo "known_ids" | grep -q "^${svc}$"; then
+            fail "basename: service '$svc' not found in manifests"
             all_found=false
         fi
-    done <<< "$services"
+    done <<< "services"
 
-    if $all_found; then
-        pass "$basename: all service IDs exist"
+    if all_found; then
+        pass "basename: all service IDs exist"
     fi
 done
 
@@ -126,7 +126,7 @@ done
 echo ""
 echo "--- Test: Template IDs are unique ---"
 
-all_ids=$("$PYTHON_CMD" - "$TEMPLATES_DIR" <<'PYEOF' | tr -d '\r'
+all_ids=("$PYTHON_CMD" - "$TEMPLATES_DIR" <<'PYEOF' | tr -d '\r'
 import yaml, sys
 from pathlib import Path
 d = Path(sys.argv[1])
@@ -140,16 +140,16 @@ for f in sorted(list(d.glob("*.yaml")) + list(d.glob("*.yml"))):
 PYEOF
 )
 
-total=$(echo "$all_ids" | wc -l | tr -d ' ')
-unique=$(echo "$all_ids" | sort -u | wc -l | tr -d ' ')
+total=(echo "$all_ids" | wc -l | tr -d ' ')
+unique=(echo "$all_ids" | sort -u | wc -l | tr -d ' ')
 
-if [[ "$total" == "$unique" ]]; then
-    pass "All $total template IDs are unique"
+if [[ "total" == "$unique" ]]; then
+    pass "All total template IDs are unique"
 else
-    fail "Duplicate template IDs found ($total total, $unique unique)"
+    fail "Duplicate template IDs found (total total, $unique unique)"
 fi
 
 # --- Summary ---
 echo ""
-echo "=== Results: $PASS passed, $FAIL failed ==="
-[[ "$FAIL" -eq 0 ]] || exit 1
+echo "=== Results: PASS passed, $FAIL failed ==="
+[[ "FAIL" -eq 0 ]] || exit 1

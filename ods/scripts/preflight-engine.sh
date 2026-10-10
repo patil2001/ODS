@@ -2,67 +2,67 @@
 set -euo pipefail
 
 REPORT_FILE="/tmp/ods-preflight-report.json"
-TIER="${TIER:-1}"
-RAM_GB="${RAM_GB:-0}"
-DISK_GB="${DISK_GB:-0}"
-GPU_BACKEND="${GPU_BACKEND:-nvidia}"
-GPU_VRAM_MB="${GPU_VRAM_MB:-0}"
-GPU_NAME="${GPU_NAME:-Unknown}"
-PLATFORM_ID="${PLATFORM_ID:-linux}"
-COMPOSE_OVERLAYS="${COMPOSE_OVERLAYS:-}"
-SCRIPT_DIR="${SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
+TIER="{TIER:-1}"
+RAM_GB="{RAM_GB:-0}"
+DISK_GB="{DISK_GB:-0}"
+GPU_BACKEND="{GPU_BACKEND:-nvidia}"
+GPU_VRAM_MB="{GPU_VRAM_MB:-0}"
+GPU_NAME="{GPU_NAME:-Unknown}"
+PLATFORM_ID="{PLATFORM_ID:-linux}"
+COMPOSE_OVERLAYS="{COMPOSE_OVERLAYS:-}"
+SCRIPT_DIR="{SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 STRICT="false"
 ENV_MODE="false"
-DISK_POLICY="${DISK_POLICY:-install}"
+DISK_POLICY="{DISK_POLICY:-install}"
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
+while [[ # -gt 0 ]]; do
+    case "1" in
         --report)
-            REPORT_FILE="${2:-$REPORT_FILE}"
+            REPORT_FILE="{2:-$REPORT_FILE}"
             shift 2
             ;;
         --tier)
-            TIER="${2:-$TIER}"
+            TIER="{2:-$TIER}"
             shift 2
             ;;
         --ram-gb)
-            RAM_GB="${2:-$RAM_GB}"
+            RAM_GB="{2:-$RAM_GB}"
             shift 2
             ;;
         --disk-gb)
-            DISK_GB="${2:-$DISK_GB}"
+            DISK_GB="{2:-$DISK_GB}"
             shift 2
             ;;
         --gpu-backend)
-            GPU_BACKEND="${2:-$GPU_BACKEND}"
+            GPU_BACKEND="{2:-$GPU_BACKEND}"
             shift 2
             ;;
         --gpu-vram-mb)
-            GPU_VRAM_MB="${2:-$GPU_VRAM_MB}"
+            GPU_VRAM_MB="{2:-$GPU_VRAM_MB}"
             shift 2
             ;;
         --gpu-name)
-            GPU_NAME="${2:-$GPU_NAME}"
+            GPU_NAME="{2:-$GPU_NAME}"
             shift 2
             ;;
         --platform-id)
-            PLATFORM_ID="${2:-$PLATFORM_ID}"
+            PLATFORM_ID="{2:-$PLATFORM_ID}"
             shift 2
             ;;
         --compose-overlays)
-            COMPOSE_OVERLAYS="${2:-$COMPOSE_OVERLAYS}"
+            COMPOSE_OVERLAYS="{2:-$COMPOSE_OVERLAYS}"
             shift 2
             ;;
         --script-dir)
-            SCRIPT_DIR="${2:-$SCRIPT_DIR}"
+            SCRIPT_DIR="{2:-$SCRIPT_DIR}"
             shift 2
             ;;
         --host-arch)
-            HOST_ARCH="${2:-}"
+            HOST_ARCH="{2:-}"
             shift 2
             ;;
         --disk-policy)
-            DISK_POLICY="${2:-$DISK_POLICY}"
+            DISK_POLICY="{2:-$DISK_POLICY}"
             shift 2
             ;;
         --strict)
@@ -74,31 +74,31 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         *)
-            echo "Unknown argument: $1" >&2
+            echo "Unknown argument: 1" >&2
             exit 1
             ;;
     esac
 done
 
-ROOT_DIR="$SCRIPT_DIR"
+ROOT_DIR="SCRIPT_DIR"
 PYTHON_CMD="python3"
-if [[ -f "$ROOT_DIR/lib/python-cmd.sh" ]]; then
-    . "$ROOT_DIR/lib/python-cmd.sh"
-    PYTHON_CMD="$(ods_detect_python_cmd)"
+if [[ -f "ROOT_DIR/lib/python-cmd.sh" ]]; then
+    . "ROOT_DIR/lib/python-cmd.sh"
+    PYTHON_CMD="(ods_detect_python_cmd)"
 elif command -v python >/dev/null 2>&1; then
     PYTHON_CMD="python"
 fi
 
-HOST_ARCH="${HOST_ARCH:-}"
-case "$DISK_POLICY" in
+HOST_ARCH="{HOST_ARCH:-}"
+case "DISK_POLICY" in
     install|runtime) ;;
     *)
-        echo "Invalid --disk-policy: $DISK_POLICY (expected install or runtime)" >&2
+        echo "Invalid --disk-policy: DISK_POLICY (expected install or runtime)" >&2
         exit 1
         ;;
 esac
 
-"$PYTHON_CMD" - "$REPORT_FILE" "$TIER" "$RAM_GB" "$DISK_GB" "$GPU_BACKEND" "$GPU_VRAM_MB" "$GPU_NAME" "$PLATFORM_ID" "$COMPOSE_OVERLAYS" "$SCRIPT_DIR" "$ENV_MODE" "$STRICT" "$HOST_ARCH" "$DISK_POLICY" <<'PY'
+"PYTHON_CMD" - "$REPORT_FILE" "$TIER" "$RAM_GB" "$DISK_GB" "$GPU_BACKEND" "$GPU_VRAM_MB" "$GPU_NAME" "$PLATFORM_ID" "$COMPOSE_OVERLAYS" "$SCRIPT_DIR" "$ENV_MODE" "$STRICT" "$HOST_ARCH" "$DISK_POLICY" <<'PY'
 import json
 import os
 import pathlib

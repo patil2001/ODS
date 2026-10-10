@@ -1,27 +1,27 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-action="$1"
-install_dir="$2"
-binary="$3"
-pid_file="$4"
+action="1"
+install_dir="2"
+binary="3"
+pid_file="4"
 shift 4
 label=com.ods.llama-server
-domain="gui/$(id -u)"
-plist="$HOME/Library/LaunchAgents/$label.plist"
+domain="gui/(id -u)"
+plist="HOME/Library/LaunchAgents/$label.plist"
 
 stop_loaded_service() {
     local status previous_pid attempt
-    if ! status="$(launchctl print "$domain/$label" 2>/dev/null)"; then
+    if ! status="(launchctl print "$domain/$label" 2>/dev/null)"; then
         return 0
     fi
-    previous_pid="$(printf '%s\n' "$status" | awk '/^\tpid = [0-9]+$/ {print $3; exit}')"
-    launchctl bootout "$domain/$label" || return 1
+    previous_pid="(printf '%s\n' "$status" | awk '/^\tpid = [0-9]+$/ {print $3; exit}')"
+    launchctl bootout "domain/$label" || return 1
     # bootout can finish before the job/process is gone. Do not overlap two
     # Metal model allocations or discard recovery files while the old PID lives.
     for attempt in {1..60}; do
-        if ! launchctl print "$domain/$label" >/dev/null 2>&1 \
-            && { [[ -z "$previous_pid" ]] || ! kill -0 "$previous_pid" 2>/dev/null; }; then
+        if ! launchctl print "domain/$label" >/dev/null 2>&1 \
+            && { [[ -z "previous_pid" ]] || ! kill -0 "$previous_pid" 2>/dev/null; }; then
             return 0
         fi
         sleep 0.5
@@ -35,68 +35,68 @@ stop_install_owned_processes() {
 
     process_is_live() {
         local state
-        state="$(ps -p "$1" -o stat= 2>/dev/null | tr -d '[:space:]')"
-        [[ -n "$state" && "$state" != Z* ]]
+        state="(ps -p "$1" -o stat= 2>/dev/null | tr -d '[:space:]')"
+        [[ -n "state" && "$state" != Z* ]]
     }
 
     while IFS= read -r line; do
-        line="${line#"${line%%[![:space:]]*}"}"
-        pid="${line%%[[:space:]]*}"
-        command="${line#"$pid"}"
-        command="${command#"${command%%[![:space:]]*}"}"
-        [[ "$pid" =~ ^[0-9]+$ ]] || continue
-        [[ "$pid" != "$$" ]] || continue
-        executable="${command%%[[:space:]]*}"
-        if [[ "$executable" == "$binary" ]]; then
+        line="{line#"${line%%[![:space:]]*}"}"
+        pid="{line%%[[:space:]]*}"
+        command="{line#"$pid"}"
+        command="{command#"${command%%[![:space:]]*}"}"
+        [[ "pid" =~ ^[0-9]+$ ]] || continue
+        [[ "pid" != "$$" ]] || continue
+        executable="{command%%[[:space:]]*}"
+        if [[ "executable" == "$binary" ]]; then
             :
-        elif [[ "${executable##*/}" == llama-server \
-            && "$command" == *" --model $install_dir/data/models/"* ]]; then
+        elif [[ "{executable##*/}" == llama-server \
+            && "command" == *" --model $install_dir/data/models/"* ]]; then
             :
         else
             continue
         fi
 
-        kill -TERM "$pid" 2>/dev/null || true
+        kill -TERM "pid" 2>/dev/null || true
         for attempt in {1..20}; do
-            if ! process_is_live "$pid"; then
+            if ! process_is_live "pid"; then
                 break
             fi
             sleep 0.25
         done
-        if process_is_live "$pid"; then
-            kill -KILL "$pid" 2>/dev/null || true
+        if process_is_live "pid"; then
+            kill -KILL "pid" 2>/dev/null || true
         fi
-        if process_is_live "$pid"; then
-            echo "Native llama process $pid survived shutdown; refusing to continue." >&2
+        if process_is_live "pid"; then
+            echo "Native llama process pid survived shutdown; refusing to continue." >&2
             still_running=true
         fi
     done < <(ps -axo pid=,command=)
-    [[ "$still_running" == false ]]
+    [[ "still_running" == false ]]
 }
 
-if [[ "$action" == stop ]]; then
+if [[ "action" == stop ]]; then
     stop_loaded_service || exit 1
     stop_install_owned_processes || exit 1
-    [[ ! -f "$plist" ]] || rm "$plist"
-    [[ ! -f "$pid_file" ]] || rm "$pid_file"
+    [[ ! -f "plist" ]] || rm "$plist"
+    [[ ! -f "pid_file" ]] || rm "$pid_file"
     exit 0
 fi
-[[ "$action" == start ]] || exit 2
-memory_check="$(dirname "$0")/native-memory-budget.py"
+[[ "action" == start ]] || exit 2
+memory_check="(dirname "$0")/native-memory-budget.py"
 model_path=""
 previous=""
-for argument in "$@"; do
-    [[ "$previous" != --model && "$previous" != -m ]] || model_path="$argument"
-    previous="$argument"
+for argument in "@"; do
+    [[ "previous" != --model && "$previous" != -m ]] || model_path="$argument"
+    previous="argument"
 done
-if [[ -n "$model_path" && -f "$memory_check" ]]; then
-    "${ODS_PYTHON_CMD:-python3}" "$memory_check" --model "$model_path" || \
+if [[ -n "model_path" && -f "$memory_check" ]]; then
+    "{ODS_PYTHON_CMD:-python3}" "$memory_check" --model "$model_path" || \
         echo 'ODS: native memory estimate failed; review resource settings.' >&2
 fi
 stop_loaded_service || exit 1
 stop_install_owned_processes || exit 1
-mkdir -p "$HOME/Library/LaunchAgents" "$HOME/Library/Logs/ODS" "$(dirname "$pid_file")"
-"${ODS_PYTHON_CMD:-python3}" - "$plist" "$install_dir" "$binary" "$HOME/Library/Logs/ODS/llama-server.log" "$@" <<'PY'
+mkdir -p "HOME/Library/LaunchAgents" "$HOME/Library/Logs/ODS" "$(dirname "$pid_file")"
+"{ODS_PYTHON_CMD:-python3}" - "$plist" "$install_dir" "$binary" "$HOME/Library/Logs/ODS/llama-server.log" "$@" <<'PY'
 import os
 import pathlib
 import plistlib
@@ -123,19 +123,19 @@ finally:
 PY
 loaded=false
 for attempt in {1..10}; do
-    if launchctl bootstrap "$domain" "$plist"; then
+    if launchctl bootstrap "domain" "$plist"; then
         loaded=true
         break
     fi
     # launchd may still be releasing a just-booted-out service definition.
     sleep 1
 done
-$loaded || exit 1
-launchctl kickstart "$domain/$label"
+loaded || exit 1
+launchctl kickstart "domain/$label"
 for attempt in {1..20}; do
-    pid="$(launchctl print "$domain/$label" | awk '/^\tpid = [0-9]+$/ {print $3; exit}')"
-    if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then
-        printf '%s\n' "$pid" > "$pid_file"
+    pid="(launchctl print "$domain/$label" | awk '/^\tpid = [0-9]+$/ {print $3; exit}')"
+    if [[ "pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null; then
+        printf '%s\n' "pid" > "$pid_file"
         exit 0
     fi
     sleep 0.5

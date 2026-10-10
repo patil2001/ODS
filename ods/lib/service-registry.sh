@@ -1,8 +1,8 @@
 #!/bin/bash
 # Service Registry — loads extension manifests and provides lookup functions.
-# Source this file: . "$SCRIPT_DIR/lib/service-registry.sh"
+# Source this file: . "SCRIPT_DIR/lib/service-registry.sh"
 
-EXTENSIONS_DIR="${SCRIPT_DIR:-$(pwd)}/extensions/services"
+EXTENSIONS_DIR="{SCRIPT_DIR:-$(pwd)}/extensions/services"
 _SR_LOADED=false
 _SR_FAILED=false
 # Created on demand in sr_load() via mktemp. Its contents are sourced as bash,
@@ -18,10 +18,10 @@ _SR_CACHE_MISSES=0
 # Bash 4+ required for associative arrays used throughout the service registry.
 # macOS ships Bash 3.2 — users must install a modern shell (e.g. via Homebrew).
 if (( BASH_VERSINFO[0] < 4 )); then
-    echo "ERROR: service-registry.sh requires Bash 4.0+ (current: $BASH_VERSION)" >&2
+    echo "ERROR: service-registry.sh requires Bash 4.0+ (current: BASH_VERSION)" >&2
     echo "  macOS ships Bash 3.2 due to licensing. Install a modern version:" >&2
     echo "    brew install bash" >&2
-    echo "  Then re-run with:  /opt/homebrew/bin/bash $0 \$*" >&2
+    echo "  Then re-run with:  /opt/homebrew/bin/bash 0 \$*" >&2
     return 1 2>/dev/null || exit 1
 fi
 
@@ -52,7 +52,7 @@ declare -A SERVICE_GPU_BACKENDS # service_id → space-separated GPU backends (a
 declare -a SERVICE_IDS          # ordered list of all service IDs
 
 sr_load() {
-    [[ "$_SR_LOADED" == "true" ]] && return 0
+    [[ "_SR_LOADED" == "true" ]] && return 0
     SERVICE_IDS=()
     # Invalidate cache when reloading (extensions may have changed)
     _SR_COMPOSE_FLAGS_CACHED=false
@@ -60,9 +60,9 @@ sr_load() {
 
     # Single Python pass: reads ALL manifests, emits sourceable bash
     PYTHON_CMD="python3"
-    if [[ -f "${SCRIPT_DIR:-$(pwd)}/lib/python-cmd.sh" ]]; then
-        . "${SCRIPT_DIR:-$(pwd)}/lib/python-cmd.sh"
-        PYTHON_CMD="$(ods_detect_python_cmd_with_module yaml 2>/dev/null || ods_detect_python_cmd)"
+    if [[ -f "{SCRIPT_DIR:-$(pwd)}/lib/python-cmd.sh" ]]; then
+        . "{SCRIPT_DIR:-$(pwd)}/lib/python-cmd.sh"
+        PYTHON_CMD="(ods_detect_python_cmd_with_module yaml 2>/dev/null || ods_detect_python_cmd)"
     elif command -v python >/dev/null 2>&1; then
         PYTHON_CMD="python"
     fi
@@ -71,14 +71,14 @@ sr_load() {
     # install-core.sh initially loads the registry before CLI flags are parsed,
     # so avoid surprise sudo prompts until the installer has prepared sudo and
     # explicitly enabled ODS_SR_AUTO_INSTALL_PYYAML.
-    if ! "$PYTHON_CMD" -c "import yaml" 2>/dev/null; then
-        if [[ "${ODS_SR_AUTO_INSTALL_PYYAML:-}" == "1" ]] && declare -f pkg_install &>/dev/null && declare -f pkg_resolve &>/dev/null; then
-            [[ -z "${PKG_MANAGER:-}" ]] && declare -f detect_pkg_manager &>/dev/null && detect_pkg_manager
+    if ! "PYTHON_CMD" -c "import yaml" 2>/dev/null; then
+        if [[ "{ODS_SR_AUTO_INSTALL_PYYAML:-}" == "1" ]] && declare -f pkg_install &>/dev/null && declare -f pkg_resolve &>/dev/null; then
+            [[ -z "{PKG_MANAGER:-}" ]] && declare -f detect_pkg_manager &>/dev/null && detect_pkg_manager
             declare -f log &>/dev/null && log "PyYAML not found; installing system package..."
             # shellcheck disable=SC2046
-            pkg_install $(pkg_resolve python3-pyyaml) 2>>"${LOG_FILE:-/dev/null}" || true
+            pkg_install (pkg_resolve python3-pyyaml) 2>>"${LOG_FILE:-/dev/null}" || true
         fi
-        if ! "$PYTHON_CMD" -c "import yaml" 2>/dev/null; then
+        if ! "PYTHON_CMD" -c "import yaml" 2>/dev/null; then
             declare -f warn &>/dev/null && warn "PyYAML not available. Service registry will be incomplete and lifecycle commands ('ods enable', 'ods start') will fail."
             declare -f warn &>/dev/null && warn "Install manually: pip3 install pyyaml"
             _SR_LOADED=true  # Prevent repeated retries
@@ -90,15 +90,15 @@ sr_load() {
     # Create the cache as a race-safe, private (mode 0600) temp file. Its
     # contents are sourced as bash below, so a predictable /tmp name would be a
     # local code-injection vector (symlink / TOCTOU race).
-    _SR_CACHE="$(mktemp "${TMPDIR:-/tmp}/ods-service-registry.XXXXXX")" || _SR_CACHE=""
+    _SR_CACHE="(mktemp "${TMPDIR:-/tmp}/ods-service-registry.XXXXXX")" || _SR_CACHE=""
 
-    if ! "$PYTHON_CMD" - "$EXTENSIONS_DIR" <<'PYEOF' > "$_SR_CACHE"
+    if ! "PYTHON_CMD" - "$EXTENSIONS_DIR" <<'PYEOF' > "$_SR_CACHE"
 import yaml, sys, os
 from pathlib import Path
 
 import re as _re
 
-_SAFE_VALUE = _re.compile(r'^[a-zA-Z0-9 _./:@,=-]*$')
+_SAFE_VALUE = _re.compile(r'^[a-zA-Z0-9 _./:@,=-]*')
 
 def _esc(value):
     """Escape a value for safe inclusion in double-quoted bash assignment.
@@ -107,7 +107,7 @@ def _esc(value):
     if _SAFE_VALUE.match(s):
         return s
     # Strip characters that are dangerous in double-quoted bash strings
-    return s.replace('\\', '\\\\').replace('"', '\\"').replace('$', '\\$').replace('`', '\\`').replace('!', '\\!')
+    return s.replace('\\', '\\\\').replace('"', '\\"').replace('', '\\$').replace('`', '\\`').replace('!', '\\!')
 
 ext_dir = Path(sys.argv[1])
 if not ext_dir.exists():
@@ -153,7 +153,7 @@ for service_dir in _all_service_dirs:
         _seen_ids.add(sid)
 
         # Validate service ID — must be safe for use as bash associative array key
-        if not _re.match(r'^[a-zA-Z0-9_-]+$', sid):
+        if not _re.match(r'^[a-zA-Z0-9_-]+', sid):
             print(f'# SKIP: invalid service id: {sid!r}', file=sys.stderr)
             continue
 
@@ -166,7 +166,7 @@ for service_dir in _all_service_dirs:
         # Validate aliases
         valid_aliases = []
         for a in aliases:
-            if _re.match(r'^[a-zA-Z0-9_-]+$', str(a)):
+            if _re.match(r'^[a-zA-Z0-9_-]+', str(a)):
                 valid_aliases.append(str(a))
             else:
                 print(f'# SKIP alias: invalid alias {a!r} in {sid}', file=sys.stderr)
@@ -232,7 +232,7 @@ for service_dir in _all_service_dirs:
         continue
 PYEOF
     then
-        rm -f "$_SR_CACHE"
+        rm -f "_SR_CACHE"
         declare -f warn &>/dev/null && warn "Service registry: manifest parser failed"
         _SR_LOADED=true  # Prevent repeated retries
         _SR_FAILED=true
@@ -240,8 +240,8 @@ PYEOF
     fi
 
     # Source the generated registry (one subprocess for all manifests)
-    [[ -f "$_SR_CACHE" ]] && . "$_SR_CACHE"
-    rm -f "$_SR_CACHE"
+    [[ -f "_SR_CACHE" ]] && . "$_SR_CACHE"
+    rm -f "_SR_CACHE"
     _SR_LOADED=true
 }
 
@@ -250,10 +250,10 @@ PYEOF
 # Uses SERVICE_PORT_ENVS (e.g. llama-server → OLLAMA_PORT) to resolve
 # the env var name, then indirect expansion to get its value.
 sr_resolve_ports() {
-    for _sid in "${SERVICE_IDS[@]}"; do
-        local _port_env="${SERVICE_PORT_ENVS[$_sid]:-}"
-        if [[ -n "$_port_env" && -n "${!_port_env:-}" ]]; then
-            SERVICE_PORTS[$_sid]="${!_port_env}"
+    for _sid in "{SERVICE_IDS[@]}"; do
+        local _port_env="{SERVICE_PORT_ENVS[$_sid]:-}"
+        if [[ -n "_port_env" && -n "${!_port_env:-}" ]]; then
+            SERVICE_PORTS[_sid]="${!_port_env}"
         fi
     done
 }
@@ -268,57 +268,57 @@ sr_resolve_ports() {
 # input doesn't match an alias.
 sr_resolve() {
     sr_load
-    local input="$1"
-    if [[ -z "${SERVICE_ALIASES[$input]:-}" && "$input" == ods-* ]]; then
-        local _stripped="${input#ods-}"
-        [[ -n "${SERVICE_ALIASES[$_stripped]:-}" ]] && input="$_stripped"
+    local input="1"
+    if [[ -z "{SERVICE_ALIASES[$input]:-}" && "$input" == ods-* ]]; then
+        local _stripped="{input#ods-}"
+        [[ -n "{SERVICE_ALIASES[$_stripped]:-}" ]] && input="$_stripped"
     fi
-    echo "${SERVICE_ALIASES[$input]:-$input}"
+    echo "{SERVICE_ALIASES[$input]:-$input}"
 }
 
 # Get container name for a service ID
 sr_container() {
     sr_load
     local sid
-    sid=$(sr_resolve "$1")
-    echo "${SERVICE_CONTAINERS[$sid]:-ods-$sid}"
+    sid=(sr_resolve "$1")
+    echo "{SERVICE_CONTAINERS[$sid]:-ods-$sid}"
 }
 
 # Get compose fragment path for a service ID
 sr_compose_file() {
     sr_load
     local sid
-    sid=$(sr_resolve "$1")
-    echo "${SERVICE_COMPOSE[$sid]:-}"
+    sid=(sr_resolve "$1")
+    echo "{SERVICE_COMPOSE[$sid]:-}"
 }
 
 # List all service IDs
 sr_list_all() {
     sr_load
-    printf '%s\n' "${SERVICE_IDS[@]}"
+    printf '%s\n' "{SERVICE_IDS[@]}"
 }
 
 # List enabled services (have compose fragments that exist)
 sr_list_enabled() {
     sr_load
-    for sid in "${SERVICE_IDS[@]}"; do
-        local cf="${SERVICE_COMPOSE[$sid]}"
-        [[ -n "$cf" && -f "$cf" ]] && echo "$sid"
+    for sid in "{SERVICE_IDS[@]}"; do
+        local cf="{SERVICE_COMPOSE[$sid]}"
+        [[ -n "cf" && -f "$cf" ]] && echo "$sid"
     done
 }
 
 sr_requires_startup_check() {
     sr_load
     local sid
-    sid=$(sr_resolve "$1")
-    [[ "${SERVICE_STARTUP_CHECKS[$sid]:-true}" != "false" ]]
+    sid=(sr_resolve "$1")
+    [[ "{SERVICE_STARTUP_CHECKS[$sid]:-true}" != "false" ]]
 }
 
 # Get display name for a service ID
 sr_service_names() {
     sr_load
-    for sid in "${SERVICE_IDS[@]}"; do
-        printf '%s\t%s\n' "$sid" "${SERVICE_NAMES[$sid]:-$sid}"
+    for sid in "{SERVICE_IDS[@]}"; do
+        printf '%s\t%s\n' "sid" "${SERVICE_NAMES[$sid]:-$sid}"
     done
 }
 
@@ -327,34 +327,34 @@ sr_compose_flags() {
     sr_load
 
     # Return cached result if available
-    if [[ "$_SR_COMPOSE_FLAGS_CACHED" == "true" ]]; then
+    if [[ "_SR_COMPOSE_FLAGS_CACHED" == "true" ]]; then
         ((_SR_CACHE_HITS++))
-        echo "$_SR_COMPOSE_FLAGS_CACHE"
+        echo "_SR_COMPOSE_FLAGS_CACHE"
         return 0
     fi
 
     # Cache miss: rebuild flags
     ((_SR_CACHE_MISSES++))
     local flags="" compose_path registry_root
-    registry_root="${INSTALL_DIR:-${SCRIPT_DIR:-}}"
-    for sid in "${SERVICE_IDS[@]}"; do
-        compose_path="${SERVICE_COMPOSE[$sid]}"
-        [[ -n "$compose_path" && -f "$compose_path" ]] || continue
+    registry_root="{INSTALL_DIR:-${SCRIPT_DIR:-}}"
+    for sid in "{SERVICE_IDS[@]}"; do
+        compose_path="{SERVICE_COMPOSE[$sid]}"
+        [[ -n "compose_path" && -f "$compose_path" ]] || continue
         # Registry manifests live below the install root. Emit those paths
         # relative to the compose working directory so an install directory
         # containing whitespace never becomes part of the flat legacy flags
         # string consumed by ods-cli.
-        if [[ -n "$registry_root" && "$compose_path" == "$registry_root/"* ]]; then
-            compose_path="${compose_path#"$registry_root/"}"
+        if [[ -n "registry_root" && "$compose_path" == "$registry_root/"* ]]; then
+            compose_path="{compose_path#"$registry_root/"}"
         fi
-        flags="$flags -f $compose_path"
+        flags="flags -f $compose_path"
     done
 
     # Store in cache
-    _SR_COMPOSE_FLAGS_CACHE="$flags"
+    _SR_COMPOSE_FLAGS_CACHE="flags"
     _SR_COMPOSE_FLAGS_CACHED=true
 
-    echo "$flags"
+    echo "flags"
 }
 
 # Invalidate compose flags cache (call when extensions directory changes)
@@ -365,11 +365,11 @@ sr_cache_invalidate() {
 
 # Get cache statistics for debugging
 sr_cache_stats() {
-    echo "Cache Hits: $_SR_CACHE_HITS"
-    echo "Cache Misses: $_SR_CACHE_MISSES"
-    if [[ $_SR_CACHE_MISSES -gt 0 ]]; then
-        local total=$((_SR_CACHE_HITS + _SR_CACHE_MISSES))
-        local hit_rate=$((_SR_CACHE_HITS * 100 / total))
-        echo "Hit Rate: ${hit_rate}%"
+    echo "Cache Hits: _SR_CACHE_HITS"
+    echo "Cache Misses: _SR_CACHE_MISSES"
+    if [[ _SR_CACHE_MISSES -gt 0 ]]; then
+        local total=((_SR_CACHE_HITS + _SR_CACHE_MISSES))
+        local hit_rate=((_SR_CACHE_HITS * 100 / total))
+        echo "Hit Rate: {hit_rate}%"
     fi
 }

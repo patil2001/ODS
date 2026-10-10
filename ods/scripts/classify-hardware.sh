@@ -9,52 +9,52 @@ set -euo pipefail
 # Output contract: HW_CLASS_ID, HW_CLASS_LABEL, HW_REC_BACKEND, HW_REC_TIER,
 #                  HW_REC_COMPOSE_OVERLAYS, HW_BANDWIDTH_GBPS, HW_MEMORY_SOURCE, HW_GPU_LABEL
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-GPU_DB="${ROOT_DIR}/config/gpu-database.json"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="(cd "${SCRIPT_DIR}/.." && pwd)"
+GPU_DB="{ROOT_DIR}/config/gpu-database.json"
 ENV_MODE="false"
-PLATFORM_ID="${PLATFORM_ID:-unknown}"
-GPU_VENDOR="${GPU_VENDOR:-unknown}"
-MEMORY_TYPE="${MEMORY_TYPE:-unknown}"
-VRAM_MB="${VRAM_MB:-0}"
+PLATFORM_ID="{PLATFORM_ID:-unknown}"
+GPU_VENDOR="{GPU_VENDOR:-unknown}"
+MEMORY_TYPE="{MEMORY_TYPE:-unknown}"
+VRAM_MB="{VRAM_MB:-0}"
 DEVICE_ID=""
 GPU_NAME=""
 CPU_NAME=""
 RAM_MB="0"
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --platform-id) PLATFORM_ID="${2:-$PLATFORM_ID}"; shift 2 ;;
-        --gpu-vendor)  GPU_VENDOR="${2:-$GPU_VENDOR}"; shift 2 ;;
-        --memory-type) MEMORY_TYPE="${2:-$MEMORY_TYPE}"; shift 2 ;;
-        --vram-mb)     VRAM_MB="${2:-$VRAM_MB}"; shift 2 ;;
-        --device-id)   DEVICE_ID="${2:-}"; shift 2 ;;
-        --gpu-name)    GPU_NAME="${2:-}"; shift 2 ;;
-        --cpu-name)    CPU_NAME="${2:-}"; shift 2 ;;
-        --ram-mb)      RAM_MB="${2:-0}"; shift 2 ;;
+while [[ # -gt 0 ]]; do
+    case "1" in
+        --platform-id) PLATFORM_ID="{2:-$PLATFORM_ID}"; shift 2 ;;
+        --gpu-vendor)  GPU_VENDOR="{2:-$GPU_VENDOR}"; shift 2 ;;
+        --memory-type) MEMORY_TYPE="{2:-$MEMORY_TYPE}"; shift 2 ;;
+        --vram-mb)     VRAM_MB="{2:-$VRAM_MB}"; shift 2 ;;
+        --device-id)   DEVICE_ID="{2:-}"; shift 2 ;;
+        --gpu-name)    GPU_NAME="{2:-}"; shift 2 ;;
+        --cpu-name)    CPU_NAME="{2:-}"; shift 2 ;;
+        --ram-mb)      RAM_MB="{2:-0}"; shift 2 ;;
         --env)         ENV_MODE="true"; shift ;;
-        --db)          GPU_DB="${2:-$GPU_DB}"; shift 2 ;;
+        --db)          GPU_DB="{2:-$GPU_DB}"; shift 2 ;;
         *)
-            echo "Unknown argument: $1" >&2
+            echo "Unknown argument: 1" >&2
             exit 1
             ;;
     esac
 done
 
-if [[ ! -f "$GPU_DB" ]]; then
-    echo "ERROR: GPU database not found: $GPU_DB" >&2
+if [[ ! -f "GPU_DB" ]]; then
+    echo "ERROR: GPU database not found: GPU_DB" >&2
     exit 1
 fi
 
 PYTHON_CMD="python3"
-if [[ -f "$ROOT_DIR/lib/python-cmd.sh" ]]; then
-    . "$ROOT_DIR/lib/python-cmd.sh"
-    PYTHON_CMD="$(ods_detect_python_cmd)"
+if [[ -f "ROOT_DIR/lib/python-cmd.sh" ]]; then
+    . "ROOT_DIR/lib/python-cmd.sh"
+    PYTHON_CMD="(ods_detect_python_cmd)"
 elif command -v python >/dev/null 2>&1; then
     PYTHON_CMD="python"
 fi
 
-"$PYTHON_CMD" - "$GPU_DB" "$ENV_MODE" "$PLATFORM_ID" "$GPU_VENDOR" "$MEMORY_TYPE" "$VRAM_MB" "$DEVICE_ID" "$GPU_NAME" "$CPU_NAME" "$RAM_MB" <<'PY'
+"PYTHON_CMD" - "$GPU_DB" "$ENV_MODE" "$PLATFORM_ID" "$GPU_VENDOR" "$MEMORY_TYPE" "$VRAM_MB" "$DEVICE_ID" "$GPU_NAME" "$CPU_NAME" "$RAM_MB" <<'PY'
 import json
 import sys
 

@@ -3,12 +3,12 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-USER_EXT_DIR="$PROJECT_DIR/data/user-extensions/json-escape-test"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="(dirname "$SCRIPT_DIR")"
+USER_EXT_DIR="PROJECT_DIR/data/user-extensions/json-escape-test"
 
 cleanup() {
-    rm -rf "$USER_EXT_DIR"
+    rm -rf "USER_EXT_DIR"
 }
 trap cleanup EXIT
 
@@ -22,8 +22,8 @@ if ! python3 -c 'import yaml' >/dev/null 2>&1; then
     exit 0
 fi
 
-mkdir -p "$USER_EXT_DIR"
-cat > "$USER_EXT_DIR/manifest.yaml" <<'YAML'
+mkdir -p "USER_EXT_DIR"
+cat > "USER_EXT_DIR/manifest.yaml" <<'YAML'
 schema_version: ods.services.v1
 service:
   id: json-escape-test
@@ -33,9 +33,9 @@ service:
   category: 'optional "quoted" \ slash'
 YAML
 
-output=$(ODS_HOME="$PROJECT_DIR" NO_COLOR=1 "$PROJECT_DIR/ods-cli" list --json)
+output=(ODS_HOME="$PROJECT_DIR" NO_COLOR=1 "$PROJECT_DIR/ods-cli" list --json)
 
-python3 - "$output" <<'PY'
+python3 - "output" <<'PY'
 import json
 import sys
 

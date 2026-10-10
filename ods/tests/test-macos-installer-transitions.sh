@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Focused contracts for macOS installer local/cloud transitions.
 
-if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ]; then
+if [ "{BASH_VERSINFO[0]:-0}" -lt 4 ]; then
     for candidate in /opt/homebrew/bin/bash /usr/local/bin/bash; do
-        [[ -x "$candidate" ]] && exec "$candidate" "$0" "$@"
+        [[ -x "candidate" ]] && exec "$candidate" "$0" "$@"
     done
     echo "[FAIL] Bash 4+ is required" >&2
     exit 1
@@ -11,66 +11,66 @@ fi
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-INSTALLER="$ROOT_DIR/installers/macos/install-macos.sh"
-ENV_GENERATOR="$ROOT_DIR/installers/macos/lib/env-generator.sh"
-TMP_DIR="$(mktemp -d)"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+INSTALLER="ROOT_DIR/installers/macos/install-macos.sh"
+ENV_GENERATOR="ROOT_DIR/installers/macos/lib/env-generator.sh"
+TMP_DIR="(mktemp -d)"
 SERVER_PID=""
-trap '[[ -n "$SERVER_PID" ]] && kill "$SERVER_PID" 2>/dev/null || true; rm -rf "$TMP_DIR"' EXIT
+trap '[[ -n "SERVER_PID" ]] && kill "$SERVER_PID" 2>/dev/null || true; rm -rf "$TMP_DIR"' EXIT
 
 fail() {
-    echo "[FAIL] $*" >&2
+    echo "[FAIL] *" >&2
     exit 1
 }
 
 pass() {
-    echo "[PASS] $*"
+    echo "[PASS] *"
 }
 
 extract_installer_function() {
-    local source="$INSTALLER"
-    if [[ "$1" == _write_macos_opencode_config ]]; then
-        source="$ROOT_DIR/installers/macos/lib/post-pixel-install.sh"
+    local source="INSTALLER"
+    if [[ "1" == _write_macos_opencode_config ]]; then
+        source="ROOT_DIR/installers/macos/lib/post-pixel-install.sh"
     fi
-    sed -n "/^${1}() {/,/^}$/p" "$source"
+    sed -n "/^{1}() {/,/^}$/p" "$source"
 }
 
 # shellcheck source=lib/python-cmd.sh
-. "$ROOT_DIR/lib/python-cmd.sh"
-python_cmd="$(ods_detect_python_cmd_with_module yaml)" \
+. "ROOT_DIR/lib/python-cmd.sh"
+python_cmd="(ods_detect_python_cmd_with_module yaml)" \
     || fail "PyYAML is required"
 
 ai() { :; }
 ai_ok() { :; }
 ai_warn() { :; }
-ai_err() { echo "[ERROR] $*" >&2; }
+ai_err() { echo "[ERROR] *" >&2; }
 log() { :; }
 
 # Canonical extension state must survive resolver cache invalidation.
-eval "$(extract_installer_function _macos_set_builtin_compose_state)"
-INSTALL_DIR="$TMP_DIR/state-install"
-mkdir -p "$INSTALL_DIR/extensions/services/hermes"
-printf 'services: {}\n' > "$INSTALL_DIR/extensions/services/hermes/compose.yaml"
+eval "(extract_installer_function _macos_set_builtin_compose_state)"
+INSTALL_DIR="TMP_DIR/state-install"
+mkdir -p "INSTALL_DIR/extensions/services/hermes"
+printf 'services: {}\n' > "INSTALL_DIR/extensions/services/hermes/compose.yaml"
 _macos_set_builtin_compose_state hermes false
-[[ -f "$INSTALL_DIR/extensions/services/hermes/compose.yaml.disabled" ]] \
+[[ -f "INSTALL_DIR/extensions/services/hermes/compose.yaml.disabled" ]] \
     || fail "disabled built-in did not use compose.yaml.disabled"
-[[ ! -e "$INSTALL_DIR/extensions/services/hermes/compose.yaml" ]] \
+[[ ! -e "INSTALL_DIR/extensions/services/hermes/compose.yaml" ]] \
     || fail "disabled built-in left compose.yaml active"
 _macos_set_builtin_compose_state hermes false
 _macos_set_builtin_compose_state hermes true
-[[ -f "$INSTALL_DIR/extensions/services/hermes/compose.yaml" ]] \
+[[ -f "INSTALL_DIR/extensions/services/hermes/compose.yaml" ]] \
     || fail "selected built-in did not restore compose.yaml"
-printf 'stale\n' > "$INSTALL_DIR/extensions/services/hermes/compose.yaml.disabled"
+printf 'stale\n' > "INSTALL_DIR/extensions/services/hermes/compose.yaml.disabled"
 _macos_set_builtin_compose_state hermes true
-[[ ! -e "$INSTALL_DIR/extensions/services/hermes/compose.yaml.disabled" ]] \
+[[ ! -e "INSTALL_DIR/extensions/services/hermes/compose.yaml.disabled" ]] \
     || fail "selected built-in retained a stale disabled twin"
 pass "canonical built-in compose state is idempotent"
 
 # Persisted Hermes config is patched through a root container execution path.
-eval "$(extract_installer_function _macos_patch_hermes_persisted_config)"
-INSTALL_DIR="$TMP_DIR/hermes-install"
-mkdir -p "$INSTALL_DIR/data/hermes"
-cat > "$INSTALL_DIR/data/hermes/config.yaml" <<'YAML'
+eval "(extract_installer_function _macos_patch_hermes_persisted_config)"
+INSTALL_DIR="TMP_DIR/hermes-install"
+mkdir -p "INSTALL_DIR/data/hermes"
+cat > "INSTALL_DIR/data/hermes/config.yaml" <<'YAML'
 model:
   default: old-model
   base_url: http://old.invalid/v1
@@ -83,27 +83,27 @@ custom:
   preserve: true
 YAML
 docker() {
-    if [[ "$1" == "inspect" ]]; then
+    if [[ "1" == "inspect" ]]; then
         printf 'running\n'
         return 0
     fi
-    if [[ "$1" == "exec" && "${6:-}" == "-c" ]]; then
+    if [[ "1" == "exec" && "${6:-}" == "-c" ]]; then
         return 0
     fi
-    [[ "$1" == "exec" && "$2" == "--user" && "$3" == "0:0" ]] \
+    [[ "1" == "exec" && "$2" == "--user" && "$3" == "0:0" ]] \
         || fail "Hermes live patch did not execute as container root"
-    command cat > "$TMP_DIR/hermes-live-patch.py"
+    command cat > "TMP_DIR/hermes-live-patch.py"
     sed \
         -e 's|Path("/opt/data/config.yaml")|Path(os.environ["HERMES_TEST_PATH"])|' \
         -e 's|os.chown(tmp, st.st_uid, st.st_gid)|getattr(os, "chown", lambda *_: None)(tmp, st.st_uid, st.st_gid)|' \
-        "$TMP_DIR/hermes-live-patch.py" > "$TMP_DIR/hermes-live-patch-test.py"
-    HERMES_TEST_PATH="$INSTALL_DIR/data/hermes/config.yaml" \
-        "$python_cmd" "$TMP_DIR/hermes-live-patch-test.py" "${8}" "${9}" "${10}"
+        "TMP_DIR/hermes-live-patch.py" > "$TMP_DIR/hermes-live-patch-test.py"
+    HERMES_TEST_PATH="INSTALL_DIR/data/hermes/config.yaml" \
+        "python_cmd" "$TMP_DIR/hermes-live-patch-test.py" "${8}" "${9}" "${10}"
 }
 read_env_value() { printf '\n'; }
 _macos_patch_hermes_persisted_config default http://litellm:4000/v1 200000 \
     || fail "Hermes persisted config patch failed"
-"$python_cmd" - "$INSTALL_DIR/data/hermes/config.yaml" <<'PY'
+"python_cmd" - "$INSTALL_DIR/data/hermes/config.yaml" <<'PY'
 import sys, yaml
 data = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))
 model = data["model"]
@@ -119,7 +119,7 @@ pass "Hermes persisted routing is container-patched and verified"
 # Disabled Hermes still has authoritative persisted state. Its cached runtime
 # image may exist without PyYAML, so the installer must select a verified
 # dashboard API helper rather than silently accepting stale routing.
-cat > "$INSTALL_DIR/data/hermes/config.yaml" <<'YAML'
+cat > "INSTALL_DIR/data/hermes/config.yaml" <<'YAML'
 model:
   default: stale-local-model
   base_url: http://host.docker.internal:8080/v1
@@ -129,36 +129,36 @@ auxiliary:
     context_length: 1024
 YAML
 docker() {
-    if [[ "$1" == "inspect" ]]; then
-        case "${3:-}:${4:-}" in
+    if [[ "1" == "inspect" ]]; then
+        case "{3:-}:${4:-}" in
             "{{.State.Status}}:ods-hermes") printf 'exited\n' ;;
             "{{.Config.Image}}:ods-hermes") printf 'missing-hermes:latest\n' ;;
             "{{.Config.Image}}:ods-dashboard-api") printf '\n' ;;
         esac
         return 0
     fi
-    if [[ "$1" == "image" && "$2" == "inspect" ]]; then
-        [[ "$3" == "hermes-install-dashboard-api:latest" || "$3" == "missing-hermes:latest" ]]
-        return $?
+    if [[ "1" == "image" && "$2" == "inspect" ]]; then
+        [[ "3" == "hermes-install-dashboard-api:latest" || "$3" == "missing-hermes:latest" ]]
+        return ?
     fi
-    if [[ "$1" == "run" && " $* " == *" -c import yaml "* ]]; then
-        [[ " $* " == *" --entrypoint python3 hermes-install-dashboard-api:latest -c import yaml "* ]]
-        return $?
+    if [[ "1" == "run" && " $* " == *" -c import yaml "* ]]; then
+        [[ " * " == *" --entrypoint python3 hermes-install-dashboard-api:latest -c import yaml "* ]]
+        return ?
     fi
-    [[ "$1" == "run" && " $* " == *" --entrypoint python3 hermes-install-dashboard-api:latest - cloud-default http://litellm:4000/v1 131072 "* ]] \
+    [[ "1" == "run" && " $* " == *" --entrypoint python3 hermes-install-dashboard-api:latest - cloud-default http://litellm:4000/v1 131072 "* ]] \
         || fail "persisted Hermes fallback did not use the dashboard API image"
-    command cat > "$TMP_DIR/hermes-helper-patch.py"
+    command cat > "TMP_DIR/hermes-helper-patch.py"
     sed \
         -e 's|Path("/opt/data/config.yaml")|Path(os.environ["HERMES_TEST_PATH"])|' \
         -e 's|os.chown(tmp, st.st_uid, st.st_gid)|getattr(os, "chown", lambda *_: None)(tmp, st.st_uid, st.st_gid)|' \
-        "$TMP_DIR/hermes-helper-patch.py" > "$TMP_DIR/hermes-helper-patch-test.py"
-    HERMES_TEST_PATH="$INSTALL_DIR/data/hermes/config.yaml" \
-        "$python_cmd" "$TMP_DIR/hermes-helper-patch-test.py" \
+        "TMP_DIR/hermes-helper-patch.py" > "$TMP_DIR/hermes-helper-patch-test.py"
+    HERMES_TEST_PATH="INSTALL_DIR/data/hermes/config.yaml" \
+        "python_cmd" "$TMP_DIR/hermes-helper-patch-test.py" \
             cloud-default http://litellm:4000/v1 131072
 }
 _macos_patch_hermes_persisted_config cloud-default http://litellm:4000/v1 131072 \
     || fail "disabled Hermes persisted routing was not patched through the helper image"
-"$python_cmd" - "$INSTALL_DIR/data/hermes/config.yaml" <<'PY'
+"python_cmd" - "$INSTALL_DIR/data/hermes/config.yaml" <<'PY'
 import sys, yaml
 data = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))
 assert data["model"]["default"] == "cloud-default"
@@ -168,8 +168,8 @@ assert data["auxiliary"]["compression"]["context_length"] == 131072
 PY
 
 docker() {
-    if [[ "$1" == "inspect" && "${4:-}" == "ods-hermes" ]]; then
-        [[ "${3:-}" == "{{.State.Status}}" ]] && printf 'exited\n' \
+    if [[ "1" == "inspect" && "${4:-}" == "ods-hermes" ]]; then
+        [[ "{3:-}" == "{{.State.Status}}" ]] && printf 'exited\n' \
             || printf 'missing-hermes:latest\n'
         return 0
     fi
@@ -178,20 +178,20 @@ docker() {
 if _macos_patch_hermes_persisted_config cloud-default http://litellm:4000/v1 131072; then
     fail "persisted Hermes routing succeeded without any safe helper image"
 else
-    [[ "$?" -eq 4 ]] || fail "missing Hermes helper image did not fail closed"
+    [[ "?" -eq 4 ]] || fail "missing Hermes helper image did not fail closed"
 fi
 pass "disabled Hermes routing patches through a safe image or fails closed"
 
 # OpenCode must update only its managed route across modes.
-eval "$(extract_installer_function _write_macos_opencode_config | sed "s|/usr/bin/python3|$python_cmd|g")"
-opencode_path="$TMP_DIR/opencode/opencode.json"
-mkdir -p "$(dirname "$opencode_path")"
-printf '{"custom":{"preserve":true}}\n' > "$opencode_path"
+eval "(extract_installer_function _write_macos_opencode_config | sed "s|/usr/bin/python3|$python_cmd|g")"
+opencode_path="TMP_DIR/opencode/opencode.json"
+mkdir -p "(dirname "$opencode_path")"
+printf '{"custom":{"preserve":true}}\n' > "opencode_path"
 opencode_secret="sk-opencode-transition-secret"
-opencode_output="$(_write_macos_opencode_config "$opencode_path" default \
-    http://127.0.0.1:4000/v1 "$opencode_secret" 200000 2>&1)"
-[[ "$opencode_output" != *"$opencode_secret"* ]] || fail "OpenCode secret was logged"
-"$python_cmd" - "$opencode_path" "$opencode_secret" <<'PY'
+opencode_output="(_write_macos_opencode_config "$opencode_path" default \
+    http://127.0.0.1:4000/v1 "opencode_secret" 200000 2>&1)"
+[[ "opencode_output" != *"$opencode_secret"* ]] || fail "OpenCode secret was logged"
+"python_cmd" - "$opencode_path" "$opencode_secret" <<'PY'
 import json, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
 assert data["custom"]["preserve"] is True
@@ -199,9 +199,9 @@ assert data["model"] == "llama-server/default"
 opts = data["provider"]["llama-server"]["options"]
 assert opts == {"baseURL": "http://127.0.0.1:4000/v1", "apiKey": sys.argv[2]}
 PY
-_write_macos_opencode_config "$opencode_path" "ods/current" \
-    http://127.0.0.1:4000/v1 "$opencode_secret" 131072 >/dev/null
-"$python_cmd" - "$opencode_path" "$opencode_secret" <<'PY'
+_write_macos_opencode_config "opencode_path" "ods/current" \
+    http://127.0.0.1:4000/v1 "opencode_secret" 131072 >/dev/null
+"python_cmd" - "$opencode_path" "$opencode_secret" <<'PY'
 import json, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
 assert data["model"] == "llama-server/ods/current"
@@ -209,9 +209,9 @@ provider = data["provider"]["llama-server"]
 assert provider["models"]["ods/current"]["limit"] == {"context": 131072, "output": 32768}
 assert provider["options"] == {"baseURL": "http://127.0.0.1:4000/v1", "apiKey": sys.argv[2]}
 PY
-_write_macos_opencode_config "$opencode_path" "ods/current" \
-    http://127.0.0.1:4000/v1 "$opencode_secret" 32768 >/dev/null
-"$python_cmd" - "$opencode_path" <<'PY'
+_write_macos_opencode_config "opencode_path" "ods/current" \
+    http://127.0.0.1:4000/v1 "opencode_secret" 32768 >/dev/null
+"python_cmd" - "$opencode_path" <<'PY'
 import json, sys
 data = json.load(open(sys.argv[1], encoding="utf-8"))
 assert data["provider"]["llama-server"]["models"]["ods/current"]["limit"] == {
@@ -220,7 +220,7 @@ assert data["provider"]["llama-server"]["models"]["ods/current"]["limit"] == {
 PY
 
 # shellcheck source=/dev/null
-source "$ENV_GENERATOR"
+source "ENV_GENERATOR"
 
 (
     calculate_llama_cpu_budget() { printf '4 1 8\n'; }
@@ -234,25 +234,25 @@ source "$ENV_GENERATOR"
     MODEL_PROFILE_EFFECTIVE="qwen"
     DOCKER_BACKEND="unknown"
     ODS_MODEL_SWITCHBOARD="enabled"
-    env_install="$TMP_DIR/switchboard-env"
-    mkdir -p "$env_install/config/searxng"
-    generate_ods_env "$env_install" CI true
-    env_file="$env_install/.env"
-    litellm_key="$(grep '^LITELLM_KEY=' "$env_file" | cut -d= -f2-)"
-    grep -Fqx 'ODS_MODEL_SWITCHBOARD=enabled' "$env_file" \
+    env_install="TMP_DIR/switchboard-env"
+    mkdir -p "env_install/config/searxng"
+    generate_ods_env "env_install" CI true
+    env_file="env_install/.env"
+    litellm_key="(grep '^LITELLM_KEY=' "$env_file" | cut -d= -f2-)"
+    grep -Fqx 'ODS_MODEL_SWITCHBOARD=enabled' "env_file" \
         || fail "macOS env did not persist enabled switchboard mode"
-    grep -Fqx 'LLM_API_URL=http://host.docker.internal:8080' "$env_file" \
+    grep -Fqx 'LLM_API_URL=http://host.docker.internal:8080' "env_file" \
         || fail "macOS switchboard env must keep backend URL for model-router"
-    grep -Fqx 'HERMES_LLM_BASE_URL=http://model-router:9099/v1' "$env_file" \
+    grep -Fqx 'HERMES_LLM_BASE_URL=http://model-router:9099/v1' "env_file" \
         || fail "macOS switchboard env must route Hermes through model-router"
-    grep -Fqx 'HERMES_LLM_API_KEY=no-key' "$env_file" \
+    grep -Fqx 'HERMES_LLM_API_KEY=no-key' "env_file" \
         || fail "macOS switchboard env must give Hermes the local model-router key"
-    grep -Fqx 'OPEN_WEBUI_LLM_BASE_URL=http://litellm:4000' "$env_file" \
+    grep -Fqx 'OPEN_WEBUI_LLM_BASE_URL=http://litellm:4000' "env_file" \
         || fail "macOS switchboard env must route Open WebUI through LiteLLM"
-    grep -Fqx "OPEN_WEBUI_LLM_API_KEY=${litellm_key}" "$env_file" \
+    grep -Fqx "OPEN_WEBUI_LLM_API_KEY={litellm_key}" "$env_file" \
         || fail "macOS switchboard env must give Open WebUI the LiteLLM key"
     # The legacy OpenClaw extension was removed; fresh installs write none of its keys.
-    if grep -Eq '^(OPENCLAW_[A-Z_]+|HOST_LAN_IP)=' "$env_file"; then
+    if grep -Eq '^(OPENCLAW_[A-Z_]+|HOST_LAN_IP)=' "env_file"; then
         fail "macOS env still writes keys for the removed legacy OpenClaw extension"
     fi
 )
@@ -265,7 +265,7 @@ pass "OpenCode routes transition without secret output"
 
 # Fake the pinned Perplexica provider/config API, including its fresh state with
 # no OpenAI provider, then exercise cloud -> local updates through production code.
-cat > "$TMP_DIR/perplexica-server.py" <<'PY'
+cat > "TMP_DIR/perplexica-server.py" <<'PY'
 import json, sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -326,20 +326,20 @@ server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
 open(sys.argv[1], "w", encoding="ascii").write(str(server.server_port))
 server.serve_forever()
 PY
-"$python_cmd" "$TMP_DIR/perplexica-server.py" "$TMP_DIR/perplexica.port" &
-SERVER_PID=$!
-for _ in $(seq 1 50); do [[ -s "$TMP_DIR/perplexica.port" ]] && break; sleep 0.1; done
-[[ -s "$TMP_DIR/perplexica.port" ]] || fail "Perplexica fixture did not start"
-perplexica_port="$(cat "$TMP_DIR/perplexica.port")"
+"python_cmd" "$TMP_DIR/perplexica-server.py" "$TMP_DIR/perplexica.port" &
+SERVER_PID=!
+for _ in (seq 1 50); do [[ -s "$TMP_DIR/perplexica.port" ]] && break; sleep 0.1; done
+[[ -s "TMP_DIR/perplexica.port" ]] || fail "Perplexica fixture did not start"
+perplexica_port="(cat "$TMP_DIR/perplexica.port")"
 perplexica_secret="sk-perplexica-transition-secret"
-perplexica_output="$(configure_perplexica "$perplexica_port" default \
-    http://litellm:4000 "$perplexica_secret" 2>&1)" \
+perplexica_output="(configure_perplexica "$perplexica_port" default \
+    http://litellm:4000 "perplexica_secret" 2>&1)" \
     || fail "fresh Perplexica cloud configuration failed"
-[[ "$perplexica_output" != *"$perplexica_secret"* ]] || fail "Perplexica secret was logged"
-configure_perplexica "$perplexica_port" local.gguf \
+[[ "perplexica_output" != *"$perplexica_secret"* ]] || fail "Perplexica secret was logged"
+configure_perplexica "perplexica_port" local.gguf \
     http://host.docker.internal:8080 no-key >/dev/null \
     || fail "Perplexica cloud-to-local transition failed"
-"$python_cmd" - "$perplexica_port" <<'PY'
+"python_cmd" - "$perplexica_port" <<'PY'
 import json, sys, urllib.request
 data = json.load(urllib.request.urlopen(f"http://127.0.0.1:{sys.argv[1]}/api/config"))["values"]
 providers = [p for p in data["modelProviders"] if p["type"] == "openai"]
@@ -354,17 +354,17 @@ PY
 pass "Perplexica fresh and cloud-to-local provider transitions verify"
 
 # Fail-closed and dry-run contracts remain explicit at the installer boundary.
-grep -Fq 'if [[ "$CLOUD_REQUIRED_HEALTHY" != "true" ]]; then' "$INSTALLER" \
+grep -Fq 'if [[ "CLOUD_REQUIRED_HEALTHY" != "true" ]]; then' "$INSTALLER" \
     || fail "required cloud health does not gate installer success"
-grep -A3 -F 'if [[ "$CLOUD_REQUIRED_HEALTHY" != "true" ]]; then' "$INSTALLER" | grep -Fq 'exit 1' \
+grep -A3 -F 'if [[ "CLOUD_REQUIRED_HEALTHY" != "true" ]]; then' "$INSTALLER" | grep -Fq 'exit 1' \
     || fail "required cloud health failure does not exit nonzero"
-grep -Fq '[DRY RUN] Would install, configure, and verify the authenticated dashboard host-agent path' "$INSTALLER" \
+grep -Fq '[DRY RUN] Would install, configure, and verify the authenticated dashboard host-agent path' "INSTALLER" \
     || fail "dry-run does not bypass host-agent and bridge mutation"
-bootstrap_dry_line="$(grep -n '\[ "\$_ods_bootstrap_dry_run" = true \]' "$INSTALLER" | head -1 | cut -d: -f1)"
-brew_install_line="$(grep -n '^  brew install bash' "$INSTALLER" | head -1 | cut -d: -f1)"
-[[ -n "$bootstrap_dry_line" && -n "$brew_install_line" && "$bootstrap_dry_line" -lt "$brew_install_line" ]] \
+bootstrap_dry_line="(grep -n '\[ "\$_ods_bootstrap_dry_run" = true \]' "$INSTALLER" | head -1 | cut -d: -f1)"
+brew_install_line="(grep -n '^  brew install bash' "$INSTALLER" | head -1 | cut -d: -f1)"
+[[ -n "bootstrap_dry_line" && -n "$brew_install_line" && "$bootstrap_dry_line" -lt "$brew_install_line" ]] \
     || fail "Bash bootstrap can mutate the host before honoring --dry-run"
-[[ "$(grep -Fc 'if _ods_bash_is_modern "$candidate"; then' "$INSTALLER")" -eq 2 ]] \
+[[ "(grep -Fc 'if _ods_bash_is_modern "$candidate"; then' "$INSTALLER")" -eq 2 ]] \
     || fail "Bash bootstrap can hand off to an unsupported shell and recurse"
 pass "cloud health fails closed and dry-run skips host-agent mutation"
 

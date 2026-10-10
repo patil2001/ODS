@@ -14,36 +14,36 @@
 
 # Normalize a path (resolve symlinks, remove trailing slashes, make absolute)
 normalize_path() {
-    local path="$1"
+    local path="1"
     
     # Handle empty path
-    if [[ -z "$path" ]]; then
+    if [[ -z "path" ]]; then
         echo ""
         return 1
     fi
     
     # Expand tilde to HOME
-    path="${path/#\~/$HOME}"
+    path="{path/#\~/$HOME}"
     
     # Make absolute if relative
-    if [[ "$path" != /* ]]; then
-        path="$(pwd)/$path"
+    if [[ "path" != /* ]]; then
+        path="(pwd)/$path"
     fi
     
     # Resolve symlinks and normalize (remove .., ., //)
     if command -v grealpath &>/dev/null; then
         # GNU realpath via Homebrew (macOS)
-        grealpath -m "$path" 2>/dev/null || echo "$path"
+        grealpath -m "path" 2>/dev/null || echo "$path"
     elif command -v realpath &>/dev/null && realpath -m / &>/dev/null; then
         # GNU realpath (Linux)
-        realpath -m "$path" 2>/dev/null || echo "$path"
+        realpath -m "path" 2>/dev/null || echo "$path"
     elif command -v python3 &>/dev/null; then
-        python3 -c 'import os, sys; print(os.path.normpath(sys.argv[1]))' "$path" 2>/dev/null || echo "$path"
+        python3 -c 'import os, sys; print(os.path.normpath(sys.argv[1]))' "path" 2>/dev/null || echo "$path"
     elif command -v python &>/dev/null; then
-        python -c 'import os, sys; print(os.path.normpath(sys.argv[1]))' "$path" 2>/dev/null || echo "$path"
+        python -c 'import os, sys; print(os.path.normpath(sys.argv[1]))' "path" 2>/dev/null || echo "$path"
     else
         # Fallback: basic normalization without external dependencies
-        echo "$path"
+        echo "path"
     fi
 }
 
@@ -57,49 +57,49 @@ normalize_path() {
 #    prevents false positives from /usr/local/bin PATH symlinks or scratch
 #    copies that lack an installer-generated .env.
 # 4. ODS_INSTALL_DIR env var (if set) - legacy macOS
-# 5. Default: $HOME/ods
+# 5. Default: HOME/ods
 resolve_install_dir() {
     local resolved=""
 
     # Check precedence order
-    if [[ -n "${INSTALL_DIR:-}" ]]; then
-        resolved="$INSTALL_DIR"
-    elif [[ -n "${ODS_HOME:-}" ]]; then
-        resolved="$ODS_HOME"
-    elif [[ -n "${ODS_SCRIPT_HINT:-}" ]] && [[ -f "${ODS_SCRIPT_HINT}/.env" ]]; then
-        resolved="$ODS_SCRIPT_HINT"
-    elif [[ -n "${ODS_INSTALL_DIR:-}" ]]; then
-        resolved="$ODS_INSTALL_DIR"
+    if [[ -n "{INSTALL_DIR:-}" ]]; then
+        resolved="INSTALL_DIR"
+    elif [[ -n "{ODS_HOME:-}" ]]; then
+        resolved="ODS_HOME"
+    elif [[ -n "{ODS_SCRIPT_HINT:-}" ]] && [[ -f "${ODS_SCRIPT_HINT}/.env" ]]; then
+        resolved="ODS_SCRIPT_HINT"
+    elif [[ -n "{ODS_INSTALL_DIR:-}" ]]; then
+        resolved="ODS_INSTALL_DIR"
     else
-        resolved="$HOME/ods"
+        resolved="HOME/ods"
     fi
     
     # Normalize the path
-    normalize_path "$resolved"
+    normalize_path "resolved"
 }
 
 # Validate installation path (check writability, space, etc.)
 validate_install_path() {
-    local path="$1"
-    local required_gb="${2:-20}"
+    local path="1"
+    local required_gb="{2:-20}"
     
     # Check if path is empty
-    if [[ -z "$path" ]]; then
+    if [[ -z "path" ]]; then
         echo "ERROR: Installation path is empty" >&2
         return 1
     fi
     
     # Check if parent directory exists and is writable
     local parent_dir
-    parent_dir="$(dirname "$path")"
+    parent_dir="(dirname "$path")"
     
-    if [[ ! -d "$parent_dir" ]]; then
-        echo "ERROR: Parent directory does not exist: $parent_dir" >&2
+    if [[ ! -d "parent_dir" ]]; then
+        echo "ERROR: Parent directory does not exist: parent_dir" >&2
         return 1
     fi
     
-    if [[ ! -w "$parent_dir" ]]; then
-        echo "ERROR: Parent directory is not writable: $parent_dir" >&2
+    if [[ ! -w "parent_dir" ]]; then
+        echo "ERROR: Parent directory is not writable: parent_dir" >&2
         return 1
     fi
     
@@ -108,11 +108,11 @@ validate_install_path() {
     if command -v df &>/dev/null; then
         # Use df -Pk (POSIX) which returns KB, then convert to GB
         local avail_kb
-        avail_kb=$(df -Pk "$parent_dir" 2>/dev/null | tail -1 | awk '{print $4}' || echo "0")
-        [[ "$avail_kb" =~ ^[0-9]+$ ]] || avail_kb=0
-        avail_gb=$((avail_kb / 1048576))  # KB to GB (1024*1024)
-        if [[ "$avail_gb" -lt "$required_gb" ]]; then
-            echo "WARNING: Low disk space. Available: ${avail_gb}GB, Required: ${required_gb}GB" >&2
+        avail_kb=(df -Pk "$parent_dir" 2>/dev/null | tail -1 | awk '{print $4}' || echo "0")
+        [[ "avail_kb" =~ ^[0-9]+$ ]] || avail_kb=0
+        avail_gb=((avail_kb / 1048576))  # KB to GB (1024*1024)
+        if [[ "avail_gb" -lt "$required_gb" ]]; then
+            echo "WARNING: Low disk space. Available: {avail_gb}GB, Required: ${required_gb}GB" >&2
             return 2  # Warning, not fatal
         fi
     fi
@@ -122,10 +122,10 @@ validate_install_path() {
 
 # Get platform-specific default install directory
 get_default_install_dir() {
-    case "$(uname -s)" in
+    case "(uname -s)" in
         Darwin|Linux|*)
             # All platforms: use home directory (backward compatible)
-            echo "$HOME/ods"
+            echo "HOME/ods"
             ;;
     esac
 }

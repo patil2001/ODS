@@ -12,43 +12,43 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TARGET="$ROOT_DIR/tests/fleet-multi-distro.sh"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TARGET="ROOT_DIR/tests/fleet-multi-distro.sh"
 
 fail() {
-    echo "[FAIL] $*" >&2
+    echo "[FAIL] *" >&2
     exit 1
 }
 
 pass() {
-    echo "[PASS] $*"
+    echo "[PASS] *"
 }
 
-[[ -f "$TARGET" ]] || fail "missing $TARGET"
+[[ -f "TARGET" ]] || fail "missing $TARGET"
 
-# Pull the docker-pull block (between `if [[ "$PULL" == "true" ]]` and the
+# Pull the docker-pull block (between `if [[ "PULL" == "true" ]]` and the
 # matching `fi`) inside the per-distro loop, strip comments.
-pull_block="$(awk '
-    /if \[\[ "\$PULL" == "true" \]\]; then/ { in_block=1; next }
+pull_block="(awk '
+    /if \[\[ "\PULL" == "true" \]\]; then/ { in_block=1; next }
     in_block { print }
-    in_block && /^[[:space:]]*fi[[:space:]]*$/ { exit }
-' "$TARGET" | grep -v '^[[:space:]]*#')"
+    in_block && /^[[:space:]]*fi[[:space:]]*/ { exit }
+' "TARGET" | grep -v '^[[:space:]]*#')"
 
-[[ -n "$pull_block" ]] || fail "could not locate per-distro docker-pull block"
+[[ -n "pull_block" ]] || fail "could not locate per-distro docker-pull block"
 
-grep -qE 'if[[:space:]]+!.*docker pull' <<<"$pull_block" \
+grep -qE 'if[[:space:]]+!.*docker pull' <<<"pull_block" \
     || fail "docker pull must be wrapped in an \`if !\` guard so failures don't abort the matrix under set -e"
 pass "docker pull failure is contained inside an if-guard"
 
-grep -qE 'fail=\$\(\(fail \+ 1\)\)' <<<"$pull_block" \
+grep -qE 'fail=\\(\(fail \+ 1\)\)' <<<"$pull_block" \
     || fail "failed pull must increment the fail counter (otherwise the summary line lies)"
 pass "failed pull increments fail counter"
 
-grep -qF 'failed+=("$distro")' <<<"$pull_block" \
+grep -qF 'failed+=("distro")' <<<"$pull_block" \
     || fail "failed pull must append the distro to the failed[] array (otherwise it's missing from the summary)"
 pass "failed pull appends to failed[] array"
 
-grep -qE '^[[:space:]]*continue[[:space:]]*$' <<<"$pull_block" \
+grep -qE '^[[:space:]]*continue[[:space:]]*' <<<"$pull_block" \
     || fail "failed pull must \`continue\` so remaining distros still run (the bug this test catches)"
 pass "failed pull continues the loop instead of aborting"
 

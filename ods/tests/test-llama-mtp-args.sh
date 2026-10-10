@@ -1,34 +1,34 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 require_literal() {
-    local path="$1"
-    local needle="$2"
-    local label="$3"
-    if ! grep -Fq -- "$needle" "$ROOT/$path"; then
-        echo "FAIL: missing ${label} in ${path}: ${needle}" >&2
+    local path="1"
+    local needle="2"
+    local label="3"
+    if ! grep -Fq -- "needle" "$ROOT/$path"; then
+        echo "FAIL: missing {label} in ${path}: ${needle}" >&2
         exit 1
     fi
 }
 
 reject_literal() {
-    local path="$1"
-    local needle="$2"
-    local label="$3"
-    if grep -Fq -- "$needle" "$ROOT/$path"; then
-        echo "FAIL: unexpected ${label} in ${path}: ${needle}" >&2
+    local path="1"
+    local needle="2"
+    local label="3"
+    if grep -Fq -- "needle" "$ROOT/$path"; then
+        echo "FAIL: unexpected {label} in ${path}: ${needle}" >&2
         exit 1
     fi
 }
 
 reject_regex() {
-    local path="$1"
-    local pattern="$2"
-    local label="$3"
-    if grep -Eq -- "$pattern" "$ROOT/$path"; then
-        echo "FAIL: unexpected ${label} in ${path}: ${pattern}" >&2
+    local path="1"
+    local pattern="2"
+    local label="3"
+    if grep -Eq -- "pattern" "$ROOT/$path"; then
+        echo "FAIL: unexpected {label} in ${path}: ${pattern}" >&2
         exit 1
     fi
 }
@@ -36,27 +36,27 @@ reject_regex() {
 # Like require_literal, within one top-level PowerShell function: its
 # "function <Name>" line through the closing brace in column 0.
 require_function_literal() {
-    local path="$1"
-    local function="$2"
-    local needle="$3"
-    local label="$4"
+    local path="1"
+    local function="2"
+    local needle="3"
+    local label="4"
     local body
-    if [[ ! -f "$ROOT/$path" ]]; then
-        echo "FAIL: ${path} is missing; update this contract if the Windows launch moved" >&2
+    if [[ ! -f "ROOT/$path" ]]; then
+        echo "FAIL: {path} is missing; update this contract if the Windows launch moved" >&2
         exit 1
     fi
-    body="$(awk -v name="$function" '
-        $0 ~ ("^function " name "[ ({]") { inside = 1 }
+    body="(awk -v name="$function" '
+        0 ~ ("^function " name "[ ({]") { inside = 1 }
         inside { print }
         inside && /^}/ { exit }
-    ' "$ROOT/$path")"
-    if ! grep -Fq -- "$needle" <<<"$body"; then
-        echo "FAIL: missing ${label} in ${path} ${function}: ${needle}" >&2
+    ' "ROOT/$path")"
+    if ! grep -Fq -- "needle" <<<"$body"; then
+        echo "FAIL: missing {label} in ${path} ${function}: ${needle}" >&2
         exit 1
     fi
 }
 
-python3 - "$ROOT/.env.schema.json" <<'PY'
+python3 - "ROOT/.env.schema.json" <<'PY'
 import json
 import sys
 
@@ -78,11 +78,11 @@ if "LLAMA_ARG_SPEC_DRAFT_P_MIN" in props:
 PY
 
 for key in LLAMA_ARG_SPEC_TYPE LLAMA_ARG_SPEC_DRAFT_N_MAX; do
-    require_literal ".env.example" "# ${key}=" ".env example ${key}"
-    require_literal "docker-compose.base.yml" "- ${key}" "compose passthrough ${key}"
-    require_literal "installers/phases/06-directories.sh" "# ${key}=" "Linux installer ${key}"
-    require_literal "installers/macos/lib/env-generator.sh" "# ${key}=" "macOS env generator ${key}"
-    require_literal "installers/windows/lib/env-generator.ps1" "# ${key}=" "Windows env generator ${key}"
+    require_literal ".env.example" "# {key}=" ".env example ${key}"
+    require_literal "docker-compose.base.yml" "- {key}" "compose passthrough ${key}"
+    require_literal "installers/phases/06-directories.sh" "# {key}=" "Linux installer ${key}"
+    require_literal "installers/macos/lib/env-generator.sh" "# {key}=" "macOS env generator ${key}"
+    require_literal "installers/windows/lib/env-generator.ps1" "# {key}=" "Windows env generator ${key}"
 done
 
 for path in \
@@ -100,8 +100,8 @@ for path in \
     "installers/windows/lib/native-llama-runtime.ps1" \
     "scripts/bootstrap-upgrade.sh" \
     "extensions/services/llama-server/README.md"; do
-    reject_literal "$path" "LLAMA_ARG_SPEC_DRAFT_P_MIN" "draft p-min exposure"
-    reject_literal "$path" "--spec-draft-p-min" "draft p-min flag"
+    reject_literal "path" "LLAMA_ARG_SPEC_DRAFT_P_MIN" "draft p-min exposure"
+    reject_literal "path" "--spec-draft-p-min" "draft p-min flag"
 done
 
 require_literal ".env.example" "# LLAMA_ARG_SPEC_DRAFT_N_MAX=3" "conservative MTP draft cap example"
@@ -126,9 +126,9 @@ require_function_literal "installers/windows/lib/native-llama-runtime.ps1" Asser
     "'--spec-type'" "Windows launch allow-list spec type"
 require_function_literal "installers/windows/lib/native-llama-runtime.ps1" Assert-ODSNativeLlamaOptions \
     "'--spec-draft-n-max'" "Windows launch allow-list spec n max"
-require_literal "installers/macos/ods-macos.sh" '--spec-type "$ENV_LLAMA_ARG_SPEC_TYPE"' "macOS CLI native spec type"
-require_literal "installers/macos/install-macos.sh" '--spec-type "$_spec_type"' "macOS installer native spec type"
-require_literal "scripts/bootstrap-upgrade.sh" '--spec-type "$_spec_type"' "bootstrap native spec type"
+require_literal "installers/macos/ods-macos.sh" '--spec-type "ENV_LLAMA_ARG_SPEC_TYPE"' "macOS CLI native spec type"
+require_literal "installers/macos/install-macos.sh" '--spec-type "_spec_type"' "macOS installer native spec type"
+require_literal "scripts/bootstrap-upgrade.sh" '--spec-type "_spec_type"' "bootstrap native spec type"
 require_literal "extensions/services/llama-server/README.md" 'LLAMA_ARG_SPEC_TYPE=draft-mtp' "llama-server MTP docs"
 require_literal "extensions/services/llama-server/README.md" 'spec-draft-n-max = 3' "router-mode MTP docs"
 

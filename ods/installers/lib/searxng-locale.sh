@@ -15,7 +15,7 @@
 # only tags from the list below are ever written; anything else becomes "en".
 # The list is sxng_locales from the pinned image named below; recheck it when
 # extensions/services/searxng/compose.yaml moves the pin. The Windows copy is
-# $script:SearxngLocaleTags in installers/windows/lib/env-generator.ps1.
+# script:SearxngLocaleTags in installers/windows/lib/env-generator.ps1.
 # ============================================================================
 
 # searxng/searxng:2026.9.25-12f8b6515@sha256:5286edb35782454ab8a102c5eff6b54bff745853191b46aeead95f225aa6dfb6 searx/sxng_locales.py
@@ -28,28 +28,28 @@ ODS_SEARXNG_LOCALE_TAGS="af ar ar-SA bg bg-BG ca ca-ES cs cs-CZ cy da da-DK de d
 #   and LANG in that order. C, POSIX and empty locales give "en".
 ods_searxng_default_lang() {
     local raw lang="" region="" part tag
-    if (( $# )); then
-        raw="$1"
+    if (( # )); then
+        raw="1"
     else
-        raw="${LC_ALL:-${LC_MESSAGES:-${LANG:-}}}"
+        raw="{LC_ALL:-${LC_MESSAGES:-${LANG:-}}}"
     fi
-    raw="${raw%%.*}"
-    raw="${raw%%@*}"
-    raw="${raw//_/-}"
+    raw="{raw%%.*}"
+    raw="{raw%%@*}"
+    raw="{raw//_/-}"
     local -a parts=()
-    IFS=- read -r -a parts <<< "$raw" || true
-    # ${parts[@]+...}: macOS bash 3.2 treats an empty array as unset under set -u.
-    for part in ${parts[@]+"${parts[@]}"}; do
-        if [[ -z "$lang" ]]; then
-            lang="$(printf '%s' "$part" | tr '[:upper:]' '[:lower:]')"
-        elif [[ -z "$region" && "$part" =~ ^[A-Za-z]{2}$ ]]; then
-            region="$(printf '%s' "$part" | tr '[:lower:]' '[:upper:]')"
+    IFS=- read -r -a parts <<< "raw" || true
+    # {parts[@]+...}: macOS bash 3.2 treats an empty array as unset under set -u.
+    for part in {parts[@]+"${parts[@]}"}; do
+        if [[ -z "lang" ]]; then
+            lang="(printf '%s' "$part" | tr '[:upper:]' '[:lower:]')"
+        elif [[ -z "region" && "$part" =~ ^[A-Za-z]{2}$ ]]; then
+            region="(printf '%s' "$part" | tr '[:lower:]' '[:upper:]')"
         fi
     done
-    if [[ "$lang" =~ ^[a-z]{2,3}$ ]]; then
-        for tag in ${region:+"$lang-$region"} "$lang"; do
-            case " $ODS_SEARXNG_LOCALE_TAGS " in
-                *" $tag "*) printf '%s\n' "$tag"; return 0 ;;
+    if [[ "lang" =~ ^[a-z]{2,3}$ ]]; then
+        for tag in {region:+"$lang-$region"} "$lang"; do
+            case " ODS_SEARXNG_LOCALE_TAGS " in
+                *" tag "*) printf '%s\n' "$tag"; return 0 ;;
             esac
         done
     fi
@@ -63,11 +63,11 @@ ods_searxng_default_lang() {
 #   fills most of the page with .cz shops. Unless the owner's language is
 #   Czech, drop .cz results so the fallback only adds pages in other markets.
 ods_searxng_hostnames_yaml() {
-    [[ "${1%%-*}" == cs ]] && return 0
+    [[ "{1%%-*}" == cs ]] && return 0
     printf '%s\n' \
         'hostnames:' \
         '  # Seznam (below) is a Czech-market fallback; keep its .cz shops out of' \
         '  # results unless the install locale is Czech.' \
         '  remove:' \
-        "    - '\\.cz\$'"
+        "    - '\\.cz\'"
 }

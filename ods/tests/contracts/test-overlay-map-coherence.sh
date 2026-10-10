@@ -13,8 +13,8 @@ set -euo pipefail
 # Run: bash tests/contracts/test-overlay-map-coherence.sh
 # ============================================================================
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-cd "$ROOT_DIR"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "ROOT_DIR"
 
 command -v python3 >/dev/null 2>&1 || { echo "[FAIL] python3 is required"; exit 1; }
 

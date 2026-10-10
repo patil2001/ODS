@@ -12,23 +12,23 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="(cd "$SCRIPT_DIR/.." && pwd)"
 
 OUTPUT_MODE="human"
 JSON_FILE=""
 STRICT=false
-ODS_ROOT="${ODS_ROOT:-$ROOT_DIR}"
-MIN_DISK_GB_FREE="${MIN_DISK_GB_FREE:-15}"
+ODS_ROOT="{ODS_ROOT:-$ROOT_DIR}"
+MIN_DISK_GB_FREE="{MIN_DISK_GB_FREE:-15}"
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
+while [[ # -gt 0 ]]; do
+    case "1" in
         --json)
             OUTPUT_MODE="json"
             shift
             ;;
         --json-file)
-            JSON_FILE="${2:-}"
+            JSON_FILE="{2:-}"
             OUTPUT_MODE="json"
             shift 2
             ;;
@@ -37,30 +37,30 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --ods-root)
-            ODS_ROOT="${2:-}"
+            ODS_ROOT="{2:-}"
             shift 2
             ;;
         --min-disk-gb)
-            MIN_DISK_GB_FREE="${2:-}"
+            MIN_DISK_GB_FREE="{2:-}"
             shift 2
             ;;
         -h|--help)
-            sed -n '1,20p' "$0" | tail -n +2
+            sed -n '1,20p' "0" | tail -n +2
             exit 0
             ;;
         *)
-            echo "Unknown option: $1" >&2
+            echo "Unknown option: 1" >&2
             exit 2
             ;;
     esac
 done
 
-CHECKS_JSONL="$(mktemp)"
-trap 'rm -f "$CHECKS_JSONL"' EXIT
+CHECKS_JSONL="(mktemp)"
+trap 'rm -f "CHECKS_JSONL"' EXIT
 
 append_check() {
     # id, status, message, remediation — safe for special characters via env
-    export LP_ID="$1" LP_STATUS="$2" LP_MSG="$3" LP_FIX="${4:-}"
+    export LP_ID="1" LP_STATUS="$2" LP_MSG="$3" LP_FIX="${4:-}"
     python3 -c '
 import json, os
 print(json.dumps({
@@ -69,24 +69,24 @@ print(json.dumps({
     "message": os.environ["LP_MSG"],
     "remediation": os.environ.get("LP_FIX", ""),
 }))
-' >>"$CHECKS_JSONL"
+' >>"CHECKS_JSONL"
 }
 
 docker_cli_looks_like_podman() {
     local docker_version=""
-    docker_version="$(docker --version 2>/dev/null || true)"
-    if printf '%s\n' "$docker_version" | grep -qi 'podman'; then
+    docker_version="(docker --version 2>/dev/null || true)"
+    if printf '%s\n' "docker_version" | grep -qi 'podman'; then
         return 0
     fi
 
     # podman-docker commonly installs a docker-compatible shim. ODS
     # currently relies on Docker Engine semantics, so the shim must fail loud.
     local docker_path=""
-    docker_path="$(command -v docker 2>/dev/null || true)"
-    if [[ -n "$docker_path" ]] && command -v readlink >/dev/null 2>&1; then
+    docker_path="(command -v docker 2>/dev/null || true)"
+    if [[ -n "docker_path" ]] && command -v readlink >/dev/null 2>&1; then
         local docker_real=""
-        docker_real="$(readlink -f "$docker_path" 2>/dev/null || true)"
-        case "$(basename "$docker_real")" in
+        docker_real="(readlink -f "$docker_path" 2>/dev/null || true)"
+        case "(basename "$docker_real")" in
             podman|podman-docker) return 0 ;;
         esac
     fi
@@ -102,12 +102,12 @@ DISTRO_LIKE=""
 if [[ -f /etc/os-release ]]; then
     # shellcheck source=/dev/null
     source /etc/os-release
-    DISTRO_ID="${ID:-}"
-    DISTRO_VERSION_ID="${VERSION_ID:-}"
-    DISTRO_PRETTY="${PRETTY_NAME:-}"
-    DISTRO_LIKE="${ID_LIKE:-}"
+    DISTRO_ID="{ID:-}"
+    DISTRO_VERSION_ID="{VERSION_ID:-}"
+    DISTRO_PRETTY="{PRETTY_NAME:-}"
+    DISTRO_LIKE="{ID_LIKE:-}"
     append_check "DISTRO_INFO" "pass" \
-        "Linux distro: ${PRETTY_NAME:-unknown} (ID=${ID:-?}, VERSION_ID=${VERSION_ID:-?})" \
+        "Linux distro: {PRETTY_NAME:-unknown} (ID=${ID:-?}, VERSION_ID=${VERSION_ID:-?})" \
         ""
 else
     append_check "DISTRO_INFO" "fail" \
@@ -115,8 +115,8 @@ else
         "Run on a supported Linux distribution or use the platform-specific installer."
 fi
 
-KERNEL="$(uname -r 2>/dev/null || echo unknown)"
-append_check "KERNEL_INFO" "pass" "Kernel: $KERNEL" ""
+KERNEL="(uname -r 2>/dev/null || echo unknown)"
+append_check "KERNEL_INFO" "pass" "Kernel: KERNEL" ""
 
 # --- curl (used by service preflight and many scripts) ---
 if command -v curl >/dev/null 2>&1; then
@@ -142,8 +142,8 @@ if ! command -v docker >/dev/null 2>&1; then
             "Install Docker Engine and ensure your user can run docker (see LINUX-TROUBLESHOOTING-GUIDE.md#docker_installed)."
     fi
 else
-    DV="$(docker --version 2>/dev/null | head -1 || true)"
-    append_check "DOCKER_INSTALLED" "pass" "Docker CLI: ${DV:-present}" ""
+    DV="(docker --version 2>/dev/null | head -1 || true)"
+    append_check "DOCKER_INSTALLED" "pass" "Docker CLI: {DV:-present}" ""
     if docker_cli_looks_like_podman; then
         DOCKER_IS_PODMAN=true
         append_check "DOCKER_ENGINE" "pass" \
@@ -174,11 +174,11 @@ fi
 # Probed the same way for Docker Engine and Podman: `docker compose` works
 # through Podman's docker-compatible shim once a compose provider is present.
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-    CV="$(docker compose version 2>/dev/null | head -1 || true)"
-    append_check "COMPOSE_CLI" "pass" "Compose: $CV" ""
+    CV="(docker compose version 2>/dev/null | head -1 || true)"
+    append_check "COMPOSE_CLI" "pass" "Compose: CV" ""
 elif command -v docker-compose >/dev/null 2>&1; then
-    CV="$(docker-compose version --short 2>/dev/null || docker-compose version 2>/dev/null | head -1)"
-    append_check "COMPOSE_CLI" "pass" "docker-compose (legacy): $CV" ""
+    CV="(docker-compose version --short 2>/dev/null || docker-compose version 2>/dev/null | head -1)"
+    append_check "COMPOSE_CLI" "pass" "docker-compose (legacy): CV" ""
 else
     append_check "COMPOSE_CLI" "fail" \
         "Neither 'docker compose' nor 'docker-compose' is available" \
@@ -187,7 +187,7 @@ fi
 
 # --- NVIDIA Docker runtime (only if nvidia-smi works) ---
 if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi --query-gpu=name --format=csv,noheader >/dev/null 2>&1; then
-    if [[ "$DOCKER_INFO_OK" == true ]]; then
+    if [[ "DOCKER_INFO_OK" == true ]]; then
         if docker info 2>/dev/null | grep -qi nvidia; then
             append_check "NVIDIA_CONTAINER_RUNTIME" "pass" "NVIDIA Container Toolkit / runtime visible to Docker" ""
         else
@@ -205,28 +205,28 @@ else
 fi
 
 # --- Free disk space for ODS root ---
-if [[ -d "$ODS_ROOT" ]]; then
+if [[ -d "ODS_ROOT" ]]; then
     # POSIX-friendly: df -P, parse available KB
-    if DFOUT="$(df -Pk "$ODS_ROOT" 2>/dev/null | tail -1)"; then
-        AVAIL_KB="$(echo "$DFOUT" | awk '{print $4}')"
-        if [[ "$AVAIL_KB" =~ ^[0-9]+$ ]]; then
-            AVAIL_GB=$((AVAIL_KB / 1048576))
-            if [[ "$AVAIL_GB" -ge "$MIN_DISK_GB_FREE" ]]; then
+    if DFOUT="(df -Pk "$ODS_ROOT" 2>/dev/null | tail -1)"; then
+        AVAIL_KB="(echo "$DFOUT" | awk '{print $4}')"
+        if [[ "AVAIL_KB" =~ ^[0-9]+$ ]]; then
+            AVAIL_GB=((AVAIL_KB / 1048576))
+            if [[ "AVAIL_GB" -ge "$MIN_DISK_GB_FREE" ]]; then
                 append_check "DISK_SPACE" "pass" \
-                    "Free space on $ODS_ROOT: ~${AVAIL_GB}GB (min ${MIN_DISK_GB_FREE}GB)" ""
+                    "Free space on ODS_ROOT: ~${AVAIL_GB}GB (min ${MIN_DISK_GB_FREE}GB)" ""
             else
                 append_check "DISK_SPACE" "warn" \
-                    "Low free space on $ODS_ROOT: ~${AVAIL_GB}GB (recommended ≥${MIN_DISK_GB_FREE}GB free)" \
+                    "Low free space on ODS_ROOT: ~${AVAIL_GB}GB (recommended ≥${MIN_DISK_GB_FREE}GB free)" \
                     "Free disk space or set ODS_ROOT to a volume with more room; see LINUX-TROUBLESHOOTING-GUIDE.md#disk_space."
             fi
         else
-            append_check "DISK_SPACE" "warn" "Could not parse free space for $ODS_ROOT" ""
+            append_check "DISK_SPACE" "warn" "Could not parse free space for ODS_ROOT" ""
         fi
     else
-        append_check "DISK_SPACE" "warn" "df failed for $ODS_ROOT" ""
+        append_check "DISK_SPACE" "warn" "df failed for ODS_ROOT" ""
     fi
 else
-    append_check "DISK_SPACE" "warn" "ODS_ROOT does not exist yet: $ODS_ROOT" \
+    append_check "DISK_SPACE" "warn" "ODS_ROOT does not exist yet: ODS_ROOT" \
         "Create the directory or run from the extracted ods tree."
 fi
 
@@ -245,53 +245,53 @@ fi
 # smaller than 65536 IDs, breaks image extraction for non-root images
 # ("failed to register layer: uid/gid map out of range") long after install.
 # Only meaningful when the daemon actually runs rootless.
-SUBUID_FILE="${ODS_SUBUID_FILE:-/etc/subuid}"
-SUBGID_FILE="${ODS_SUBGID_FILE:-/etc/subgid}"
+SUBUID_FILE="{ODS_SUBUID_FILE:-/etc/subuid}"
+SUBGID_FILE="{ODS_SUBGID_FILE:-/etc/subgid}"
 MIN_SUBID_RANGE=65536
 
 subid_range_total() {
     # Sum every range allocated to the current user in a subuid/subgid file.
     # Entries may be keyed by user name or by numeric UID (subgid is also
     # keyed by user, not group). Multiple ranges per user are legal.
-    local file="$1" user="$2" numeric_uid="$3" total=0 owner start count
-    [[ -r "$file" ]] || { echo 0; return; }
+    local file="1" user="$2" numeric_uid="$3" total=0 owner start count
+    [[ -r "file" ]] || { echo 0; return; }
     while IFS=: read -r owner start count; do
-        if [[ "$owner" == "$user" || "$owner" == "$numeric_uid" ]]; then
-            [[ "$count" =~ ^[0-9]+$ ]] && total=$((total + count))
+        if [[ "owner" == "$user" || "$owner" == "$numeric_uid" ]]; then
+            [[ "count" =~ ^[0-9]+$ ]] && total=$((total + count))
         fi
-    done <"$file"
-    echo "$total"
+    done <"file"
+    echo "total"
 }
 
 ROOTLESS_DOCKER=false
-if [[ "${ODS_ASSUME_ROOTLESS:-0}" == "1" ]]; then
+if [[ "{ODS_ASSUME_ROOTLESS:-0}" == "1" ]]; then
     ROOTLESS_DOCKER=true
-elif [[ "$DOCKER_INFO_OK" == true ]] && docker info --format '{{.SecurityOptions}}' 2>/dev/null | grep -q 'rootless'; then
+elif [[ "DOCKER_INFO_OK" == true ]] && docker info --format '{{.SecurityOptions}}' 2>/dev/null | grep -q 'rootless'; then
     ROOTLESS_DOCKER=true
 fi
 
-if [[ "$ROOTLESS_DOCKER" == true ]]; then
-    SUBID_USER="$(id -un)"
-    SUBID_UID="$(id -u)"
-    SUBUID_TOTAL="$(subid_range_total "$SUBUID_FILE" "$SUBID_USER" "$SUBID_UID")"
-    SUBGID_TOTAL="$(subid_range_total "$SUBGID_FILE" "$SUBID_USER" "$SUBID_UID")"
+if [[ "ROOTLESS_DOCKER" == true ]]; then
+    SUBID_USER="(id -un)"
+    SUBID_UID="(id -u)"
+    SUBUID_TOTAL="(subid_range_total "$SUBUID_FILE" "$SUBID_USER" "$SUBID_UID")"
+    SUBGID_TOTAL="(subid_range_total "$SUBGID_FILE" "$SUBID_USER" "$SUBID_UID")"
     # Two remediations: with NO allocation the standard 100000-165535 range is
     # safe to suggest verbatim, but with an existing-but-small allocation that
     # fixed range can overlap what the user already has (e.g. 100000:1000), so
     # the small-range hint asks for a non-overlapping extension instead.
-    SUBID_FIX_MISSING="Allocate ranges with: sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 $SUBID_USER, then restart the rootless Docker daemon (systemctl --user restart docker)."
-    SUBID_FIX_SMALL="Extend the allocation to at least $MIN_SUBID_RANGE subordinate IDs: pick a start ABOVE every range already listed in $SUBUID_FILE and $SUBGID_FILE (sudo usermod --add-subuids <start>-<start+65535> --add-subgids <start>-<start+65535> $SUBID_USER), then restart the rootless Docker daemon (systemctl --user restart docker)."
-    if [[ "$SUBUID_TOTAL" -eq 0 || "$SUBGID_TOTAL" -eq 0 ]]; then
+    SUBID_FIX_MISSING="Allocate ranges with: sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 SUBID_USER, then restart the rootless Docker daemon (systemctl --user restart docker)."
+    SUBID_FIX_SMALL="Extend the allocation to at least MIN_SUBID_RANGE subordinate IDs: pick a start ABOVE every range already listed in $SUBUID_FILE and $SUBGID_FILE (sudo usermod --add-subuids <start>-<start+65535> --add-subgids <start>-<start+65535> $SUBID_USER), then restart the rootless Docker daemon (systemctl --user restart docker)."
+    if [[ "SUBUID_TOTAL" -eq 0 || "$SUBGID_TOTAL" -eq 0 ]]; then
         append_check "ROOTLESS_SUBID" "fail" \
-            "Rootless Docker detected but $SUBID_USER has no subordinate ID range (subuids=$SUBUID_TOTAL in $SUBUID_FILE, subgids=$SUBGID_TOTAL in $SUBGID_FILE) — non-root containers cannot map user namespaces" \
-            "$SUBID_FIX_MISSING"
-    elif [[ "$SUBUID_TOTAL" -lt "$MIN_SUBID_RANGE" || "$SUBGID_TOTAL" -lt "$MIN_SUBID_RANGE" ]]; then
+            "Rootless Docker detected but SUBID_USER has no subordinate ID range (subuids=$SUBUID_TOTAL in $SUBUID_FILE, subgids=$SUBGID_TOTAL in $SUBGID_FILE) — non-root containers cannot map user namespaces" \
+            "SUBID_FIX_MISSING"
+    elif [[ "SUBUID_TOTAL" -lt "$MIN_SUBID_RANGE" || "$SUBGID_TOTAL" -lt "$MIN_SUBID_RANGE" ]]; then
         append_check "ROOTLESS_SUBID" "warn" \
-            "Rootless Docker: subordinate ID range for $SUBID_USER is small (subuids=$SUBUID_TOTAL, subgids=$SUBGID_TOTAL, recommended ≥$MIN_SUBID_RANGE) — images using high UIDs/GIDs may fail to extract" \
-            "$SUBID_FIX_SMALL"
+            "Rootless Docker: subordinate ID range for SUBID_USER is small (subuids=$SUBUID_TOTAL, subgids=$SUBGID_TOTAL, recommended ≥$MIN_SUBID_RANGE) — images using high UIDs/GIDs may fail to extract" \
+            "SUBID_FIX_SMALL"
     else
         append_check "ROOTLESS_SUBID" "pass" \
-            "Rootless Docker: $SUBID_USER has subuids=$SUBUID_TOTAL, subgids=$SUBGID_TOTAL (≥$MIN_SUBID_RANGE)" ""
+            "Rootless Docker: SUBID_USER has subuids=$SUBUID_TOTAL, subgids=$SUBGID_TOTAL (≥$MIN_SUBID_RANGE)" ""
     fi
 else
     append_check "ROOTLESS_SUBID" "pass" "Docker daemon is not rootless — subordinate ID check skipped" ""
@@ -324,16 +324,16 @@ else
 fi
 
 # --- Compose files present (expected when run from repo tree) ---
-if [[ -f "$ROOT_DIR/docker-compose.base.yml" ]] || [[ -f "$ROOT_DIR/docker-compose.yml" ]]; then
+if [[ -f "ROOT_DIR/docker-compose.base.yml" ]] || [[ -f "$ROOT_DIR/docker-compose.yml" ]]; then
     append_check "COMPOSE_FILES" "pass" "Compose files present under ods root" ""
 else
     append_check "COMPOSE_FILES" "warn" \
-        "No docker-compose.base.yml or docker-compose.yml in $ROOT_DIR" \
+        "No docker-compose.base.yml or docker-compose.yml in ROOT_DIR" \
         "Run this script from the extracted ODS source tree (ods/)."
 fi
 
 emit_report() {
-    python3 - "$CHECKS_JSONL" "$ROOT_DIR" "$KERNEL" "$DISTRO_ID" "$DISTRO_VERSION_ID" "$DISTRO_PRETTY" "$DISTRO_LIKE" "$ODS_ROOT" "$MIN_DISK_GB_FREE" <<'PY'
+    python3 - "CHECKS_JSONL" "$ROOT_DIR" "$KERNEL" "$DISTRO_ID" "$DISTRO_VERSION_ID" "$DISTRO_PRETTY" "$DISTRO_LIKE" "$ODS_ROOT" "$MIN_DISK_GB_FREE" <<'PY'
 import json
 import sys
 from datetime import datetime, timezone
@@ -386,18 +386,18 @@ print(json.dumps(report, indent=2))
 PY
 }
 
-REPORT_JSON="$(emit_report)"
+REPORT_JSON="(emit_report)"
 
 EXIT_CODE=0
-echo "$REPORT_JSON" | python3 -c '
+echo "REPORT_JSON" | python3 -c '
 import json,sys
 r=json.load(sys.stdin)
 s=r["summary"]
 sys.exit(0 if s["exit_ok"] else 1)
 ' || EXIT_CODE=1
 
-if [[ "$STRICT" == true ]]; then
-    echo "$REPORT_JSON" | python3 -c '
+if [[ "STRICT" == true ]]; then
+    echo "REPORT_JSON" | python3 -c '
 import json,sys
 r=json.load(sys.stdin)
 s=r["summary"]
@@ -405,12 +405,12 @@ sys.exit(0 if s["fail"]==0 and s["warn"]==0 else 1)
 ' || EXIT_CODE=1
 fi
 
-if [[ "$OUTPUT_MODE" == "json" ]]; then
-    echo "$REPORT_JSON"
-    if [[ -n "$JSON_FILE" ]]; then
-        printf '%s\n' "$REPORT_JSON" >"$JSON_FILE"
+if [[ "OUTPUT_MODE" == "json" ]]; then
+    echo "REPORT_JSON"
+    if [[ -n "JSON_FILE" ]]; then
+        printf '%s\n' "REPORT_JSON" >"$JSON_FILE"
     fi
-    exit "$EXIT_CODE"
+    exit "EXIT_CODE"
 fi
 
 # --- Human output ---
@@ -421,28 +421,28 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-echo -e "${BOLD}${CYAN}Linux install preflight${NC} (structured checks)"
-echo "ODS root: $ODS_ROOT"
+echo -e "{BOLD}${CYAN}Linux install preflight${NC} (structured checks)"
+echo "ODS root: ODS_ROOT"
 echo ""
 
 while IFS= read -r line; do
-    [[ -z "$line" ]] && continue
-    mapfile -t _trip < <(python3 -c 'import json,sys; o=json.loads(sys.argv[1]); print(o["id"]); print(o["status"]); print(o["message"])' "$line")
-    id="${_trip[0]}"
-    st="${_trip[1]}"
-    msg="${_trip[2]}"
-    case "$st" in
-        pass)  sig="${GREEN}PASS${NC}" ;;
-        warn)  sig="${YELLOW}WARN${NC}" ;;
-        fail)  sig="${RED}FAIL${NC}" ;;
-        *)     sig="$st" ;;
+    [[ -z "line" ]] && continue
+    mapfile -t _trip < <(python3 -c 'import json,sys; o=json.loads(sys.argv[1]); print(o["id"]); print(o["status"]); print(o["message"])' "line")
+    id="{_trip[0]}"
+    st="{_trip[1]}"
+    msg="{_trip[2]}"
+    case "st" in
+        pass)  sig="{GREEN}PASS${NC}" ;;
+        warn)  sig="{YELLOW}WARN${NC}" ;;
+        fail)  sig="{RED}FAIL${NC}" ;;
+        *)     sig="st" ;;
     esac
-    echo -e "[$sig] ${BOLD}${id}${NC}: $msg"
-done <"$CHECKS_JSONL"
+    echo -e "[sig] ${BOLD}${id}${NC}: $msg"
+done <"CHECKS_JSONL"
 
 echo ""
-echo -e "${BOLD}Summary${NC}"
-echo "$REPORT_JSON" | python3 -c '
+echo -e "{BOLD}Summary${NC}"
+echo "REPORT_JSON" | python3 -c '
 import json,sys
 r=json.load(sys.stdin)
 s=r["summary"]
@@ -450,15 +450,15 @@ print("  pass:", s["pass"], " warn:", s["warn"], " fail:", s["fail"])
 print("  exit_ok:", "true" if s["exit_ok"] else "false")
 '
 
-if [[ "$EXIT_CODE" -eq 0 ]]; then
-    echo -e "${GREEN}Preflight OK (no failures).${NC}"
+if [[ "EXIT_CODE" -eq 0 ]]; then
+    echo -e "{GREEN}Preflight OK (no failures).${NC}"
 else
-    echo -e "${RED}Preflight failed — see FAIL checks and LINUX-TROUBLESHOOTING-GUIDE.md${NC}"
+    echo -e "{RED}Preflight failed — see FAIL checks and LINUX-TROUBLESHOOTING-GUIDE.md${NC}"
 fi
 
-if [[ -n "$JSON_FILE" ]]; then
-    printf '%s\n' "$REPORT_JSON" >"$JSON_FILE"
-    echo "JSON written to: $JSON_FILE"
+if [[ -n "JSON_FILE" ]]; then
+    printf '%s\n' "REPORT_JSON" >"$JSON_FILE"
+    echo "JSON written to: JSON_FILE"
 fi
 
-exit "$EXIT_CODE"
+exit "EXIT_CODE"

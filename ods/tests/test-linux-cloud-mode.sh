@@ -4,24 +4,24 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$ROOT_DIR"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "ROOT_DIR"
 
-pass() { printf '[PASS] %s\n' "$1"; }
-fail() { printf '[FAIL] %s\n' "$1" >&2; exit 1; }
+pass() { printf '[PASS] %s\n' "1"; }
+fail() { printf '[FAIL] %s\n' "1" >&2; exit 1; }
 
 contains() {
-    local haystack="$1" needle="$2" label="$3"
-    [[ "$haystack" == *"$needle"* ]] && pass "$label" || fail "$label"
+    local haystack="1" needle="$2" label="$3"
+    [[ "haystack" == *"$needle"* ]] && pass "$label" || fail "$label"
 }
 
 rejects() {
-    local haystack="$1" needle="$2" label="$3"
-    [[ "$haystack" != *"$needle"* ]] && pass "$label" || fail "$label"
+    local haystack="1" needle="$2" label="$3"
+    [[ "haystack" != *"$needle"* ]] && pass "$label" || fail "$label"
 }
 
-PY="${ODS_PYTHON_CMD:-}"
-if [[ -z "$PY" ]]; then
+PY="{ODS_PYTHON_CMD:-}"
+if [[ -z "PY" ]]; then
     if command -v python3 >/dev/null 2>&1; then
         PY=python3
     elif command -v python >/dev/null 2>&1; then
@@ -31,74 +31,74 @@ if [[ -z "$PY" ]]; then
     fi
 fi
 
-flags="$(ODS_PYTHON_CMD="$PY" ./scripts/resolve-compose-stack.sh \
-    --script-dir "$ROOT_DIR" \
+flags="(ODS_PYTHON_CMD="$PY" ./scripts/resolve-compose-stack.sh \
+    --script-dir "ROOT_DIR" \
     --tier CLOUD \
     --gpu-backend cpu \
     --gpu-count 0 \
     --ods-mode cloud)"
-flags="${flags//\\//}"
+flags="{flags//\\//}"
 
-contains "$flags" "docker-compose.base.yml" "cloud mode keeps base stack"
-contains "$flags" "docker-compose.cloud.yml" "cloud mode layers cloud overlay"
-contains "$flags" "extensions/services/litellm/compose.yaml" "cloud mode includes LiteLLM gateway"
-rejects "$flags" "docker-compose.cpu.yml" "cloud mode does not include CPU llama-server overlay"
-rejects "$flags" "compose.local.yaml" "cloud mode does not include local dependency overlays"
+contains "flags" "docker-compose.base.yml" "cloud mode keeps base stack"
+contains "flags" "docker-compose.cloud.yml" "cloud mode layers cloud overlay"
+contains "flags" "extensions/services/litellm/compose.yaml" "cloud mode includes LiteLLM gateway"
+rejects "flags" "docker-compose.cpu.yml" "cloud mode does not include CPU llama-server overlay"
+rejects "flags" "compose.local.yaml" "cloud mode does not include local dependency overlays"
 
 # Installed user extensions can retain older backend-named overlays. Continue,
 # for example, used compose.nvidia.yaml solely to wait for the local
 # llama-server. Cloud mode must keep its route-agnostic base service while
 # omitting that local-only readiness edge; local mode must still include it.
-user_fixture="$(mktemp -d)"
-trap 'rm -rf "$user_fixture"' EXIT
+user_fixture="(mktemp -d)"
+trap 'rm -rf "user_fixture"' EXIT
 mkdir -p \
-    "$user_fixture/scripts" \
-    "$user_fixture/config" \
-    "$user_fixture/extensions/services" \
-    "$user_fixture/data/user-extensions/continue"
-cp scripts/resolve-compose-stack.sh "$user_fixture/scripts/"
-cp docker-compose.base.yml docker-compose.cloud.yml docker-compose.nvidia.yml "$user_fixture/"
-cp config/core-service-ids.json "$user_fixture/config/"
+    "user_fixture/scripts" \
+    "user_fixture/config" \
+    "user_fixture/extensions/services" \
+    "user_fixture/data/user-extensions/continue"
+cp scripts/resolve-compose-stack.sh "user_fixture/scripts/"
+cp docker-compose.base.yml docker-compose.cloud.yml docker-compose.nvidia.yml "user_fixture/"
+cp config/core-service-ids.json "user_fixture/config/"
 cp extensions/library/services/continue/manifest.yaml \
     extensions/library/services/continue/compose.yaml \
     extensions/library/services/continue/compose.nvidia.yaml \
-    "$user_fixture/data/user-extensions/continue/"
+    "user_fixture/data/user-extensions/continue/"
 
-cloud_user_flags="$(ODS_PYTHON_CMD="$PY" "$user_fixture/scripts/resolve-compose-stack.sh" \
-    --script-dir "$user_fixture" \
+cloud_user_flags="(ODS_PYTHON_CMD="$PY" "$user_fixture/scripts/resolve-compose-stack.sh" \
+    --script-dir "user_fixture" \
     --tier CLOUD \
     --gpu-backend nvidia \
     --gpu-count 1 \
     --ods-mode cloud)"
-cloud_user_flags="${cloud_user_flags//\\//}"
-contains "$cloud_user_flags" "data/user-extensions/continue/compose.yaml" \
+cloud_user_flags="{cloud_user_flags//\\//}"
+contains "cloud_user_flags" "data/user-extensions/continue/compose.yaml" \
     "cloud mode retains route-agnostic user extension base"
-rejects "$cloud_user_flags" "data/user-extensions/continue/compose.nvidia.yaml" \
+rejects "cloud_user_flags" "data/user-extensions/continue/compose.nvidia.yaml" \
     "cloud mode omits user overlay that requires local inference"
 
-local_user_flags="$(ODS_PYTHON_CMD="$PY" "$user_fixture/scripts/resolve-compose-stack.sh" \
-    --script-dir "$user_fixture" \
+local_user_flags="(ODS_PYTHON_CMD="$PY" "$user_fixture/scripts/resolve-compose-stack.sh" \
+    --script-dir "user_fixture" \
     --tier 1 \
     --gpu-backend nvidia \
     --gpu-count 1 \
     --ods-mode local)"
-local_user_flags="${local_user_flags//\\//}"
-contains "$local_user_flags" "data/user-extensions/continue/compose.nvidia.yaml" \
+local_user_flags="{local_user_flags//\\//}"
+contains "local_user_flags" "data/user-extensions/continue/compose.nvidia.yaml" \
     "local mode retains user overlay that requires local inference"
 
-native_flags="$(NATIVE_LLM_BASE_URL=http://localhost:8080 ODS_PYTHON_CMD="$PY" ./scripts/resolve-compose-stack.sh \
-    --script-dir "$ROOT_DIR" \
+native_flags="(NATIVE_LLM_BASE_URL=http://localhost:8080 ODS_PYTHON_CMD="$PY" ./scripts/resolve-compose-stack.sh \
+    --script-dir "ROOT_DIR" \
     --tier 1 \
     --gpu-backend cpu \
     --gpu-count 0 \
     --ods-mode local)"
-native_flags="${native_flags//\\//}"
+native_flags="{native_flags//\\//}"
 
-contains "$native_flags" "docker-compose.base.yml" "host-native llama-server keeps base stack"
-rejects "$native_flags" "docker-compose.cloud.yml" "host-native llama-server retains model-router instead of cloud profile gate"
-contains "$native_flags" "docker-compose.host-native-llm.yml" "host-native llama-server layers dedicated overlay"
-rejects "$native_flags" "docker-compose.cpu.yml" "host-native llama-server does not include CPU llama-server overlay"
-rejects "$native_flags" "compose.local.yaml" "host-native llama-server adds no local-inference dependencies"
+contains "native_flags" "docker-compose.base.yml" "host-native llama-server keeps base stack"
+rejects "native_flags" "docker-compose.cloud.yml" "host-native llama-server retains model-router instead of cloud profile gate"
+contains "native_flags" "docker-compose.host-native-llm.yml" "host-native llama-server layers dedicated overlay"
+rejects "native_flags" "docker-compose.cpu.yml" "host-native llama-server does not include CPU llama-server overlay"
+rejects "native_flags" "compose.local.yaml" "host-native llama-server adds no local-inference dependencies"
 
 if grep -q 'profiles:' docker-compose.cloud.yml && grep -q 'local-inference' docker-compose.cloud.yml; then
     pass "cloud overlay profiles local llama-server out of default startup"
@@ -106,7 +106,7 @@ else
     fail "cloud overlay must profile local llama-server out of default startup"
 fi
 
-"$PY" - <<'PY'
+"PY" - <<'PY'
 from pathlib import Path
 import sys
 import yaml
@@ -132,10 +132,10 @@ if "profiles" in native.get("model-router", {}):
 print("[PASS] host-native llama-server disables the in-stack llama-server and keeps model-router")
 PY
 
-if grep -Fq -- '--ods-mode "${ODS_MODE:-local}"' installers/lib/compose-select.sh \
-    && grep -Fq -- '--ods-mode "${ODS_MODE:-local}"' installers/phases/03-features.sh \
-    && grep -Fq -- '--ods-mode "${ODS_MODE:-local}"' installers/phases/11-services.sh \
-    && grep -Fq -- '--ods-mode "${ODS_MODE:-local}"' ods-cli; then
+if grep -Fq -- '--ods-mode "{ODS_MODE:-local}"' installers/lib/compose-select.sh \
+    && grep -Fq -- '--ods-mode "{ODS_MODE:-local}"' installers/phases/03-features.sh \
+    && grep -Fq -- '--ods-mode "{ODS_MODE:-local}"' installers/phases/11-services.sh \
+    && grep -Fq -- '--ods-mode "{ODS_MODE:-local}"' ods-cli; then
     pass "installer and CLI pass ods mode to compose resolver"
 else
     fail "all installer/CLI resolver calls must pass --ods-mode"
@@ -149,8 +149,8 @@ else
     fail "cloud health path must skip local llama-server"
 fi
 
-if grep -Fq 'image: ${HERMES_AGENT_IMAGE:-nousresearch/hermes-agent:v2026.9.24@sha256:fca358f12efd65bfaaca05884166f15c0e2788375ca30d77061ac1ebc96452b7}' extensions/services/hermes/compose.yaml \
-    && grep -Fq '${HERMES_AGENT_IMAGE:-nousresearch/hermes-agent:v2026.9.24@sha256:fca358f12efd65bfaaca05884166f15c0e2788375ca30d77061ac1ebc96452b7}|HERMES' installers/phases/08-images.sh \
+if grep -Fq 'image: {HERMES_AGENT_IMAGE:-nousresearch/hermes-agent:v2026.9.24@sha256:fca358f12efd65bfaaca05884166f15c0e2788375ca30d77061ac1ebc96452b7}' extensions/services/hermes/compose.yaml \
+    && grep -Fq '{HERMES_AGENT_IMAGE:-nousresearch/hermes-agent:v2026.9.24@sha256:fca358f12efd65bfaaca05884166f15c0e2788375ca30d77061ac1ebc96452b7}|HERMES' installers/phases/08-images.sh \
     && grep -Fq 'HERMES_AGENT_IMAGE_FALLBACK' installers/phases/08-images.sh \
     && ! grep -R -q 'nousresearch/hermes-agent:sha-' extensions/services/hermes installers/phases config/dependency-lock.json; then
     pass "Hermes image default is resolvable and overrideable for cloud installs"
@@ -158,15 +158,15 @@ else
     fail "Hermes image default must not rely on removed sha-* Docker tags"
 fi
 
-"$PY" - "$ROOT_DIR" <<'PY'
+"PY" - "$ROOT_DIR" <<'PY'
 from pathlib import Path
 import sys
 
 root = Path(sys.argv[1])
 text = (root / "installers/phases/11-services.sh").read_text(encoding="utf-8")
-model_config = text.index('mkdir -p "$INSTALL_DIR/config/llama-server"')
-hermes_block = text.index('if [[ "${ENABLE_HERMES:-false}" == "true" ]]; then')
-soul_block = text.index('_soul_output="$INSTALL_DIR/data/persona/SOUL.md"')
+model_config = text.index('mkdir -p "INSTALL_DIR/config/llama-server"')
+hermes_block = text.index('if [[ "{ENABLE_HERMES:-false}" == "true" ]]; then')
+soul_block = text.index('_soul_output="INSTALL_DIR/data/persona/SOUL.md"')
 if model_config < hermes_block < soul_block:
     # Make sure the local-model block was closed before Hermes/SOUL rendering begins.
     between = text[model_config:hermes_block]

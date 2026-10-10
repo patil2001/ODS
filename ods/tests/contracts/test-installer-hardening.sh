@@ -1,189 +1,189 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-cd "$ROOT_DIR"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "ROOT_DIR"
 
 assert_contains() {
-  local file="$1"
-  local pattern="$2"
-  local msg="$3"
-  if ! grep -qE -- "$pattern" "$file"; then
-    echo "[FAIL] $msg"
+  local file="1"
+  local pattern="2"
+  local msg="3"
+  if ! grep -qE -- "pattern" "$file"; then
+    echo "[FAIL] msg"
     echo "---- output ----"
-    cat "$file"
+    cat "file"
     echo "----------------"
     exit 1
   fi
 }
 
 assert_not_contains() {
-  local file="$1"
-  local pattern="$2"
-  local msg="$3"
-  if grep -qE -- "$pattern" "$file"; then
-    echo "[FAIL] $msg"
+  local file="1"
+  local pattern="2"
+  local msg="3"
+  if grep -qE -- "pattern" "$file"; then
+    echo "[FAIL] msg"
     echo "---- output ----"
-    cat "$file"
+    cat "file"
     echo "----------------"
     exit 1
   fi
 }
 
-tmpdir="$(mktemp -d)"
-trap 'rm -rf "$tmpdir"' EXIT
+tmpdir="(mktemp -d)"
+trap 'rm -rf "tmpdir"' EXIT
 
 echo "[contract] resolve-compose-stack fails loud when PyYAML is missing"
-fake_py="$tmpdir/python3"
-cat > "$fake_py" <<'PYEOF'
+fake_py="tmpdir/python3"
+cat > "fake_py" <<'PYEOF'
 #!/usr/bin/env bash
 code=""
-if [[ "${1:-}" == "-c" ]]; then
-  code="${2:-}"
+if [[ "{1:-}" == "-c" ]]; then
+  code="{2:-}"
 fi
-case "$code" in
+case "code" in
   *"import sys"*) exit 0 ;;
   *"import yaml"*) echo "ModuleNotFoundError: No module named 'yaml'" >&2; exit 1 ;;
 esac
-echo "unexpected fake python invocation: $*" >&2
+echo "unexpected fake python invocation: *" >&2
 exit 99
 PYEOF
-chmod +x "$fake_py"
-cp "$fake_py" "$tmpdir/python"
+chmod +x "fake_py"
+cp "fake_py" "$tmpdir/python"
 
-missing_yaml_err="$tmpdir/missing-yaml.err"
-if PATH="$tmpdir:$PATH" USERPROFILE="" LOCALAPPDATA="" ODS_PYTHON_CMD="$fake_py" scripts/resolve-compose-stack.sh --script-dir "$ROOT_DIR" >"$tmpdir/missing-yaml.out" 2>"$missing_yaml_err"; then
+missing_yaml_err="tmpdir/missing-yaml.err"
+if PATH="tmpdir:$PATH" USERPROFILE="" LOCALAPPDATA="" ODS_PYTHON_CMD="$fake_py" scripts/resolve-compose-stack.sh --script-dir "$ROOT_DIR" >"$tmpdir/missing-yaml.out" 2>"$missing_yaml_err"; then
   echo "[FAIL] resolver should fail when selected Python cannot import yaml"
   exit 1
 fi
-assert_contains "$missing_yaml_err" 'PyYAML is required' "resolver did not explain PyYAML requirement"
-assert_contains "$missing_yaml_err" 'conda deactivate' "resolver did not include Conda/venv recovery hint"
+assert_contains "missing_yaml_err" 'PyYAML is required' "resolver did not explain PyYAML requirement"
+assert_contains "missing_yaml_err" 'conda deactivate' "resolver did not include Conda/venv recovery hint"
 
 echo "[contract] Linux Python guard installs a missing interpreter before PyYAML"
-runtime_out="$tmpdir/python-runtime.out"
-runtime_calls="$tmpdir/python-runtime.calls"
+runtime_out="tmpdir/python-runtime.out"
+runtime_calls="tmpdir/python-runtime.calls"
 bash -c '
   set -euo pipefail
-  ROOT_DIR="$1"
-  tmpdir="$2"
-  calls="$3"
-  cd "$ROOT_DIR"
+  ROOT_DIR="1"
+  tmpdir="2"
+  calls="3"
+  cd "ROOT_DIR"
 
-  SCRIPT_DIR="$ROOT_DIR"
+  SCRIPT_DIR="ROOT_DIR"
   LOG_FILE=/dev/null
   DRY_RUN=false
   INTERACTIVE=false
   PKG_MANAGER=apt
 
-  ai() { echo "AI $*"; }
-  ai_ok() { echo "OK $*"; }
-  ai_warn() { echo "WARN $*"; }
-  ai_bad() { echo "BAD $*"; }
-  error() { echo "ERROR $*" >&2; exit 1; }
-  pkg_update() { echo "pkg_update" >>"$calls"; }
+  ai() { echo "AI *"; }
+  ai_ok() { echo "OK *"; }
+  ai_warn() { echo "WARN *"; }
+  ai_bad() { echo "BAD *"; }
+  error() { echo "ERROR *" >&2; exit 1; }
+  pkg_update() { echo "pkg_update" >>"calls"; }
   pkg_install() {
     local pkg
-    for pkg in "$@"; do
-      echo "pkg_install:$pkg" >>"$calls"
-      case "$pkg" in
-        python3) touch "$tmpdir/python-ready" ;;
-        python3-pyyaml|python3-yaml|pyyaml) touch "$tmpdir/yaml-ready" ;;
+    for pkg in "@"; do
+      echo "pkg_install:pkg" >>"$calls"
+      case "pkg" in
+        python3) touch "tmpdir/python-ready" ;;
+        python3-pyyaml|python3-yaml|pyyaml) touch "tmpdir/yaml-ready" ;;
       esac
     done
   }
-  pkg_resolve() { echo "$1"; }
+  pkg_resolve() { echo "1"; }
 
-  fake_py="$tmpdir/fake-python3"
-  cat > "$fake_py" <<PYEOF
+  fake_py="tmpdir/fake-python3"
+  cat > "fake_py" <<PYEOF
 #!/usr/bin/env bash
 code=""
-if [[ "\${1:-}" == "-c" ]]; then
-  code="\${2:-}"
+if [[ "\{1:-}" == "-c" ]]; then
+  code="\{2:-}"
 fi
-case "\$code" in
+case "\code" in
   *"import sys"*) exit 0 ;;
-  *"import yaml"*) [[ -f "$tmpdir/yaml-ready" ]] && exit 0 || exit 1 ;;
+  *"import yaml"*) [[ -f "tmpdir/yaml-ready" ]] && exit 0 || exit 1 ;;
 esac
 exit 0
 PYEOF
-  chmod +x "$fake_py"
+  chmod +x "fake_py"
 
   source installers/lib/python-runtime.sh
   ods_detect_python_cmd() {
-    [[ -f "$tmpdir/python-ready" ]] || return 1
-    printf "%s" "$fake_py"
+    [[ -f "tmpdir/python-ready" ]] || return 1
+    printf "%s" "fake_py"
   }
 
   ods_ensure_python_module yaml python3-pyyaml pyyaml PyYAML
-' bash "$ROOT_DIR" "$tmpdir" "$runtime_calls" >"$runtime_out"
-assert_contains "$runtime_calls" 'pkg_update' "Python guard did not update package metadata before installing"
-assert_contains "$runtime_calls" 'pkg_install:python3' "Python guard did not install missing python3"
-assert_contains "$runtime_calls" 'pkg_install:python3-pyyaml' "Python guard did not install PyYAML after python3"
-assert_contains "$runtime_out" 'OK PyYAML available' "Python guard did not re-check PyYAML after install"
+' bash "ROOT_DIR" "$tmpdir" "$runtime_calls" >"$runtime_out"
+assert_contains "runtime_calls" 'pkg_update' "Python guard did not update package metadata before installing"
+assert_contains "runtime_calls" 'pkg_install:python3' "Python guard did not install missing python3"
+assert_contains "runtime_calls" 'pkg_install:python3-pyyaml' "Python guard did not install PyYAML after python3"
+assert_contains "runtime_out" 'OK PyYAML available' "Python guard did not re-check PyYAML after install"
 
 echo "[contract] Linux Python guard installs missing pip before user-site packages"
-pip_runtime_out="$tmpdir/python-pip-runtime.out"
-pip_runtime_calls="$tmpdir/python-pip-runtime.calls"
+pip_runtime_out="tmpdir/python-pip-runtime.out"
+pip_runtime_calls="tmpdir/python-pip-runtime.calls"
 bash -c '
   set -euo pipefail
-  ROOT_DIR="$1"
-  tmpdir="$2"
-  calls="$3"
-  cd "$ROOT_DIR"
+  ROOT_DIR="1"
+  tmpdir="2"
+  calls="3"
+  cd "ROOT_DIR"
 
-  SCRIPT_DIR="$ROOT_DIR"
+  SCRIPT_DIR="ROOT_DIR"
   LOG_FILE=/dev/null
   DRY_RUN=false
   INTERACTIVE=false
   PKG_MANAGER=apt
 
-  ai() { echo "AI $*"; }
-  ai_ok() { echo "OK $*"; }
-  ai_warn() { echo "WARN $*"; }
-  ai_bad() { echo "BAD $*"; }
-  error() { echo "ERROR $*" >&2; exit 1; }
-  pkg_update() { echo "pkg_update" >>"$calls"; }
+  ai() { echo "AI *"; }
+  ai_ok() { echo "OK *"; }
+  ai_warn() { echo "WARN *"; }
+  ai_bad() { echo "BAD *"; }
+  error() { echo "ERROR *" >&2; exit 1; }
+  pkg_update() { echo "pkg_update" >>"calls"; }
   pkg_install() {
     local pkg
-    for pkg in "$@"; do
-      echo "pkg_install:$pkg" >>"$calls"
-      case "$pkg" in
-        python3-pip) touch "$tmpdir/pip-ready" ;;
+    for pkg in "@"; do
+      echo "pkg_install:pkg" >>"$calls"
+      case "pkg" in
+        python3-pip) touch "tmpdir/pip-ready" ;;
       esac
     done
   }
 
-  fake_py="$tmpdir/fake-python-pip"
-  cat > "$fake_py" <<PYEOF
+  fake_py="tmpdir/fake-python-pip"
+  cat > "fake_py" <<PYEOF
 #!/usr/bin/env bash
-if [[ "\${1:-}" == "-m" && "\${2:-}" == "pip" && "\${3:-}" == "--version" ]]; then
-  [[ -f "$tmpdir/pip-ready" ]] && exit 0 || exit 1
+if [[ "\{1:-}" == "-m" && "\${2:-}" == "pip" && "\${3:-}" == "--version" ]]; then
+  [[ -f "tmpdir/pip-ready" ]] && exit 0 || exit 1
 fi
-if [[ "\${1:-}" == "-m" && "\${2:-}" == "ensurepip" ]]; then
-  touch "$tmpdir/pip-ready"
+if [[ "\{1:-}" == "-m" && "\${2:-}" == "ensurepip" ]]; then
+  touch "tmpdir/pip-ready"
   exit 0
 fi
 exit 0
 PYEOF
-  chmod +x "$fake_py"
+  chmod +x "fake_py"
 
   source installers/lib/python-runtime.sh
-  ods_ensure_python_pip "$fake_py" "Test"
-' bash "$ROOT_DIR" "$tmpdir" "$pip_runtime_calls" >"$pip_runtime_out"
-assert_contains "$pip_runtime_calls" 'pkg_update' "Python pip guard did not update package metadata before installing"
-assert_contains "$pip_runtime_calls" 'pkg_install:python3-pip' "Python pip guard did not install missing python3-pip"
-assert_contains "$pip_runtime_out" 'OK Test pip available' "Python pip guard did not re-check pip after install"
+  ods_ensure_python_pip "fake_py" "Test"
+' bash "ROOT_DIR" "$tmpdir" "$pip_runtime_calls" >"$pip_runtime_out"
+assert_contains "pip_runtime_calls" 'pkg_update' "Python pip guard did not update package metadata before installing"
+assert_contains "pip_runtime_calls" 'pkg_install:python3-pip' "Python pip guard did not install missing python3-pip"
+assert_contains "pip_runtime_out" 'OK Test pip available' "Python pip guard did not re-check pip after install"
 
 echo "[contract] Linux Python user-site pip installs handle PEP 668"
-pep668_out="$tmpdir/python-pep668.out"
+pep668_out="tmpdir/python-pep668.out"
 bash -c '
   set -euo pipefail
-  ROOT_DIR="$1"
-  tmpdir="$2"
-  cd "$ROOT_DIR"
+  ROOT_DIR="1"
+  tmpdir="2"
+  cd "ROOT_DIR"
 
-  SCRIPT_DIR="$ROOT_DIR"
-  LOG_FILE="$tmpdir/pep668.log"
+  SCRIPT_DIR="ROOT_DIR"
+  LOG_FILE="tmpdir/pep668.log"
   DRY_RUN=false
   INTERACTIVE=false
   PKG_MANAGER=apt
@@ -192,14 +192,14 @@ bash -c '
   ai_ok() { :; }
   ai_warn() { :; }
   ai_bad() { :; }
-  error() { echo "ERROR $*" >&2; exit 1; }
+  error() { echo "ERROR *" >&2; exit 1; }
 
-  fake_py="$tmpdir/fake-python-pep668"
-  cat > "$fake_py" <<PYEOF
+  fake_py="tmpdir/fake-python-pep668"
+  cat > "fake_py" <<PYEOF
 #!/usr/bin/env bash
-if [[ "\${1:-}" == "-m" && "\${2:-}" == "pip" && "\${3:-}" == "install" ]]; then
-  if printf "%s\n" "\$@" | grep -q -- "--break-system-packages"; then
-    echo "break-system-packages-used" >> "$tmpdir/pep668.calls"
+if [[ "\{1:-}" == "-m" && "\${2:-}" == "pip" && "\${3:-}" == "install" ]]; then
+  if printf "%s\n" "\@" | grep -q -- "--break-system-packages"; then
+    echo "break-system-packages-used" >> "tmpdir/pep668.calls"
     exit 0
   fi
   echo "externally-managed-environment" >&2
@@ -207,253 +207,253 @@ if [[ "\${1:-}" == "-m" && "\${2:-}" == "pip" && "\${3:-}" == "install" ]]; then
 fi
 exit 99
 PYEOF
-  chmod +x "$fake_py"
+  chmod +x "fake_py"
 
   source installers/lib/python-runtime.sh
-  ods_python_pip_install_user "$fake_py" "$LOG_FILE" "huggingface_hub[hf_xet]>=0.27"
-  cat "$tmpdir/pep668.calls"
-' bash "$ROOT_DIR" "$tmpdir" >"$pep668_out"
-assert_contains "$pep668_out" 'break-system-packages-used' "Python pip install helper did not retry with --break-system-packages"
+  ods_python_pip_install_user "fake_py" "$LOG_FILE" "huggingface_hub[hf_xet]>=0.27"
+  cat "tmpdir/pep668.calls"
+' bash "ROOT_DIR" "$tmpdir" >"$pep668_out"
+assert_contains "pep668_out" 'break-system-packages-used' "Python pip install helper did not retry with --break-system-packages"
 
 echo "[contract] public bootstrap supports non-gnu Linux OSTYPE and zypper prerequisites"
 bootstrap="get-ods.sh"
-assert_contains "$bootstrap" '\$\{OSTYPE:-\}' "bootstrap should guard OSTYPE when detecting Linux"
-assert_contains "$bootstrap" '== linux\*' "bootstrap should treat openSUSE/Tumbleweed linux variants as Linux"
-assert_contains "$bootstrap" 'command -v zypper' "bootstrap missing zypper package-manager branch"
-assert_contains "$bootstrap" 'zypper --non-interactive install -y git' "bootstrap cannot install git on zypper distros"
-assert_contains "$bootstrap" 'zypper --non-interactive install -y curl' "bootstrap cannot install curl on zypper distros"
-assert_contains "$bootstrap" 'ODS_REF' "bootstrap should allow PR/fleet lanes to clone a matching ref"
-assert_contains "$bootstrap" 'clone_args\+=\(--branch "\$ODS_REF"\)' "bootstrap ref override should apply to git clone"
-assert_contains "$bootstrap" 'ods_ref_is_exact_sha' "bootstrap should detect exact commit SHA refs"
-assert_contains "$bootstrap" 'checkout_requested_sha_ref "\$ODS_REF"' "bootstrap should checkout exact SHA refs after cloning"
-assert_contains "$bootstrap" 'BOOTSTRAP_FORCE=false' "bootstrap should parse --force before incomplete install prompts"
-assert_contains "$bootstrap" 'BOOTSTRAP_NON_INTERACTIVE=false' "bootstrap should parse --non-interactive before incomplete install prompts"
-assert_contains "$bootstrap" '"\$\{BOOTSTRAP_NON_INTERACTIVE\}" == "true"' "bootstrap non-interactive output should disable ANSI even on a TTY"
-assert_contains "$bootstrap" '-n "\$\{ODS_INSTALLER_GUI:-\}"' "bootstrap GUI output should disable ANSI even on a TTY"
-assert_contains "$bootstrap" '"\$\{ODS_UI_MODE:-auto\}" == "plain"' "bootstrap should honor the shared plain presentation mode"
-assert_contains "$bootstrap" 'Removing incomplete install because --force was provided' "bootstrap --force should remove incomplete install dirs without prompting"
-assert_contains "$bootstrap" 'Re-run with --force to remove it automatically' "bootstrap --non-interactive should fail with a force hint instead of prompting"
-assert_contains "$bootstrap" 'remove_install_dir()' "bootstrap should centralize incomplete install cleanup"
-assert_contains "$bootstrap" 'incomplete_install_is_removable "\$INSTALL_DIR" \|\| refuse_unidentified_incomplete_install' "bootstrap should only remove incomplete installs that are empty or carry the ODS source tree"
-assert_contains "$bootstrap" 'read -r response < /dev/tty' "bootstrap prompts should read the answer from the terminal, not the piped script"
-assert_contains "$bootstrap" 'sudo -n rm -rf -- "\$target_dir"' "bootstrap --force should retry root-owned container data cleanup with sudo -n"
-assert_contains "$bootstrap" 'root-owned container data' "bootstrap sudo fallback should explain root-owned Docker data cleanup"
-assert_contains "$bootstrap" 'validate_force_reinstall_target()' "bootstrap should fingerprint a complete install before forced replacement"
-assert_contains "$bootstrap" 'candidate_uninstaller="\$TEMP_DIR/repo/ods/ods-uninstall.sh"' "bootstrap should stage the requested candidate uninstaller"
-assert_contains "$bootstrap" 'candidate_uninstall_args=\(--install-dir "\$INSTALL_DIR" --force\)' "bootstrap should target the existing install with the candidate uninstaller"
-assert_contains "$bootstrap" 'candidate_uninstall_args\+=\(--non-interactive\)' "bootstrap should propagate non-interactive mode to the candidate uninstaller"
-assert_contains "$bootstrap" 'bash "\$candidate_uninstaller" "\${candidate_uninstall_args\[@\]}"' "bootstrap should run the candidate uninstaller with bounded arguments"
+assert_contains "bootstrap" '\$\{OSTYPE:-\}' "bootstrap should guard OSTYPE when detecting Linux"
+assert_contains "bootstrap" '== linux\*' "bootstrap should treat openSUSE/Tumbleweed linux variants as Linux"
+assert_contains "bootstrap" 'command -v zypper' "bootstrap missing zypper package-manager branch"
+assert_contains "bootstrap" 'zypper --non-interactive install -y git' "bootstrap cannot install git on zypper distros"
+assert_contains "bootstrap" 'zypper --non-interactive install -y curl' "bootstrap cannot install curl on zypper distros"
+assert_contains "bootstrap" 'ODS_REF' "bootstrap should allow PR/fleet lanes to clone a matching ref"
+assert_contains "bootstrap" 'clone_args\+=\(--branch "\$ODS_REF"\)' "bootstrap ref override should apply to git clone"
+assert_contains "bootstrap" 'ods_ref_is_exact_sha' "bootstrap should detect exact commit SHA refs"
+assert_contains "bootstrap" 'checkout_requested_sha_ref "\$ODS_REF"' "bootstrap should checkout exact SHA refs after cloning"
+assert_contains "bootstrap" 'BOOTSTRAP_FORCE=false' "bootstrap should parse --force before incomplete install prompts"
+assert_contains "bootstrap" 'BOOTSTRAP_NON_INTERACTIVE=false' "bootstrap should parse --non-interactive before incomplete install prompts"
+assert_contains "bootstrap" '"\$\{BOOTSTRAP_NON_INTERACTIVE\}" == "true"' "bootstrap non-interactive output should disable ANSI even on a TTY"
+assert_contains "bootstrap" '-n "\$\{ODS_INSTALLER_GUI:-\}"' "bootstrap GUI output should disable ANSI even on a TTY"
+assert_contains "bootstrap" '"\$\{ODS_UI_MODE:-auto\}" == "plain"' "bootstrap should honor the shared plain presentation mode"
+assert_contains "bootstrap" 'Removing incomplete install because --force was provided' "bootstrap --force should remove incomplete install dirs without prompting"
+assert_contains "bootstrap" 'Re-run with --force to remove it automatically' "bootstrap --non-interactive should fail with a force hint instead of prompting"
+assert_contains "bootstrap" 'remove_install_dir()' "bootstrap should centralize incomplete install cleanup"
+assert_contains "bootstrap" 'incomplete_install_is_removable "\$INSTALL_DIR" \|\| refuse_unidentified_incomplete_install' "bootstrap should only remove incomplete installs that are empty or carry the ODS source tree"
+assert_contains "bootstrap" 'read -r response < /dev/tty' "bootstrap prompts should read the answer from the terminal, not the piped script"
+assert_contains "bootstrap" 'sudo -n rm -rf -- "\$target_dir"' "bootstrap --force should retry root-owned container data cleanup with sudo -n"
+assert_contains "bootstrap" 'root-owned container data' "bootstrap sudo fallback should explain root-owned Docker data cleanup"
+assert_contains "bootstrap" 'validate_force_reinstall_target()' "bootstrap should fingerprint a complete install before forced replacement"
+assert_contains "bootstrap" 'candidate_uninstaller="\$TEMP_DIR/repo/ods/ods-uninstall.sh"' "bootstrap should stage the requested candidate uninstaller"
+assert_contains "bootstrap" 'candidate_uninstall_args=\(--install-dir "\$INSTALL_DIR" --force\)' "bootstrap should target the existing install with the candidate uninstaller"
+assert_contains "bootstrap" 'candidate_uninstall_args\+=\(--non-interactive\)' "bootstrap should propagate non-interactive mode to the candidate uninstaller"
+assert_contains "bootstrap" 'bash "\$candidate_uninstaller" "\${candidate_uninstall_args\[@\]}"' "bootstrap should run the candidate uninstaller with bounded arguments"
 assert_contains "ods-uninstall.sh" 'validate_requested_install_dir()' "candidate uninstaller should independently validate a requested install target"
 assert_contains "ods-uninstall.sh" '--install-dir)' "candidate uninstaller should accept an explicit install target"
 
 echo "[contract] public bootstrap can install from an exact commit SHA"
-sha_repo="$tmpdir/sha-ref-repo"
-sha_home="$tmpdir/sha-home"
-sha_install="$tmpdir/sha-install"
-sha_marker="$tmpdir/sha-marker"
-mkdir -p "$sha_repo/ods/scripts" "$sha_repo/ods/extensions/library" "$sha_repo/ods/installers" "$sha_home" "$tmpdir/bin"
-cp installers/reinstall-preflight.sh "$sha_repo/ods/installers/reinstall-preflight.sh"
-cat > "$sha_repo/ods/install.sh" <<'EOF'
+sha_repo="tmpdir/sha-ref-repo"
+sha_home="tmpdir/sha-home"
+sha_install="tmpdir/sha-install"
+sha_marker="tmpdir/sha-marker"
+mkdir -p "sha_repo/ods/scripts" "$sha_repo/ods/extensions/library" "$sha_repo/ods/installers" "$sha_home" "$tmpdir/bin"
+cp installers/reinstall-preflight.sh "sha_repo/ods/installers/reinstall-preflight.sh"
+cat > "sha_repo/ods/install.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-[[ "${1:-}" != --preflight-only ]] || exit 0
-printf '%s\n' first-commit > "${ODS_TEST_BOOTSTRAP_INSTALL_MARKER:?}"
+[[ "{1:-}" != --preflight-only ]] || exit 0
+printf '%s\n' first-commit > "{ODS_TEST_BOOTSTRAP_INSTALL_MARKER:?}"
 EOF
-chmod +x "$sha_repo/ods/install.sh"
-cat > "$sha_repo/ods/ods-uninstall.sh" <<'EOF'
+chmod +x "sha_repo/ods/install.sh"
+cat > "sha_repo/ods/ods-uninstall.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-[[ "${1:-}" == "--install-dir" && -n "${2:-}" ]]
-install_dir="$2"
+[[ "{1:-}" == "--install-dir" && -n "${2:-}" ]]
+install_dir="2"
 shift 2
-[[ "${1:-}" == "--force" ]]
+[[ "{1:-}" == "--force" ]]
 shift
-[[ "${1:-}" == "--non-interactive" ]]
+[[ "{1:-}" == "--non-interactive" ]]
 shift
-[[ "$#" -eq 0 ]]
-[[ "$install_dir" == "${ODS_TEST_EXPECTED_INSTALL_DIR:?}" ]]
-printf '%s\n' candidate > "${ODS_TEST_CANDIDATE_UNINSTALL_MARKER:?}"
-if [[ "${ODS_TEST_CANDIDATE_UNINSTALL_FAIL:-false}" == "true" ]]; then
+[[ "#" -eq 0 ]]
+[[ "install_dir" == "${ODS_TEST_EXPECTED_INSTALL_DIR:?}" ]]
+printf '%s\n' candidate > "{ODS_TEST_CANDIDATE_UNINSTALL_MARKER:?}"
+if [[ "{ODS_TEST_CANDIDATE_UNINSTALL_FAIL:-false}" == "true" ]]; then
   exit 92
 fi
-rm -rf -- "$install_dir"
+rm -rf -- "install_dir"
 EOF
-chmod +x "$sha_repo/ods/ods-uninstall.sh"
-git -C "$sha_repo" init -q
-git -C "$sha_repo" add ods
-git -C "$sha_repo" \
+chmod +x "sha_repo/ods/ods-uninstall.sh"
+git -C "sha_repo" init -q
+git -C "sha_repo" add ods
+git -C "sha_repo" \
   -c user.name="ODS Test" \
   -c user.email="ods-test@example.invalid" \
   commit -q -m "first install payload"
-sha_ref="$(git -C "$sha_repo" rev-parse HEAD)"
-cat > "$sha_repo/ods/install.sh" <<'EOF'
+sha_ref="(git -C "$sha_repo" rev-parse HEAD)"
+cat > "sha_repo/ods/install.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
-printf '%s\n' second-commit > "${ODS_TEST_BOOTSTRAP_INSTALL_MARKER:?}"
+printf '%s\n' second-commit > "{ODS_TEST_BOOTSTRAP_INSTALL_MARKER:?}"
 EOF
-git -C "$sha_repo" add ods/install.sh
-git -C "$sha_repo" \
+git -C "sha_repo" add ods/install.sh
+git -C "sha_repo" \
   -c user.name="ODS Test" \
   -c user.email="ods-test@example.invalid" \
   commit -q -m "second install payload"
 
-cat > "$tmpdir/bin/docker" <<'EOF'
+cat > "tmpdir/bin/docker" <<'EOF'
 #!/usr/bin/env bash
-case "${1:-}" in
+case "{1:-}" in
   --version) printf '%s\n' "Docker version test"; exit 0 ;;
   compose|ps) exit 0 ;;
 esac
 exit 0
 EOF
-chmod +x "$tmpdir/bin/docker"
+chmod +x "tmpdir/bin/docker"
 
-if ! PATH="$tmpdir/bin:$PATH" \
-    HOME="$sha_home" \
-    ODS_BOOTSTRAP_ROOT="$sha_home" \
-    ODS_REPO_URL="file://$sha_repo" \
-    ODS_REF="$sha_ref" \
-    ODS_INSTALL_DIR="$sha_install" \
+if ! PATH="tmpdir/bin:$PATH" \
+    HOME="sha_home" \
+    ODS_BOOTSTRAP_ROOT="sha_home" \
+    ODS_REPO_URL="file://sha_repo" \
+    ODS_REF="sha_ref" \
+    ODS_INSTALL_DIR="sha_install" \
     ODS_ALLOW_LEGACY_PARALLEL=1 \
-    ODS_TEST_BOOTSTRAP_INSTALL_MARKER="$sha_marker" \
+    ODS_TEST_BOOTSTRAP_INSTALL_MARKER="sha_marker" \
     OSTYPE=linux-gnu \
-    bash get-ods.sh --non-interactive >"$tmpdir/bootstrap-sha.out" 2>&1; then
-  cat "$tmpdir/bootstrap-sha.out"
+    bash get-ods.sh --non-interactive >"tmpdir/bootstrap-sha.out" 2>&1; then
+  cat "tmpdir/bootstrap-sha.out"
   echo "[FAIL] bootstrap exact-SHA install failed"
   exit 1
 fi
-grep -qF first-commit "$sha_marker" \
-  || { cat "$tmpdir/bootstrap-sha.out"; echo "[FAIL] bootstrap did not install the exact SHA payload"; exit 1; }
-assert_not_contains "$tmpdir/bootstrap-sha.out" 'Remote branch .* not found' "bootstrap treated an exact SHA as a branch name"
+grep -qF first-commit "sha_marker" \
+  || { cat "tmpdir/bootstrap-sha.out"; echo "[FAIL] bootstrap did not install the exact SHA payload"; exit 1; }
+assert_not_contains "tmpdir/bootstrap-sha.out" 'Remote branch .* not found' "bootstrap treated an exact SHA as a branch name"
 
 echo "[contract] forced reinstall uses the requested candidate uninstaller"
-reinstall_dir="$tmpdir/reinstall-target"
-reinstall_marker="$tmpdir/reinstall-marker"
-candidate_uninstall_marker="$tmpdir/candidate-uninstall-marker"
-old_uninstall_marker="$tmpdir/old-uninstall-marker"
-mkdir -p "$reinstall_dir"
-touch "$reinstall_dir/.env" "$reinstall_dir/ods-cli" "$reinstall_dir/docker-compose.yml"
-cat > "$reinstall_dir/ods-uninstall.sh" <<EOF
+reinstall_dir="tmpdir/reinstall-target"
+reinstall_marker="tmpdir/reinstall-marker"
+candidate_uninstall_marker="tmpdir/candidate-uninstall-marker"
+old_uninstall_marker="tmpdir/old-uninstall-marker"
+mkdir -p "reinstall_dir"
+touch "reinstall_dir/.env" "$reinstall_dir/ods-cli" "$reinstall_dir/docker-compose.yml"
+cat > "reinstall_dir/ods-uninstall.sh" <<EOF
 #!/usr/bin/env bash
-printf '%s\n' old > "$old_uninstall_marker"
+printf '%s\n' old > "old_uninstall_marker"
 exit 91
 EOF
-chmod +x "$reinstall_dir/ods-uninstall.sh"
+chmod +x "reinstall_dir/ods-uninstall.sh"
 
-if ! PATH="$tmpdir/bin:$PATH" \
-    HOME="$sha_home" \
-    ODS_BOOTSTRAP_ROOT="$sha_home" \
-    ODS_REPO_URL="file://$sha_repo" \
-    ODS_REF="$sha_ref" \
-    ODS_INSTALL_DIR="$reinstall_dir" \
+if ! PATH="tmpdir/bin:$PATH" \
+    HOME="sha_home" \
+    ODS_BOOTSTRAP_ROOT="sha_home" \
+    ODS_REPO_URL="file://sha_repo" \
+    ODS_REF="sha_ref" \
+    ODS_INSTALL_DIR="reinstall_dir" \
     ODS_ALLOW_LEGACY_PARALLEL=1 \
-    ODS_TEST_EXPECTED_INSTALL_DIR="$reinstall_dir" \
-    ODS_TEST_CANDIDATE_UNINSTALL_MARKER="$candidate_uninstall_marker" \
-    ODS_TEST_BOOTSTRAP_INSTALL_MARKER="$reinstall_marker" \
+    ODS_TEST_EXPECTED_INSTALL_DIR="reinstall_dir" \
+    ODS_TEST_CANDIDATE_UNINSTALL_MARKER="candidate_uninstall_marker" \
+    ODS_TEST_BOOTSTRAP_INSTALL_MARKER="reinstall_marker" \
     OSTYPE=linux-gnu \
-    bash get-ods.sh --non-interactive --force >"$tmpdir/bootstrap-reinstall.out" 2>&1; then
-  cat "$tmpdir/bootstrap-reinstall.out"
+    bash get-ods.sh --non-interactive --force >"tmpdir/bootstrap-reinstall.out" 2>&1; then
+  cat "tmpdir/bootstrap-reinstall.out"
   echo "[FAIL] bootstrap candidate-driven reinstall failed"
   exit 1
 fi
-grep -qF candidate "$candidate_uninstall_marker" \
-  || { cat "$tmpdir/bootstrap-reinstall.out"; echo "[FAIL] requested candidate uninstaller was not invoked"; exit 1; }
-[[ ! -e "$old_uninstall_marker" ]] \
-  || { cat "$tmpdir/bootstrap-reinstall.out"; echo "[FAIL] installed stale uninstaller was invoked"; exit 1; }
-grep -qF first-commit "$reinstall_marker" \
-  || { cat "$tmpdir/bootstrap-reinstall.out"; echo "[FAIL] reinstall did not launch the exact requested payload"; exit 1; }
+grep -qF candidate "candidate_uninstall_marker" \
+  || { cat "tmpdir/bootstrap-reinstall.out"; echo "[FAIL] requested candidate uninstaller was not invoked"; exit 1; }
+[[ ! -e "old_uninstall_marker" ]] \
+  || { cat "tmpdir/bootstrap-reinstall.out"; echo "[FAIL] installed stale uninstaller was invoked"; exit 1; }
+grep -qF first-commit "reinstall_marker" \
+  || { cat "tmpdir/bootstrap-reinstall.out"; echo "[FAIL] reinstall did not launch the exact requested payload"; exit 1; }
 
 echo "[contract] failed candidate uninstall prevents candidate overlay"
-failed_reinstall_dir="$tmpdir/failed-reinstall-target"
-failed_candidate_marker="$tmpdir/failed-candidate-marker"
-mkdir -p "$failed_reinstall_dir"
-touch "$failed_reinstall_dir/.env" "$failed_reinstall_dir/ods-cli" \
-  "$failed_reinstall_dir/docker-compose.yml" "$failed_reinstall_dir/preserve-me"
-cp "$reinstall_dir/ods-uninstall.sh" "$failed_reinstall_dir/ods-uninstall.sh"
+failed_reinstall_dir="tmpdir/failed-reinstall-target"
+failed_candidate_marker="tmpdir/failed-candidate-marker"
+mkdir -p "failed_reinstall_dir"
+touch "failed_reinstall_dir/.env" "$failed_reinstall_dir/ods-cli" \
+  "failed_reinstall_dir/docker-compose.yml" "$failed_reinstall_dir/preserve-me"
+cp "reinstall_dir/ods-uninstall.sh" "$failed_reinstall_dir/ods-uninstall.sh"
 set +e
-PATH="$tmpdir/bin:$PATH" \
-    HOME="$sha_home" \
-    ODS_BOOTSTRAP_ROOT="$sha_home" \
-    ODS_REPO_URL="file://$sha_repo" \
-    ODS_REF="$sha_ref" \
-    ODS_INSTALL_DIR="$failed_reinstall_dir" \
+PATH="tmpdir/bin:$PATH" \
+    HOME="sha_home" \
+    ODS_BOOTSTRAP_ROOT="sha_home" \
+    ODS_REPO_URL="file://sha_repo" \
+    ODS_REF="sha_ref" \
+    ODS_INSTALL_DIR="failed_reinstall_dir" \
     ODS_ALLOW_LEGACY_PARALLEL=1 \
-    ODS_TEST_EXPECTED_INSTALL_DIR="$failed_reinstall_dir" \
-    ODS_TEST_CANDIDATE_UNINSTALL_MARKER="$failed_candidate_marker" \
+    ODS_TEST_EXPECTED_INSTALL_DIR="failed_reinstall_dir" \
+    ODS_TEST_CANDIDATE_UNINSTALL_MARKER="failed_candidate_marker" \
     ODS_TEST_CANDIDATE_UNINSTALL_FAIL=true \
-    ODS_TEST_BOOTSTRAP_INSTALL_MARKER="$reinstall_marker" \
+    ODS_TEST_BOOTSTRAP_INSTALL_MARKER="reinstall_marker" \
     OSTYPE=linux-gnu \
-    bash get-ods.sh --non-interactive --force >"$tmpdir/bootstrap-reinstall-fail.out" 2>&1
-failed_reinstall_rc=$?
+    bash get-ods.sh --non-interactive --force >"tmpdir/bootstrap-reinstall-fail.out" 2>&1
+failed_reinstall_rc=?
 set -e
-[[ "$failed_reinstall_rc" -ne 0 ]] \
-  || { cat "$tmpdir/bootstrap-reinstall-fail.out"; echo "[FAIL] failed candidate uninstall was accepted"; exit 1; }
-[[ -f "$failed_reinstall_dir/preserve-me" && -f "$failed_reinstall_dir/.env" ]] \
-  || { cat "$tmpdir/bootstrap-reinstall-fail.out"; echo "[FAIL] failed candidate uninstall mutated the existing install"; exit 1; }
+[[ "failed_reinstall_rc" -ne 0 ]] \
+  || { cat "tmpdir/bootstrap-reinstall-fail.out"; echo "[FAIL] failed candidate uninstall was accepted"; exit 1; }
+[[ -f "failed_reinstall_dir/preserve-me" && -f "$failed_reinstall_dir/.env" ]] \
+  || { cat "tmpdir/bootstrap-reinstall-fail.out"; echo "[FAIL] failed candidate uninstall mutated the existing install"; exit 1; }
 
 echo "[contract] forced reinstall rejects a symlinked compose fingerprint"
-unsafe_reinstall_dir="$tmpdir/unsafe-reinstall-target"
-unsafe_candidate_marker="$tmpdir/unsafe-candidate-marker"
-mkdir -p "$unsafe_reinstall_dir"
-touch "$unsafe_reinstall_dir/.env" "$unsafe_reinstall_dir/ods-cli" \
-  "$unsafe_reinstall_dir/compose-outside.yml" "$unsafe_reinstall_dir/preserve-me"
-cp "$reinstall_dir/ods-uninstall.sh" "$unsafe_reinstall_dir/ods-uninstall.sh"
-ln -s "$unsafe_reinstall_dir/compose-outside.yml" "$unsafe_reinstall_dir/docker-compose.yml"
+unsafe_reinstall_dir="tmpdir/unsafe-reinstall-target"
+unsafe_candidate_marker="tmpdir/unsafe-candidate-marker"
+mkdir -p "unsafe_reinstall_dir"
+touch "unsafe_reinstall_dir/.env" "$unsafe_reinstall_dir/ods-cli" \
+  "unsafe_reinstall_dir/compose-outside.yml" "$unsafe_reinstall_dir/preserve-me"
+cp "reinstall_dir/ods-uninstall.sh" "$unsafe_reinstall_dir/ods-uninstall.sh"
+ln -s "unsafe_reinstall_dir/compose-outside.yml" "$unsafe_reinstall_dir/docker-compose.yml"
 set +e
-PATH="$tmpdir/bin:$PATH" \
-    HOME="$sha_home" \
-    ODS_BOOTSTRAP_ROOT="$sha_home" \
-    ODS_REPO_URL="file://$sha_repo" \
-    ODS_REF="$sha_ref" \
-    ODS_INSTALL_DIR="$unsafe_reinstall_dir" \
+PATH="tmpdir/bin:$PATH" \
+    HOME="sha_home" \
+    ODS_BOOTSTRAP_ROOT="sha_home" \
+    ODS_REPO_URL="file://sha_repo" \
+    ODS_REF="sha_ref" \
+    ODS_INSTALL_DIR="unsafe_reinstall_dir" \
     ODS_ALLOW_LEGACY_PARALLEL=1 \
-    ODS_TEST_EXPECTED_INSTALL_DIR="$unsafe_reinstall_dir" \
-    ODS_TEST_CANDIDATE_UNINSTALL_MARKER="$unsafe_candidate_marker" \
-    ODS_TEST_BOOTSTRAP_INSTALL_MARKER="$reinstall_marker" \
+    ODS_TEST_EXPECTED_INSTALL_DIR="unsafe_reinstall_dir" \
+    ODS_TEST_CANDIDATE_UNINSTALL_MARKER="unsafe_candidate_marker" \
+    ODS_TEST_BOOTSTRAP_INSTALL_MARKER="reinstall_marker" \
     OSTYPE=linux-gnu \
-    bash get-ods.sh --non-interactive --force >"$tmpdir/bootstrap-reinstall-unsafe.out" 2>&1
-unsafe_reinstall_rc=$?
+    bash get-ods.sh --non-interactive --force >"tmpdir/bootstrap-reinstall-unsafe.out" 2>&1
+unsafe_reinstall_rc=?
 set -e
-[[ "$unsafe_reinstall_rc" -ne 0 ]] \
-  || { cat "$tmpdir/bootstrap-reinstall-unsafe.out"; echo "[FAIL] unsafe reinstall fingerprint was accepted"; exit 1; }
-[[ ! -e "$unsafe_candidate_marker" && -f "$unsafe_reinstall_dir/preserve-me" ]] \
-  || { cat "$tmpdir/bootstrap-reinstall-unsafe.out"; echo "[FAIL] unsafe reinstall target was mutated"; exit 1; }
+[[ "unsafe_reinstall_rc" -ne 0 ]] \
+  || { cat "tmpdir/bootstrap-reinstall-unsafe.out"; echo "[FAIL] unsafe reinstall fingerprint was accepted"; exit 1; }
+[[ ! -e "unsafe_candidate_marker" && -f "$unsafe_reinstall_dir/preserve-me" ]] \
+  || { cat "tmpdir/bootstrap-reinstall-unsafe.out"; echo "[FAIL] unsafe reinstall target was mutated"; exit 1; }
 
 echo "[contract] forced reinstall rejects the bootstrap root"
-bootstrap_root_target="$tmpdir/bootstrap-root-target"
-mkdir -p "$bootstrap_root_target"
-touch "$bootstrap_root_target/.env" "$bootstrap_root_target/ods-cli" \
-  "$bootstrap_root_target/docker-compose.yml" "$bootstrap_root_target/preserve-me"
-cp "$reinstall_dir/ods-uninstall.sh" "$bootstrap_root_target/ods-uninstall.sh"
+bootstrap_root_target="tmpdir/bootstrap-root-target"
+mkdir -p "bootstrap_root_target"
+touch "bootstrap_root_target/.env" "$bootstrap_root_target/ods-cli" \
+  "bootstrap_root_target/docker-compose.yml" "$bootstrap_root_target/preserve-me"
+cp "reinstall_dir/ods-uninstall.sh" "$bootstrap_root_target/ods-uninstall.sh"
 set +e
-PATH="$tmpdir/bin:$PATH" \
-    HOME="$bootstrap_root_target" \
-    ODS_REPO_URL="file://$sha_repo" \
-    ODS_REF="$sha_ref" \
-    ODS_INSTALL_DIR="$bootstrap_root_target/" \
+PATH="tmpdir/bin:$PATH" \
+    HOME="bootstrap_root_target" \
+    ODS_REPO_URL="file://sha_repo" \
+    ODS_REF="sha_ref" \
+    ODS_INSTALL_DIR="bootstrap_root_target/" \
     ODS_ALLOW_LEGACY_PARALLEL=1 \
-    ODS_TEST_EXPECTED_INSTALL_DIR="$bootstrap_root_target/" \
-    ODS_TEST_CANDIDATE_UNINSTALL_MARKER="$unsafe_candidate_marker" \
-    ODS_TEST_BOOTSTRAP_INSTALL_MARKER="$reinstall_marker" \
+    ODS_TEST_EXPECTED_INSTALL_DIR="bootstrap_root_target/" \
+    ODS_TEST_CANDIDATE_UNINSTALL_MARKER="unsafe_candidate_marker" \
+    ODS_TEST_BOOTSTRAP_INSTALL_MARKER="reinstall_marker" \
     OSTYPE=linux-gnu \
-    bash get-ods.sh --non-interactive --force >"$tmpdir/bootstrap-reinstall-root.out" 2>&1
-bootstrap_root_rc=$?
+    bash get-ods.sh --non-interactive --force >"tmpdir/bootstrap-reinstall-root.out" 2>&1
+bootstrap_root_rc=?
 set -e
-[[ "$bootstrap_root_rc" -ne 0 && -f "$bootstrap_root_target/preserve-me" ]] \
-  || { cat "$tmpdir/bootstrap-reinstall-root.out"; echo "[FAIL] bootstrap root reinstall target was accepted or mutated"; exit 1; }
+[[ "bootstrap_root_rc" -ne 0 && -f "$bootstrap_root_target/preserve-me" ]] \
+  || { cat "tmpdir/bootstrap-reinstall-root.out"; echo "[FAIL] bootstrap root reinstall target was accepted or mutated"; exit 1; }
 
 echo "[contract] runtime dispatcher supports non-gnu Linux OSTYPE"
 dispatcher_common="installers/common.sh"
-assert_contains "$dispatcher_common" '\$\{OSTYPE:-\}' "dispatcher should guard OSTYPE when detecting Linux"
-assert_contains "$dispatcher_common" '== linux\*' "dispatcher should treat openSUSE/Tumbleweed linux variants as Linux"
+assert_contains "dispatcher_common" '\$\{OSTYPE:-\}' "dispatcher should guard OSTYPE when detecting Linux"
+assert_contains "dispatcher_common" '== linux\*' "dispatcher should treat openSUSE/Tumbleweed linux variants as Linux"
 
 echo "[contract] install-core loads service registry after Python prerequisites"
-order_out="$tmpdir/install-core-order.out"
-python3 - "$ROOT_DIR/install-core.sh" >"$order_out" <<'PY'
+order_out="tmpdir/install-core-order.out"
+python3 - "ROOT_DIR/install-core.sh" >"$order_out" <<'PY'
 import sys
 from pathlib import Path
 
 lines = Path(sys.argv[1]).read_text(encoding="utf-8").splitlines()
-source_idx = next(i for i, line in enumerate(lines) if 'source "$SCRIPT_DIR/lib/service-registry.sh"' in line)
+source_idx = next(i for i, line in enumerate(lines) if 'source "SCRIPT_DIR/lib/service-registry.sh"' in line)
 ensure_idx = next(i for i, line in enumerate(lines) if "ods_ensure_python_module yaml" in line)
 load_idx = next(i for i, line in enumerate(lines) if "sr_load" in line and i > ensure_idx)
 early_loads = [
@@ -466,35 +466,35 @@ if not (source_idx < ensure_idx < load_idx):
     raise SystemExit("unexpected service-registry/Python prerequisite order")
 print("registry-load-after-python")
 PY
-assert_contains "$order_out" 'registry-load-after-python' "install-core does not defer service registry load until after Python prerequisites"
+assert_contains "order_out" 'registry-load-after-python' "install-core does not defer service registry load until after Python prerequisites"
 
 echo "[contract] macOS PyYAML install uses private installer venv"
 macos_installer="installers/macos/install-macos.sh"
-assert_contains "$macos_installer" '_ensure_macos_pyyaml' "macOS installer missing PyYAML helper"
-assert_contains "$macos_installer" 'python-cmd.sh' "macOS installer does not load python command resolver"
-assert_contains "$macos_installer" '\.venv/installer-python' "macOS installer missing private venv runtime"
-assert_contains "$macos_installer" '\$pycmd" -m venv "\$venv_dir"' "macOS installer does not create the venv with the selected Python"
-assert_not_contains "$macos_installer" 'pip install --user .*pyyaml|pip install .*--user .*pyyaml' "macOS installer still tries user-site PyYAML first"
-assert_contains "$macos_installer" 'export ODS_PYTHON_CMD' "macOS installer does not export selected Python"
-assert_contains "$macos_installer" '_ods_python_cmd_cached=' "macOS installer does not refresh python resolver cache"
+assert_contains "macos_installer" '_ensure_macos_pyyaml' "macOS installer missing PyYAML helper"
+assert_contains "macos_installer" 'python-cmd.sh' "macOS installer does not load python command resolver"
+assert_contains "macos_installer" '\.venv/installer-python' "macOS installer missing private venv runtime"
+assert_contains "macos_installer" '\$pycmd" -m venv "\$venv_dir"' "macOS installer does not create the venv with the selected Python"
+assert_not_contains "macos_installer" 'pip install --user .*pyyaml|pip install .*--user .*pyyaml' "macOS installer still tries user-site PyYAML first"
+assert_contains "macos_installer" 'export ODS_PYTHON_CMD' "macOS installer does not export selected Python"
+assert_contains "macos_installer" '_ods_python_cmd_cached=' "macOS installer does not refresh python resolver cache"
 
 echo "[contract] macOS bootstrap model download tolerates slow resumable transfers"
 linux_services="installers/phases/11-services.sh"
 macos_ui="installers/macos/lib/ui.sh"
 macos_installer="installers/macos/install-macos.sh"
-assert_contains "$linux_services" 'download-hf-artifact.py' "Linux bootstrap model download should fall back to Hugging Face client for Xet-backed artifacts"
-assert_contains "$linux_services" 'ods_ensure_python_pip' "Linux Hugging Face fallback should install pip before Python package dependencies"
-assert_contains "$linux_services" 'ods_python_pip_install_user' "Linux Hugging Face fallback should tolerate PEP 668 user-site installs"
+assert_contains "linux_services" 'download-hf-artifact.py' "Linux bootstrap model download should fall back to Hugging Face client for Xet-backed artifacts"
+assert_contains "linux_services" 'ods_ensure_python_pip' "Linux Hugging Face fallback should install pip before Python package dependencies"
+assert_contains "linux_services" 'ods_python_pip_install_user' "Linux Hugging Face fallback should tolerate PEP 668 user-site installs"
 assert_contains "installers/phases/07-devtools.sh" 'ods_ensure_python_pip' "Linux host-agent downloader dependency install should install pip first"
 assert_contains "installers/phases/07-devtools.sh" '--break-system-packages' "Linux host-agent downloader dependency install should tolerate PEP 668 user-site installs"
-assert_contains "$macos_ui" 'curl -C - -L --progress-bar' "macOS bootstrap model download should preserve curl resume support"
-assert_contains "$macos_ui" 'ODS_DOWNLOAD_CONNECT_TIMEOUT:-30' "macOS bootstrap model download should allow configurable connect timeout"
-assert_contains "$macos_ui" 'ODS_DOWNLOAD_LOW_SPEED_TIME:-120' "macOS bootstrap model download should fail/retry stalled transfers promptly"
-assert_contains "$macos_ui" 'ODS_DOWNLOAD_LOW_SPEED_LIMIT:-262144' "macOS bootstrap model download should avoid indefinite byte-trickle stalls"
-assert_contains "$macos_ui" 'ODS_DOWNLOAD_HTTP_VERSION:-' "macOS bootstrap model download should allow configurable curl HTTP transport"
-assert_contains "$macos_ui" '--http1.1' "macOS bootstrap model download should default to the hardened HTTP/1.1 path"
-assert_contains "$macos_ui" 'download-hf-artifact.py' "macOS bootstrap model download should fall back to Hugging Face client for Xet-backed artifacts"
-assert_not_contains "$macos_ui" '--speed-time 30 --speed-limit 10240' "macOS bootstrap model download should not abort active slow transfers after 30 seconds"
+assert_contains "macos_ui" 'curl -C - -L --progress-bar' "macOS bootstrap model download should preserve curl resume support"
+assert_contains "macos_ui" 'ODS_DOWNLOAD_CONNECT_TIMEOUT:-30' "macOS bootstrap model download should allow configurable connect timeout"
+assert_contains "macos_ui" 'ODS_DOWNLOAD_LOW_SPEED_TIME:-120' "macOS bootstrap model download should fail/retry stalled transfers promptly"
+assert_contains "macos_ui" 'ODS_DOWNLOAD_LOW_SPEED_LIMIT:-262144' "macOS bootstrap model download should avoid indefinite byte-trickle stalls"
+assert_contains "macos_ui" 'ODS_DOWNLOAD_HTTP_VERSION:-' "macOS bootstrap model download should allow configurable curl HTTP transport"
+assert_contains "macos_ui" '--http1.1' "macOS bootstrap model download should default to the hardened HTTP/1.1 path"
+assert_contains "macos_ui" 'download-hf-artifact.py' "macOS bootstrap model download should fall back to Hugging Face client for Xet-backed artifacts"
+assert_not_contains "macos_ui" '--speed-time 30 --speed-limit 10240' "macOS bootstrap model download should not abort active slow transfers after 30 seconds"
 assert_contains "installers/macos/lib/post-pixel-install.sh" '_trigger_macos_stt_model_download' "macOS installer should trigger STT preload through a bounded helper"
 assert_contains "installers/macos/lib/post-pixel-install.sh" 'ODS_STT_TRIGGER_TIMEOUT_SECONDS:-30' "macOS STT preload should bound the trigger request"
 assert_contains "installers/macos/lib/post-pixel-install.sh" 'ODS_STT_CACHE_WAIT_SECONDS:-900' "macOS STT preload should poll cache readiness after triggering download"
@@ -508,100 +508,100 @@ win_task_helper="installers/windows/lib/backend-contract.ps1"
 win_native_runtime="installers/windows/lib/native-llama-runtime.ps1"
 win_native_legacy="installers/windows/lib/native-llama-legacy.ps1"
 win_portal_amd="installers/windows/lib/wsl-portal-amd.ps1"
-assert_contains "$win_installer" 'Invoke-DownloadWithRetry -Url \$tierConfig\.GgufUrl' "Windows installer should retry/resume transient GGUF download failures"
-assert_not_contains "$win_installer" '\$dlOk = Show-ProgressDownload -Url \$tierConfig\.GgufUrl' "Windows installer bootstrap model path should not bypass retry wrapper"
-assert_contains "$win_ui" 'ODS_DOWNLOAD_CONNECT_TIMEOUT' "Windows bootstrap model download should allow configurable connect timeout"
-assert_contains "$win_ui" 'ODS_DOWNLOAD_LOW_SPEED_TIME' "Windows bootstrap model download should allow configurable low-speed time"
-assert_contains "$win_ui" 'ODS_DOWNLOAD_LOW_SPEED_LIMIT' "Windows bootstrap model download should allow configurable low-speed floor"
-assert_contains "$win_ui" 'ODS_DOWNLOAD_HTTP_VERSION' "Windows bootstrap model download should allow configurable curl HTTP transport"
-assert_contains "$win_ui" '--http1.1' "Windows bootstrap model download should default to the hardened HTTP/1.1 path"
-assert_contains "$win_ui" 'download-hf-artifact.py' "Windows bootstrap model download should fall back to Hugging Face client for Xet-backed artifacts"
+assert_contains "win_installer" 'Invoke-DownloadWithRetry -Url \$tierConfig\.GgufUrl' "Windows installer should retry/resume transient GGUF download failures"
+assert_not_contains "win_installer" '\$dlOk = Show-ProgressDownload -Url \$tierConfig\.GgufUrl' "Windows installer bootstrap model path should not bypass retry wrapper"
+assert_contains "win_ui" 'ODS_DOWNLOAD_CONNECT_TIMEOUT' "Windows bootstrap model download should allow configurable connect timeout"
+assert_contains "win_ui" 'ODS_DOWNLOAD_LOW_SPEED_TIME' "Windows bootstrap model download should allow configurable low-speed time"
+assert_contains "win_ui" 'ODS_DOWNLOAD_LOW_SPEED_LIMIT' "Windows bootstrap model download should allow configurable low-speed floor"
+assert_contains "win_ui" 'ODS_DOWNLOAD_HTTP_VERSION' "Windows bootstrap model download should allow configurable curl HTTP transport"
+assert_contains "win_ui" '--http1.1' "Windows bootstrap model download should default to the hardened HTTP/1.1 path"
+assert_contains "win_ui" 'download-hf-artifact.py' "Windows bootstrap model download should fall back to Hugging Face client for Xet-backed artifacts"
 # Windows AMD runs ggml-org llama-server.exe natively (the logon task of a
 # legacy installation, or the Portal's per-user task). The launcher-file task,
 # limited principal, user-session start, scoped cleanup and loopback health
 # checks are also checked structurally further down.
-assert_contains "$win_installer" 'Initialize-ODSNativeLlamaLegacyRuntime' "Windows installer should stage, verify and qualify the pinned llama.cpp release before changing anything"
-assert_contains "$win_native_legacy" 'Test-ODSNativeLlamaQualification -ExecutablePath \$runtime\.ExecutablePath -ExpectedBuild \$pin\.Build' "Windows installer should qualify the pinned llama-server build and its Vulkan device"
-assert_contains "$win_installer" 'Invoke-ODSNativeLlamaLegacyCutover' "Windows installer should start llama-server through the shared logon-task cutover"
-assert_contains "$win_native_legacy" 'llama-server did not start: \$\(Get-ODSNativeLlamaLegacyFailure\)' "Windows installer should report the recorded llama-server start failure"
-assert_contains "$win_installer" 'llama-server log: ' "Windows installer should point at the llama-server log when the start fails"
-for native_file in "$win_native_runtime" "$win_native_legacy" "$win_portal_amd"; do
-  assert_not_contains "$native_file" 'Invoke-CimMethod -ClassName Win32_Process -MethodName Create' "$native_file must not create session-0 WMI orphans"
-  assert_not_contains "$native_file" 'EncodedCommand' "$native_file scheduled tasks must not embed a long encoded command"
-  assert_not_contains "$native_file" '-NoNewWindow' "$native_file must start llama-server in its own console, detached from SSH/CLI parents"
-  assert_not_contains "$native_file" 'Stop-Process -Name|Get-Process -Name|taskkill' "$native_file must never stop a llama-server by process name"
-  assert_not_contains "$native_file" "'--api-key'," "$native_file must never put the API key on the llama-server command line"
+assert_contains "win_installer" 'Initialize-ODSNativeLlamaLegacyRuntime' "Windows installer should stage, verify and qualify the pinned llama.cpp release before changing anything"
+assert_contains "win_native_legacy" 'Test-ODSNativeLlamaQualification -ExecutablePath \$runtime\.ExecutablePath -ExpectedBuild \$pin\.Build' "Windows installer should qualify the pinned llama-server build and its Vulkan device"
+assert_contains "win_installer" 'Invoke-ODSNativeLlamaLegacyCutover' "Windows installer should start llama-server through the shared logon-task cutover"
+assert_contains "win_native_legacy" 'llama-server did not start: \$\(Get-ODSNativeLlamaLegacyFailure\)' "Windows installer should report the recorded llama-server start failure"
+assert_contains "win_installer" 'llama-server log: ' "Windows installer should point at the llama-server log when the start fails"
+for native_file in "win_native_runtime" "$win_native_legacy" "$win_portal_amd"; do
+  assert_not_contains "native_file" 'Invoke-CimMethod -ClassName Win32_Process -MethodName Create' "$native_file must not create session-0 WMI orphans"
+  assert_not_contains "native_file" 'EncodedCommand' "$native_file scheduled tasks must not embed a long encoded command"
+  assert_not_contains "native_file" '-NoNewWindow' "$native_file must start llama-server in its own console, detached from SSH/CLI parents"
+  assert_not_contains "native_file" 'Stop-Process -Name|Get-Process -Name|taskkill' "$native_file must never stop a llama-server by process name"
+  assert_not_contains "native_file" "'--api-key'," "$native_file must never put the API key on the llama-server command line"
 done
-assert_contains "$win_task_helper" 'function Resolve-ODSInteractiveScheduledTaskUser' "Windows scheduled task helper should resolve the interactive user centrally"
-assert_contains "$win_task_helper" 'whoami\.exe' "Windows scheduled task helper should prefer a fully qualified interactive identity"
-assert_contains "$win_task_helper" 'New-ODSInteractiveScheduledTaskPrincipal' "Windows scheduled task helper should expose a shared principal constructor"
-assert_not_contains "$win_installer" 'New-ScheduledTaskPrincipal -UserId \$env:USERNAME' "Windows installer must not register interactive tasks with an unqualified USERNAME"
-assert_not_contains "installers/windows/ods.ps1" 'New-ScheduledTaskPrincipal -UserId \$env:USERNAME' "ods.ps1 must not register interactive tasks with an unqualified USERNAME"
-assert_not_contains "installers/windows/phases/07-devtools.ps1" 'New-ScheduledTaskPrincipal -UserId \$env:USERNAME' "Windows host-agent phase must not register interactive tasks with an unqualified USERNAME"
-assert_contains "$win_installer" 'New-ODSInteractiveScheduledTaskPrincipal -RunLevel Limited' "Windows installer should register limited interactive tasks through the shared principal helper"
+assert_contains "win_task_helper" 'function Resolve-ODSInteractiveScheduledTaskUser' "Windows scheduled task helper should resolve the interactive user centrally"
+assert_contains "win_task_helper" 'whoami\.exe' "Windows scheduled task helper should prefer a fully qualified interactive identity"
+assert_contains "win_task_helper" 'New-ODSInteractiveScheduledTaskPrincipal' "Windows scheduled task helper should expose a shared principal constructor"
+assert_not_contains "win_installer" 'New-ScheduledTaskPrincipal -UserId \$env:USERNAME' "Windows installer must not register interactive tasks with an unqualified USERNAME"
+assert_not_contains "installers/windows/ods.ps1" 'New-ScheduledTaskPrincipal -UserId \env:USERNAME' "ods.ps1 must not register interactive tasks with an unqualified USERNAME"
+assert_not_contains "installers/windows/phases/07-devtools.ps1" 'New-ScheduledTaskPrincipal -UserId \env:USERNAME' "Windows host-agent phase must not register interactive tasks with an unqualified USERNAME"
+assert_contains "win_installer" 'New-ODSInteractiveScheduledTaskPrincipal -RunLevel Limited' "Windows installer should register limited interactive tasks through the shared principal helper"
 assert_contains "installers/windows/ods.ps1" 'New-ODSInteractiveScheduledTaskPrincipal -RunLevel Limited' "ods.ps1 should register limited interactive tasks through the shared principal helper"
 assert_contains "installers/windows/phases/07-devtools.ps1" 'New-ODSInteractiveScheduledTaskPrincipal -RunLevel Limited' "Windows host-agent phase should register limited interactive tasks through the shared principal helper"
-assert_contains "$win_installer" 'Get-ODSWindowsUserDockerClientArgs' "Windows Docker fallback should preserve an existing user Docker config"
-assert_contains "$win_installer" 'image validation failed with the install-scoped Docker config' "Windows Docker fallback should cover image validation before builds"
-assert_contains "$win_installer" 'Continuing Compose preflight and service launch with the user'\''s Docker config' "Windows Docker fallback should carry through Compose preflight and launch"
-assert_contains "$win_installer" 'Compose service launch failed with the install-scoped Docker config' "Windows Docker fallback should retry compose up"
-assert_contains "$win_installer" 'Managed-container inspection failed with the install-scoped Docker config' "Windows Docker fallback should retry managed-container inspection"
-assert_contains "$win_native_legacy" "ODSNativeLlamaLegacyTaskName = 'ODSNativeLlamaRuntime'" "Windows legacy llama-server should use a stable scheduled task name"
-assert_contains "$win_portal_amd" "ODSPortalRuntimeTaskPrefix = 'ODSLlamaServerRuntime-'" "Windows Portal llama-server should use a stable per-user scheduled task name"
-assert_contains "$win_installer" 'Invoke-WindowsSttModelDownloadTrigger' "Windows installer should trigger STT preload through a bounded helper"
-assert_contains "$win_installer" '--max-time 30 -X POST' "Windows installer STT preload should use a bounded curl trigger"
-assert_contains "$win_installer" 'Wait-WindowsSttModelCached -ModelUrl' "Windows installer should poll STT cache readiness after triggering download"
-assert_not_contains "$win_installer" 'Invoke-WebRequest -Method POST -Uri "\$whisperUrl/v1/models/\$sttModelEncoded" -TimeoutSec 600' "Windows installer should not block on the long STT preload POST"
-assert_contains "$win_installer" 'exec bash "\$bashScript"' "Windows model-upgrade task should own the real full-model upgrade process"
-assert_not_contains "$win_installer" 'nohup bash "\$bashScript"' "Windows model-upgrade task should not report success before the full-model upgrade exits"
-assert_not_contains "$win_installer" 'disown "\$pid"' "Windows model-upgrade task should not orphan the full-model upgrade process"
-assert_contains "$win_installer" '< /dev/null' "Windows installer full-model upgrade should close stdin"
-assert_contains "$win_installer" 'model-upgrade.pid' "Windows installer should record the background model-upgrade PID"
-assert_contains "$win_installer" 'ODSModelUpgrade' "Windows installer should launch full-model upgrade through a separate scheduled task"
-assert_contains "$win_installer" 'ODSNativeLlamaRuntime' "Windows installer should launch native llama-server through a managed scheduled task"
-python3 - "$win_installer" >"$tmpdir/windows-upgrade-launcher.out" <<'PY'
+assert_contains "win_installer" 'Get-ODSWindowsUserDockerClientArgs' "Windows Docker fallback should preserve an existing user Docker config"
+assert_contains "win_installer" 'image validation failed with the install-scoped Docker config' "Windows Docker fallback should cover image validation before builds"
+assert_contains "win_installer" 'Continuing Compose preflight and service launch with the user'\''s Docker config' "Windows Docker fallback should carry through Compose preflight and launch"
+assert_contains "win_installer" 'Compose service launch failed with the install-scoped Docker config' "Windows Docker fallback should retry compose up"
+assert_contains "win_installer" 'Managed-container inspection failed with the install-scoped Docker config' "Windows Docker fallback should retry managed-container inspection"
+assert_contains "win_native_legacy" "ODSNativeLlamaLegacyTaskName = 'ODSNativeLlamaRuntime'" "Windows legacy llama-server should use a stable scheduled task name"
+assert_contains "win_portal_amd" "ODSPortalRuntimeTaskPrefix = 'ODSLlamaServerRuntime-'" "Windows Portal llama-server should use a stable per-user scheduled task name"
+assert_contains "win_installer" 'Invoke-WindowsSttModelDownloadTrigger' "Windows installer should trigger STT preload through a bounded helper"
+assert_contains "win_installer" '--max-time 30 -X POST' "Windows installer STT preload should use a bounded curl trigger"
+assert_contains "win_installer" 'Wait-WindowsSttModelCached -ModelUrl' "Windows installer should poll STT cache readiness after triggering download"
+assert_not_contains "win_installer" 'Invoke-WebRequest -Method POST -Uri "\$whisperUrl/v1/models/\$sttModelEncoded" -TimeoutSec 600' "Windows installer should not block on the long STT preload POST"
+assert_contains "win_installer" 'exec bash "\$bashScript"' "Windows model-upgrade task should own the real full-model upgrade process"
+assert_not_contains "win_installer" 'nohup bash "\$bashScript"' "Windows model-upgrade task should not report success before the full-model upgrade exits"
+assert_not_contains "win_installer" 'disown "\$pid"' "Windows model-upgrade task should not orphan the full-model upgrade process"
+assert_contains "win_installer" '< /dev/null' "Windows installer full-model upgrade should close stdin"
+assert_contains "win_installer" 'model-upgrade.pid' "Windows installer should record the background model-upgrade PID"
+assert_contains "win_installer" 'ODSModelUpgrade' "Windows installer should launch full-model upgrade through a separate scheduled task"
+assert_contains "win_installer" 'ODSNativeLlamaRuntime' "Windows installer should launch native llama-server through a managed scheduled task"
+python3 - "win_installer" >"$tmpdir/windows-upgrade-launcher.out" <<'PY'
 import sys
 import re
 from pathlib import Path
 
 text = Path(sys.argv[1]).read_text(encoding="utf-8")
-start = text.index('$upgradeTaskName = "ODSModelUpgrade"')
-end = text.index("if (Test-Path -LiteralPath $upgradePidFile)", start)
+start = text.index('upgradeTaskName = "ODSModelUpgrade"')
+end = text.index("if (Test-Path -LiteralPath upgradePidFile)", start)
 block = text[start:end]
-if re.search(r"Start-Process\s+-FilePath\s+\$bashPath[^\r\n]*\s-Wait(?:\s|$)", block):
+if re.search(r"Start-Process\s+-FilePath\s+\bashPath[^\r\n]*\s-Wait(?:\s|$)", block):
     raise SystemExit("model upgrade launcher stays in the installer process tree")
-if 'nohup bash "$bashScript"' in block or 'disown "$pid"' in block:
+if 'nohup bash "bashScript"' in block or 'disown "$pid"' in block:
     raise SystemExit("model upgrade task detaches from the process it is meant to supervise")
 for needle in (
-    "New-ScheduledTaskAction -Execute $bashPath",
-    "$upgradeSettings = New-ScheduledTaskSettingsSet",
+    "New-ScheduledTaskAction -Execute bashPath",
+    "upgradeSettings = New-ScheduledTaskSettingsSet",
     "-AllowStartIfOnBatteries",
     "-DontStopIfGoingOnBatteries",
     "-StartWhenAvailable",
     "-ExecutionTimeLimit ([TimeSpan]::Zero)",
-    "$upgradeRestartInterval = New-TimeSpan -Minutes 2",
-    "-RestartCount 5 -RestartInterval $upgradeRestartInterval",
-    "Register-ScheduledTask -TaskName $upgradeTaskName",
-    "-Settings $upgradeSettings",
-    "Start-ScheduledTask -TaskName $upgradeTaskName",
-    "$upgradePrincipal = New-ODSInteractiveScheduledTaskPrincipal",
+    "upgradeRestartInterval = New-TimeSpan -Minutes 2",
+    "-RestartCount 5 -RestartInterval upgradeRestartInterval",
+    "Register-ScheduledTask -TaskName upgradeTaskName",
+    "-Settings upgradeSettings",
+    "Start-ScheduledTask -TaskName upgradeTaskName",
+    "upgradePrincipal = New-ODSInteractiveScheduledTaskPrincipal",
     "-RunLevel Limited",
 ):
     if needle not in block:
         raise SystemExit(f"model upgrade launcher missing {needle}")
-if "while ($scheduled -and -not (Test-Path -LiteralPath $upgradePidFile)" not in text:
+if "while (scheduled -and -not (Test-Path -LiteralPath $upgradePidFile)" not in text:
     raise SystemExit("model upgrade launcher does not poll for PID handoff")
-wrapper_start = text.index('$wrapperContent = @"')
+wrapper_start = text.index('wrapperContent = @"')
 wrapper_end = text.index('"@', wrapper_start)
 wrapper = text[wrapper_start:wrapper_end]
-if 'echo "$`$"' not in wrapper and 'echo "`$`$"' not in wrapper:
+if 'echo "`$"' not in wrapper and 'echo "`$`$"' not in wrapper:
     raise SystemExit("model upgrade wrapper does not record its supervising PID")
-if 'exec bash "$bashScript"' not in wrapper:
+if 'exec bash "bashScript"' not in wrapper:
     raise SystemExit("model upgrade wrapper does not exec the real upgrade")
 print("windows-upgrade-launcher-supervised")
 PY
 
-python3 - "$win_installer" "$win_native_legacy" "$win_native_runtime" "$win_portal_amd" >"$tmpdir/windows-native-llama-task.out" <<'PY'
+python3 - "win_installer" "$win_native_legacy" "$win_native_runtime" "$win_portal_amd" >"$tmpdir/windows-native-llama-task.out" <<'PY'
 import re
 import sys
 from pathlib import Path
@@ -622,13 +622,13 @@ def ps_function(path, name):
 
 required = (
     # Short task arguments that run a launcher file, never an encoded command.
-    (legacy, "Get-ODSNativeLlamaLegacyTaskArguments", """-File "' + (Join-Path $InstallDir 'ods.ps1') + '" native-llm-start"""),
+    (legacy, "Get-ODSNativeLlamaLegacyTaskArguments", """-File "' + (Join-Path InstallDir 'ods.ps1') + '" native-llm-start"""),
     (portal, "Get-ODSPortalLauncherArguments", """-File "' + (Join-Path (Get-ODSPortalRuntimeDir) 'launch.ps1')"""),
-    (legacy, "Register-ODSNativeLlamaLegacyTask", "-Argument (Get-ODSNativeLlamaLegacyTaskArguments $InstallDir)"),
+    (legacy, "Register-ODSNativeLlamaLegacyTask", "-Argument (Get-ODSNativeLlamaLegacyTaskArguments InstallDir)"),
     # The user's own limited principal (resolved through whoami.exe), so the
     # limited host agent can stop the server for a model switch.
-    (legacy, "Register-ODSNativeLlamaLegacyTask", "$principal = New-ODSInteractiveScheduledTaskPrincipal -RunLevel Limited"),
-    (legacy, "Register-ODSNativeLlamaLegacyTask", "-Principal $principal"),
+    (legacy, "Register-ODSNativeLlamaLegacyTask", "principal = New-ODSInteractiveScheduledTaskPrincipal -RunLevel Limited"),
+    (legacy, "Register-ODSNativeLlamaLegacyTask", "-Principal principal"),
     (portal, "Register-ODSPortalRuntimeTask", "-Principal (New-ODSInteractiveScheduledTaskPrincipal -RunLevel Limited)"),
     # Its own hidden console in the user's session, logging to a file.
     (legacy, "Start-ODSNativeLlamaLegacyProcess", "-WindowStyle Hidden -PassThru"),
@@ -639,18 +639,18 @@ required = (
     (runtime, "New-ODSNativeLlamaLaunchArguments", "'--api-key-file'"),
     (legacy, "New-ODSNativeLlamaLegacyLaunch", "'--host', '127.0.0.1'"),
     (legacy, "New-ODSNativeLlamaLegacyLaunch", "'--api-key-file'"),
-    (runtime, "Invoke-ODSNativeLlamaHttp", '[Net.HttpWebRequest]::Create("http://127.0.0.1:$Port$Path")'),
-    (runtime, "Invoke-ODSNativeLlamaHttp", "'Bearer ' + $ApiKey"),
+    (runtime, "Invoke-ODSNativeLlamaHttp", '[Net.HttpWebRequest]::Create("http://127.0.0.1:Port$Path")'),
+    (runtime, "Invoke-ODSNativeLlamaHttp", "'Bearer ' + ApiKey"),
     (runtime, "Get-ODSNativeLlamaHealthState", "-Path '/health'"),
     # Stops are scoped to the resolved executable, never a process name.
-    (legacy, "Stop-ODSNativeLlamaLegacyRuntime", "(Join-Path (Join-Path $InstallDir 'llama-server') 'llama-server.exe')"),
-    (legacy, "Stop-ODSNativeLlamaLegacyProcess", "[string]$Node.ExecutablePath"),
+    (legacy, "Stop-ODSNativeLlamaLegacyRuntime", "(Join-Path (Join-Path InstallDir 'llama-server') 'llama-server.exe')"),
+    (legacy, "Stop-ODSNativeLlamaLegacyProcess", "[string]Node.ExecutablePath"),
     # A task that reports success proves nothing: the installer checks the
     # listener and executable the started server recorded.
-    (legacy, "Invoke-ODSNativeLlamaLegacyCutover", "Register-ODSNativeLlamaLegacyTask -InstallDir $InstallDir"),
-    (legacy, "Invoke-ODSNativeLlamaLegacyCutover", "Start-ScheduledTask -TaskName $script:ODSNativeLlamaLegacyTaskName"),
-    (legacy, "Invoke-ODSNativeLlamaLegacyCutover", "Assert-ODSNativeLlamaListener $Port ([int]$ready.ProcessId) ([string]$ready.ExecutablePath)"),
-    (runtime, "Assert-ODSNativeLlamaListener", "$listeners[0].LocalAddress -ne '127.0.0.1'"),
+    (legacy, "Invoke-ODSNativeLlamaLegacyCutover", "Register-ODSNativeLlamaLegacyTask -InstallDir InstallDir"),
+    (legacy, "Invoke-ODSNativeLlamaLegacyCutover", "Start-ScheduledTask -TaskName script:ODSNativeLlamaLegacyTaskName"),
+    (legacy, "Invoke-ODSNativeLlamaLegacyCutover", "Assert-ODSNativeLlamaListener Port ([int]$ready.ProcessId) ([string]$ready.ExecutablePath)"),
+    (runtime, "Assert-ODSNativeLlamaListener", "listeners[0].LocalAddress -ne '127.0.0.1'"),
 )
 for path, function, needle in required:
     if needle not in ps_function(path, function):
@@ -665,195 +665,195 @@ if "Start-Process" in cutover or "Start-ODSNativeLlamaLegacyProcess" in cutover 
     raise SystemExit("elevated installer still launches native llama-server directly")
 print("windows-native-llama-runtime-limited")
 PY
-assert_contains "$tmpdir/windows-upgrade-launcher.out" 'windows-upgrade-launcher-supervised' "Windows installer should supervise the full-model upgrade in the scheduled task"
-assert_contains "$tmpdir/windows-native-llama-task.out" 'windows-native-llama-runtime-limited' "Windows installer should start llama-server through a limited launcher-file task and prove its listener"
+assert_contains "tmpdir/windows-upgrade-launcher.out" 'windows-upgrade-launcher-supervised' "Windows installer should supervise the full-model upgrade in the scheduled task"
+assert_contains "tmpdir/windows-native-llama-task.out" 'windows-native-llama-runtime-limited' "Windows installer should start llama-server through a limited launcher-file task and prove its listener"
 win_phase04="installers/windows/phases/04-requirements.ps1"
-assert_contains "$win_phase04" 'function Test-WindowsODSNativeLlmOwnsPort' "Windows requirements phase should identify this installation's own AMD model runtime listener"
-assert_contains "$win_phase04" '-ieq \[string\]\$listener\[0\]\.ExecutablePath' "Windows requirements phase should identify the AMD model runtime by its executable, never its name"
-assert_contains "$win_phase04" '\$gpuInfo\.Backend -eq "amd" -and -not \$cloudMode' "Windows requirements phase should preserve the AMD native runtime"
-assert_not_contains "$win_phase04" 'Stop-WindowsODSLemonadePortConflicts|Stop-Process -Id' "Windows installer must not kill a port holder during preflight or dry-run"
-assert_contains "$win_phase04" 'if \(\$NonInteractive -and -not \$Force -and -not \$DryRun\)' "Non-interactive Windows installs should fail closed on occupied selected ports"
+assert_contains "win_phase04" 'function Test-WindowsODSNativeLlmOwnsPort' "Windows requirements phase should identify this installation's own AMD model runtime listener"
+assert_contains "win_phase04" '-ieq \[string\]\$listener\[0\]\.ExecutablePath' "Windows requirements phase should identify the AMD model runtime by its executable, never its name"
+assert_contains "win_phase04" '\$gpuInfo\.Backend -eq "amd" -and -not \$cloudMode' "Windows requirements phase should preserve the AMD native runtime"
+assert_not_contains "win_phase04" 'Stop-WindowsODSLemonadePortConflicts|Stop-Process -Id' "Windows installer must not kill a port holder during preflight or dry-run"
+assert_contains "win_phase04" 'if \(\$NonInteractive -and -not \$Force -and -not \$DryRun\)' "Non-interactive Windows installs should fail closed on occupied selected ports"
 assert_contains "installers/windows/ods.ps1" 'Invoke-ODSSttModelDownloadTrigger' "ods.ps1 repair voice should trigger STT preload through a bounded helper"
-assert_not_contains "installers/windows/ods.ps1" 'Invoke-WebRequest -Method POST -Uri \$voice\.SttModelUrl -TimeoutSec 3600' "ods.ps1 repair voice should not block on the long STT preload POST"
-assert_contains "installers/windows/ods.ps1" 'Start-ODSNativeLlamaLegacyProcess -Launch \$Plan\.Launch' "ods.ps1 should start llama-server through the shared detached, proof-gated launch"
+assert_not_contains "installers/windows/ods.ps1" 'Invoke-WebRequest -Method POST -Uri \voice\.SttModelUrl -TimeoutSec 3600' "ods.ps1 repair voice should not block on the long STT preload POST"
+assert_contains "installers/windows/ods.ps1" 'Start-ODSNativeLlamaLegacyProcess -Launch \Plan\.Launch' "ods.ps1 should start llama-server through the shared detached, proof-gated launch"
 assert_contains "installers/windows/ods.ps1" 'Sync-ODSNativeInferenceConfig' "ods.ps1 should sync native runtime config from .env"
 assert_contains "installers/windows/ods.ps1" 'AMD_INFERENCE_PORT' "ods.ps1 should honor the configured AMD llama-server port"
-assert_contains "installers/windows/ods.ps1" 'healthUrl = "http://127\.0\.0\.1:\$\(\$script:NATIVE_LLM_PORT\)/health"' "ods.ps1 should health-check the configured llama-server port over numeric loopback"
+assert_contains "installers/windows/ods.ps1" 'healthUrl = "http://127\.0\.0\.1:\\(\$script:NATIVE_LLM_PORT\)/health"' "ods.ps1 should health-check the configured llama-server port over numeric loopback"
 assert_contains "installers/windows/ods.ps1" 'ODS_MODEL_UPGRADE_TASK_NAME = "ODSModelUpgrade"' "ods.ps1 should know the supervised full-model upgrade task name"
 assert_contains "installers/windows/ods.ps1" 'function Test-ODSBootstrapUpgradeStaleActive' "ods.ps1 should detect stale active bootstrap upgrades"
-assert_contains "installers/windows/ods.ps1" 'Start-ScheduledTask -TaskName \$script:ODS_MODEL_UPGRADE_TASK_NAME' "ods.ps1 should resume the supervised full-model upgrade task"
-assert_contains "installers/windows/ods.ps1" '\$staleSeconds = 120' "ods.ps1 should retry stale full-model upgrades during the release lifecycle window"
+assert_contains "installers/windows/ods.ps1" 'Start-ScheduledTask -TaskName \script:ODS_MODEL_UPGRADE_TASK_NAME' "ods.ps1 should resume the supervised full-model upgrade task"
+assert_contains "installers/windows/ods.ps1" '\staleSeconds = 120' "ods.ps1 should retry stale full-model upgrades during the release lifecycle window"
 assert_contains "installers/windows/ods.ps1" 'Invoke-BootstrapUpgradeResume' "ods.ps1 start/restart should attempt bootstrap upgrade recovery"
 
 echo "[contract] Windows dashboard activation relaunches llama-server through ods.ps1"
 host_agent="bin/ods-host-agent.py"
-assert_contains "$host_agent" '"native-llm-restart"' "host-agent should relaunch the Windows llama-server through ods.ps1 native-llm-restart"
-assert_contains "$host_agent" 'AMD_INFERENCE_PORT' "host-agent should health-check the Windows llama-server on AMD_INFERENCE_PORT"
-assert_not_contains "$host_agent" '\$existingTask = Get-ScheduledTask -TaskName \$taskName' "host-agent dashboard activation must not block on Task Scheduler registration"
-assert_not_contains "$host_agent" 'Register-ScheduledTask -TaskName \$taskName' "host-agent dashboard activation must not register a runtime task"
-assert_not_contains "$host_agent" 'Start-ScheduledTask -TaskName \$taskName' "host-agent dashboard activation should not wait on Task Scheduler"
-assert_not_contains "$host_agent" 'Lemonade(Server)?\.exe|lemonade-server' "host-agent must not start or stop Lemonade processes"
+assert_contains "host_agent" '"native-llm-restart"' "host-agent should relaunch the Windows llama-server through ods.ps1 native-llm-restart"
+assert_contains "host_agent" 'AMD_INFERENCE_PORT' "host-agent should health-check the Windows llama-server on AMD_INFERENCE_PORT"
+assert_not_contains "host_agent" '\$existingTask = Get-ScheduledTask -TaskName \$taskName' "host-agent dashboard activation must not block on Task Scheduler registration"
+assert_not_contains "host_agent" 'Register-ScheduledTask -TaskName \$taskName' "host-agent dashboard activation must not register a runtime task"
+assert_not_contains "host_agent" 'Start-ScheduledTask -TaskName \$taskName' "host-agent dashboard activation should not wait on Task Scheduler"
+assert_not_contains "host_agent" 'Lemonade(Server)?\.exe|lemonade-server' "host-agent must not start or stop Lemonade processes"
 
 echo "[contract] Windows AMD Hermes uses the cancellable model-router path"
 phase06_win="installers/windows/phases/06-directories.ps1"
 assert_contains "installers/windows/lib/env-generator.ps1" 'http://model-router:9099/v1' "Windows AMD Hermes should route through model-router, not direct Lemonade"
-assert_contains "$phase06_win" 'local-lemonade' "Windows AMD Hermes should render compact local profile"
-assert_contains "$phase06_win" 'disabled_toolsets:' "Windows AMD Hermes should compact optional toolsets"
-assert_contains "$phase06_win" 'extensions-library-bundle\\services' "Windows installer should consider public-bootstrap extensions-library bundle"
-assert_contains "$phase06_win" 'extensions\\library\\services' "Windows installer should copy product extensions library templates"
-assert_contains "$phase06_win" 'data/extensions-library' "Windows installer should populate data/extensions-library for dashboard extension installs"
+assert_contains "phase06_win" 'local-lemonade' "Windows AMD Hermes should render compact local profile"
+assert_contains "phase06_win" 'disabled_toolsets:' "Windows AMD Hermes should compact optional toolsets"
+assert_contains "phase06_win" 'extensions-library-bundle\\services' "Windows installer should consider public-bootstrap extensions-library bundle"
+assert_contains "phase06_win" 'extensions\\library\\services' "Windows installer should copy product extensions library templates"
+assert_contains "phase06_win" 'data/extensions-library' "Windows installer should populate data/extensions-library for dashboard extension installs"
 assert_contains "scripts/build-installation-context.py" 'local-lemonade' "SOUL builder should expose local-lemonade profile"
 assert_contains "extensions/services/dashboard-api/routers/models.py" 'loaded_model = _fetch_loaded_model_sync\(\)' "dashboard model no-op should verify the model the live backend serves"
 
 echo "[contract] Linux phase 06 reports substeps on failure"
 phase06="installers/phases/06-directories.sh"
-assert_contains "$phase06" 'export INSTALL_PHASE="06-directories/\$\{step\}"' "phase 06 missing substep INSTALL_PHASE updates"
+assert_contains "phase06" 'export INSTALL_PHASE="06-directories/\$\{step\}"' "phase 06 missing substep INSTALL_PHASE updates"
 for step in create-directories copy-source copy-extensions-library generate-env validate-env generate-searxng-config; do
-  assert_contains "$phase06" "_phase06_step \"$step\"" "phase 06 missing substep: $step"
+  assert_contains "phase06" "_phase06_step \"$step\"" "phase 06 missing substep: $step"
 done
-assert_contains "installers/phases/06-directories.sh" 'chmod 0755 "\$_pixel_exec_control_path"' "Linux installer does not normalize WSL-mounted Pixel execution-control modes"
-assert_contains "installers/phases/06-directories.sh" '! -L "\$_pixel_exec_control_path"' "Linux installer may normalize a symlinked Pixel execution-control helper"
-assert_contains "installers/phases/06-directories.sh" 'find -P "\$_installed_code_root"' "Linux installer does not normalize WSL-mounted product code modes"
-assert_contains "installers/phases/06-directories.sh" '"\$INSTALL_DIR/bin"' "Linux installer does not normalize installed command modes"
-assert_contains "installers/phases/06-directories.sh" 'find -P "\$INSTALL_DIR" -maxdepth 1' "Linux installer does not normalize root executable modes"
+assert_contains "installers/phases/06-directories.sh" 'chmod 0755 "\_pixel_exec_control_path"' "Linux installer does not normalize WSL-mounted Pixel execution-control modes"
+assert_contains "installers/phases/06-directories.sh" '! -L "\_pixel_exec_control_path"' "Linux installer may normalize a symlinked Pixel execution-control helper"
+assert_contains "installers/phases/06-directories.sh" 'find -P "\_installed_code_root"' "Linux installer does not normalize WSL-mounted product code modes"
+assert_contains "installers/phases/06-directories.sh" '"\INSTALL_DIR/bin"' "Linux installer does not normalize installed command modes"
+assert_contains "installers/phases/06-directories.sh" 'find -P "\INSTALL_DIR" -maxdepth 1' "Linux installer does not normalize root executable modes"
 assert_contains "installers/phases/06-directories.sh" 'chmod go-w \{\} \+' "Linux installer leaves copied product code ambiently writable"
 assert_contains "installers/phases/06-directories.sh" 'ods_copy_extensions_library' "Linux installer does not stage readable extension-library templates"
 assert_contains "installers/lib/extensions-library-copy.sh" 'chmod go\+rX,go-w' "Linux installer does not repair extension-library file readability"
-assert_contains "installers/lib/extensions-library-copy.sh" 'find -P "\$target_dir"' "Linux installer does not secure retained extension-library entries"
+assert_contains "installers/lib/extensions-library-copy.sh" 'find -P "\target_dir"' "Linux installer does not secure retained extension-library entries"
 
 echo "[contract] Windows phase 06 stages the extension library"
 win_phase06="installers/windows/phases/06-directories.ps1"
-assert_contains "$win_phase06" 'extensions\\library\\services' "Windows phase 06 does not search the source extension library"
-assert_contains "$win_phase06" 'data\\extensions-library' "Windows phase 06 does not stage data/extensions-library"
-assert_contains "$win_phase06" 'Extensions library copied to data/extensions-library' "Windows phase 06 does not report extension library copy success"
-assert_contains "$win_phase06" 'config\\llama-server\\models.ini' "Windows phase 06 should clean malformed llama-server models.ini directories before model swaps"
-assert_contains "$win_phase06" 'extensions\\services\\hermes-proxy\\Caddyfile' "Windows phase 06 should clean malformed Hermes proxy Caddyfile directories before compose"
-assert_contains "$win_phase06" 'extensions\\services\\ods-proxy\\Caddyfile' "Windows phase 06 should clean malformed ODS proxy Caddyfile directories before compose"
-assert_contains "$win_phase06" 'extensions\\services\\whisper\\docker-entrypoint.sh' "Windows phase 06 should clean malformed Whisper entrypoint directories before compose"
-assert_contains "$win_phase06" 'extensions\\services\\perplexica\\docker-entrypoint.sh' "Windows phase 06 should clean malformed Perplexica entrypoint directories before compose"
+assert_contains "win_phase06" 'extensions\\library\\services' "Windows phase 06 does not search the source extension library"
+assert_contains "win_phase06" 'data\\extensions-library' "Windows phase 06 does not stage data/extensions-library"
+assert_contains "win_phase06" 'Extensions library copied to data/extensions-library' "Windows phase 06 does not report extension library copy success"
+assert_contains "win_phase06" 'config\\llama-server\\models.ini' "Windows phase 06 should clean malformed llama-server models.ini directories before model swaps"
+assert_contains "win_phase06" 'extensions\\services\\hermes-proxy\\Caddyfile' "Windows phase 06 should clean malformed Hermes proxy Caddyfile directories before compose"
+assert_contains "win_phase06" 'extensions\\services\\ods-proxy\\Caddyfile' "Windows phase 06 should clean malformed ODS proxy Caddyfile directories before compose"
+assert_contains "win_phase06" 'extensions\\services\\whisper\\docker-entrypoint.sh' "Windows phase 06 should clean malformed Whisper entrypoint directories before compose"
+assert_contains "win_phase06" 'extensions\\services\\perplexica\\docker-entrypoint.sh' "Windows phase 06 should clean malformed Perplexica entrypoint directories before compose"
 
 echo "[contract] Python resolver can select a module-capable fallback"
-pybin="$tmpdir/python-module-fallback"
-mkdir -p "$pybin"
-cat > "$pybin/python3" <<'PY3'
+pybin="tmpdir/python-module-fallback"
+mkdir -p "pybin"
+cat > "pybin/python3" <<'PY3'
 #!/usr/bin/env bash
 # Runnable, but cannot import yaml.
-if [[ "${1:-}" == "-c" ]]; then
+if [[ "{1:-}" == "-c" ]]; then
   exit 0
 fi
-if [[ "${1:-}" == "-" && "${2:-}" == "yaml" ]]; then
+if [[ "{1:-}" == "-" && "${2:-}" == "yaml" ]]; then
   exit 1
 fi
 exit 0
 PY3
-cat > "$pybin/python" <<'PY'
+cat > "pybin/python" <<'PY'
 #!/usr/bin/env bash
 exit 0
 PY
-chmod +x "$pybin/python3" "$pybin/python"
-module_py="$(PATH="$pybin:$PATH" bash -c '
+chmod +x "pybin/python3" "$pybin/python"
+module_py="(PATH="$pybin:$PATH" bash -c '
   set -euo pipefail
   source lib/python-cmd.sh
   ods_detect_python_cmd_with_module yaml
 ')"
-if [[ "$module_py" != "python" ]]; then
-  echo "[FAIL] Python resolver did not fall back to module-capable python (got: $module_py)"
+if [[ "module_py" != "python" ]]; then
+  echo "[FAIL] Python resolver did not fall back to module-capable python (got: module_py)"
   exit 1
 fi
 
 echo "[contract] ods_sudo uses sudo -n in non-interactive mode"
-fakebin="$tmpdir/fakebin"
-mkdir -p "$fakebin"
-cat > "$fakebin/sudo" <<'SUDOEOT'
+fakebin="tmpdir/fakebin"
+mkdir -p "fakebin"
+cat > "fakebin/sudo" <<'SUDOEOT'
 #!/usr/bin/env bash
-printf '%s\n' "$*" > "$ODS_TEST_SUDO_ARGS"
+printf '%s\n' "*" > "$ODS_TEST_SUDO_ARGS"
 exit 0
 SUDOEOT
-chmod +x "$fakebin/sudo"
-sudo_args="$tmpdir/sudo.args"
-PATH="$fakebin:$PATH" ODS_TEST_SUDO_ARGS="$sudo_args" bash -c '
+chmod +x "fakebin/sudo"
+sudo_args="tmpdir/sudo.args"
+PATH="fakebin:$PATH" ODS_TEST_SUDO_ARGS="$sudo_args" bash -c '
   set -euo pipefail
   INTERACTIVE=false
   DRY_RUN=false
   source installers/lib/sudo.sh
   ods_sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
 '
-assert_contains "$sudo_args" '^-n nvidia-ctk cdi generate' "ods_sudo did not use sudo -n for non-interactive runs"
+assert_contains "sudo_args" '^-n nvidia-ctk cdi generate' "ods_sudo did not use sudo -n for non-interactive runs"
 
 echo "[contract] Blackwell proprietary module is blocked"
-blackwell_bin="$tmpdir/blackwell-proprietary"
-mkdir -p "$blackwell_bin"
-cat > "$blackwell_bin/nvidia-smi" <<'NVSMI'
+blackwell_bin="tmpdir/blackwell-proprietary"
+mkdir -p "blackwell_bin"
+cat > "blackwell_bin/nvidia-smi" <<'NVSMI'
 #!/usr/bin/env bash
-if [[ "$*" == *"--query-gpu=name,compute_cap"* ]]; then
+if [[ "*" == *"--query-gpu=name,compute_cap"* ]]; then
   echo "NVIDIA RTX PRO 6000 Blackwell Workstation Edition, 12.0"
   exit 0
 fi
 exit 0
 NVSMI
-cat > "$blackwell_bin/modinfo" <<'MODINFO'
+cat > "blackwell_bin/modinfo" <<'MODINFO'
 #!/usr/bin/env bash
-if [[ "$*" == "-F license nvidia" ]]; then
+if [[ "*" == "-F license nvidia" ]]; then
   echo "NVIDIA"
   exit 0
 fi
 exit 1
 MODINFO
-cat > "$blackwell_bin/lspci" <<'LSPCI'
+cat > "blackwell_bin/lspci" <<'LSPCI'
 #!/usr/bin/env bash
 echo "01:00.0 VGA compatible controller: NVIDIA Corporation Blackwell"
 LSPCI
-chmod +x "$blackwell_bin/nvidia-smi" "$blackwell_bin/modinfo" "$blackwell_bin/lspci"
+chmod +x "blackwell_bin/nvidia-smi" "$blackwell_bin/modinfo" "$blackwell_bin/lspci"
 
-if PATH="$blackwell_bin:$PATH" bash -c '
+if PATH="blackwell_bin:$PATH" bash -c '
   set -euo pipefail
   LOG_FILE=/dev/null
   ai() { :; }
   ai_ok() { :; }
   ai_warn() { :; }
   ai_bad() { :; }
-  error() { echo "$1"; return 42; }
+  error() { echo "1"; return 42; }
   source installers/lib/detection.sh
   ods_is_wsl_host() { return 1; }
   validate_nvidia_blackwell_open_modules
-' >"$tmpdir/blackwell-proprietary.out" 2>"$tmpdir/blackwell-proprietary.err"; then
+' >"tmpdir/blackwell-proprietary.out" 2>"$tmpdir/blackwell-proprietary.err"; then
   echo "[FAIL] proprietary Blackwell module should block install"
   exit 1
 fi
-assert_contains "$tmpdir/blackwell-proprietary.out" 'Blackwell requires NVIDIA open kernel modules' "Blackwell proprietary failure did not explain open-module requirement"
+assert_contains "tmpdir/blackwell-proprietary.out" 'Blackwell requires NVIDIA open kernel modules' "Blackwell proprietary failure did not explain open-module requirement"
 
 echo "[contract] Blackwell open module is accepted"
-open_bin="$tmpdir/blackwell-open"
-mkdir -p "$open_bin"
-cp "$blackwell_bin/nvidia-smi" "$open_bin/nvidia-smi"
-cp "$blackwell_bin/lspci" "$open_bin/lspci"
-cat > "$open_bin/modinfo" <<'OPENMOD'
+open_bin="tmpdir/blackwell-open"
+mkdir -p "open_bin"
+cp "blackwell_bin/nvidia-smi" "$open_bin/nvidia-smi"
+cp "blackwell_bin/lspci" "$open_bin/lspci"
+cat > "open_bin/modinfo" <<'OPENMOD'
 #!/usr/bin/env bash
-if [[ "$*" == "-F license nvidia" ]]; then
+if [[ "*" == "-F license nvidia" ]]; then
   echo "Dual MIT/GPL"
   exit 0
 fi
 exit 1
 OPENMOD
-chmod +x "$open_bin/nvidia-smi" "$open_bin/lspci" "$open_bin/modinfo"
+chmod +x "open_bin/nvidia-smi" "$open_bin/lspci" "$open_bin/modinfo"
 
-PATH="$open_bin:$PATH" bash -c '
+PATH="open_bin:$PATH" bash -c '
   set -euo pipefail
   LOG_FILE=/dev/null
   ai() { :; }
   ai_ok() { :; }
   ai_warn() { :; }
   ai_bad() { :; }
-  error() { echo "$1"; return 42; }
+  error() { echo "1"; return 42; }
   source installers/lib/detection.sh
   ods_is_wsl_host() { return 1; }
   validate_nvidia_blackwell_open_modules
 '
 
 echo "[contract] NVIDIA DKMS module discovery preserves the kernel release as one path segment"
-assert_contains "installers/lib/detection.sh" 'for mod_path in /lib/modules/"\$\{kver\}"/updates/dkms/nvidia\*\.ko\*' \
+assert_contains "installers/lib/detection.sh" 'for mod_path in /lib/modules/"\\{kver\}"/updates/dkms/nvidia\*\.ko\*' \
   "NVIDIA DKMS module glob does not quote the kernel release segment"
-assert_not_contains "installers/lib/detection.sh" 'for mod_path in /lib/modules/\$\{kver\}/updates/dkms/nvidia\*\.ko\*' \
+assert_not_contains "installers/lib/detection.sh" 'for mod_path in /lib/modules/\\{kver\}/updates/dkms/nvidia\*\.ko\*' \
   "NVIDIA DKMS module glob still expands an unquoted kernel release"
 
 echo "[contract] Secure Boot enrollment never installs a root resume unit"
@@ -861,7 +861,7 @@ assert_not_contains "installers/lib/detection.sh" '/etc/systemd/system/' \
   "Secure Boot enrollment must not write a systemd unit that runs the user-writable installer as root"
 assert_contains "installers/lib/detection.sh" 'resume_command="cd ' \
   "Secure Boot enrollment must tell the owner how to finish the install"
-assert_contains "installers/phases/01-preflight.sh" '^_ods_remove_obsolete_resume_unit$' \
+assert_contains "installers/phases/01-preflight.sh" '^_ods_remove_obsolete_resume_unit' \
   "preflight must remove the obsolete root resume unit left by older installers"
 assert_contains "installers/phases/01-preflight.sh" 'PREFLIGHT_ONLY:-false\}" == "true" \]\] && return 0' \
   "obsolete resume-unit cleanup must not run in --preflight-only mode"
@@ -874,11 +874,11 @@ if grep -q 'import shlex' scripts/select-model.py; then
   exit 1
 fi
 for f in installers/phases/02-detection.sh installers/macos/install-macos.sh tests/test-tier-map.sh; do
-  if grep -q 'eval "$_selector_env"' "$f"; then
-    echo "[FAIL] $f still evals model selector output"
+  if grep -q 'eval "_selector_env"' "$f"; then
+    echo "[FAIL] f still evals model selector output"
     exit 1
   fi
-  assert_contains "$f" 'load_model_selector_env_from_output' "$f does not use the allowlisted selector loader"
+  assert_contains "f" 'load_model_selector_env_from_output' "$f does not use the allowlisted selector loader"
 done
 
 echo "[contract] compose launch cannot silently produce zero containers"
@@ -918,31 +918,31 @@ assert_contains "installers/phases/11-services.sh" 'download-hf-snapshot.py' "Li
 assert_contains "installers/phases/11-services.sh" 'data/embeddings' "Linux embeddings prefetch should populate the TEI cache mount"
 assert_contains "installers/phases/11-services.sh" 'huggingface_hub\[hf_xet\]>=0\.27' "Linux embeddings prefetch should install Xet-capable Hugging Face dependencies"
 assert_contains "installers/phases/11-services.sh" 'ODS_EMBEDDINGS_PREFETCH' "Linux embeddings prefetch should expose an operator escape hatch"
-assert_contains "docker-compose.base.yml" 'RAG_EMBEDDING_ENGINE: "\$\{RAG_EMBEDDING_ENGINE:-openai\}"' "Open WebUI should use API-backed embeddings instead of downloading sentence-transformers at startup"
-assert_contains "docker-compose.base.yml" 'RAG_OPENAI_API_BASE_URL: "\$\{RAG_OPENAI_API_BASE_URL:-http://embeddings:80/v1\}"' "Open WebUI RAG embeddings should route to the bundled TEI service"
-assert_contains "docker-compose.base.yml" 'RAG_EMBEDDING_MODEL_AUTO_UPDATE: "\$\{RAG_EMBEDDING_MODEL_AUTO_UPDATE:-false\}"' "Open WebUI should not auto-update local embedding models during startup"
+assert_contains "docker-compose.base.yml" 'RAG_EMBEDDING_ENGINE: "\\{RAG_EMBEDDING_ENGINE:-openai\}"' "Open WebUI should use API-backed embeddings instead of downloading sentence-transformers at startup"
+assert_contains "docker-compose.base.yml" 'RAG_OPENAI_API_BASE_URL: "\\{RAG_OPENAI_API_BASE_URL:-http://embeddings:80/v1\}"' "Open WebUI RAG embeddings should route to the bundled TEI service"
+assert_contains "docker-compose.base.yml" 'RAG_EMBEDDING_MODEL_AUTO_UPDATE: "\\{RAG_EMBEDDING_MODEL_AUTO_UPDATE:-false\}"' "Open WebUI should not auto-update local embedding models during startup"
 assert_contains "installers/macos/install-macos.sh" 'compose-launch\.txt' "macOS installer missing compose launch record"
 assert_contains "installers/macos/install-macos.sh" 'ps -q' "macOS installer does not count compose-managed containers"
 assert_contains "installers/macos/install-macos.sh" 'docker compose up completed but created no managed containers' "macOS installer does not fail loud on zero managed containers"
 assert_contains "installers/macos/install-macos.sh" '_macos_pre_pull_compose_images' "macOS installer does not preflight compose images before launch"
-assert_contains "installers/macos/install-macos.sh" 'docker pull --platform "\$platform"' "macOS pre-pull does not honor compose platform pins (amd64-only images fail on Apple Silicon)"
+assert_contains "installers/macos/install-macos.sh" 'docker pull --platform "\platform"' "macOS pre-pull does not honor compose platform pins (amd64-only images fail on Apple Silicon)"
 assert_contains "installers/macos/install-macos.sh" 'service\.get\("platform"\)' "macOS compose image resolution drops per-service platform pins"
 assert_contains "installers/macos/install-macos.sh" '_macos_cached_image_platform' "macOS pre-pull does not inspect cached image architecture"
 assert_contains "installers/macos/install-macos.sh" 'cached_platform.*requested_platform' "macOS pre-pull may trust a cached image with the wrong architecture"
 assert_contains "installers/macos/install-macos.sh" '--pull never' "macOS installer still allows implicit compose pulls during install launch"
 assert_contains "installers/macos/install-macos.sh" 'ODS_DOCKER_BUILD_MAX_ATTEMPTS' "macOS installer does not retry transient local image build failures"
-assert_contains "installers/macos/install-macos.sh" '_macos_build_failed=\$\(\(_macos_build_failed \+ 1\)\)' "macOS installer does not count failed required local image builds"
+assert_contains "installers/macos/install-macos.sh" '_macos_build_failed=\\(\(_macos_build_failed \+ 1\)\)' "macOS installer does not count failed required local image builds"
 assert_contains "installers/macos/install-macos.sh" 'refusing to launch stale images' "macOS installer can still launch stale images after required local builds fail"
 assert_not_contains "installers/macos/install-macos.sh" 'wait .*\|\| ai_warn "Build failed' "macOS installer still treats required local build failures as warnings"
 assert_contains "installers/macos/install-macos.sh" '_active_colima start --network-address --network-preferred-route' "macOS installer does not preserve the active profile while enabling the private Colima vmnet route"
 assert_contains "installers/macos/install-macos.sh" 'ODS_MACOS_HOST_GATEWAY' "macOS installer does not persist the private Colima host gateway"
 assert_contains "installers/macos/lib/host-agent-install.sh" '_configure_macos_host_agent_bridge' "macOS installer does not bridge host-agent actions over private Colima networking"
-assert_contains "installers/macos/install-macos.sh" 'source "\$\{LIB_DIR\}/bridge-manager\.sh"' "macOS installer does not source shared bridge lifecycle code"
-assert_contains "installers/macos/ods-macos.sh" 'source "\$\{LIB_DIR\}/bridge-manager\.sh"' "macOS CLI does not source shared bridge lifecycle code"
+assert_contains "installers/macos/install-macos.sh" 'source "\\{LIB_DIR\}/bridge-manager\.sh"' "macOS installer does not source shared bridge lifecycle code"
+assert_contains "installers/macos/ods-macos.sh" 'source "\\{LIB_DIR\}/bridge-manager\.sh"' "macOS CLI does not source shared bridge lifecycle code"
 assert_contains "installers/macos/lib/bridge-manager.sh" 'macos_configure_llm_bridge_from_env' "shared macOS bridge manager does not derive bridge state from .env"
 assert_contains "installers/macos/lib/bridge-manager.sh" '--allow-peer' "shared macOS bridge manager does not restrict the Colima peer"
-assert_contains "installers/macos/install-macos.sh" 'source "\$\{LIB_DIR\}/host-agent-install\.sh"' "macOS installer does not load shared host-agent setup"
-assert_contains "installers/macos/install-macos.sh" '^ods_macos_install_host_agent$' "macOS installer does not run shared host-agent setup"
+assert_contains "installers/macos/install-macos.sh" 'source "\\{LIB_DIR\}/host-agent-install\.sh"' "macOS installer does not load shared host-agent setup"
+assert_contains "installers/macos/install-macos.sh" '^ods_macos_install_host_agent' "macOS installer does not run shared host-agent setup"
 assert_contains "installers/macos/lib/host-agent-install.sh" '/v1/model/status' "macOS installer does not verify authenticated host-agent reachability from the dashboard container"
 assert_contains "installers/macos/lib/host-agent-install.sh" 'Authorization: Bearer' "macOS installer host-agent readiness probe is not authenticated"
 assert_contains "installers/macos/docker-compose.macos.yml" 'ODS_MACOS_HOST_GATEWAY:-host.docker.internal' "macOS compose does not route native inference over the private Colima gateway"
@@ -953,10 +953,10 @@ assert_contains "installers/windows/install-windows.ps1" 'dashboard", "dashboard
 assert_contains "bin/ods-host-agent.py" '0o640' "remote-provider lifecycle secrets must be group-readable only to hardened provider services"
 assert_contains "bin/ods-host-agent.py" '_repair_remote_provider_secret_permissions' "legacy remote-provider secrets are not repaired for provider access"
 assert_contains "docker-compose.base.yml" 'REMOTE_PROVIDER_DATA_GID' "remote-provider services must receive the installation data group"
-assert_contains "installers/phases/06-directories.sh" 'REMOTE_PROVIDER_DATA_GID=\$\(id -g' "Linux installer does not derive the current installation data group"
-assert_not_contains "installers/phases/06-directories.sh" 'REMOTE_PROVIDER_DATA_GID=\$\(_env_get' "Linux installer may preserve a stale remote-provider data group"
+assert_contains "installers/phases/06-directories.sh" 'REMOTE_PROVIDER_DATA_GID=\\(id -g' "Linux installer does not derive the current installation data group"
+assert_not_contains "installers/phases/06-directories.sh" 'REMOTE_PROVIDER_DATA_GID=\\(_env_get' "Linux installer may preserve a stale remote-provider data group"
 assert_contains "installers/windows/lib/env-generator.ps1" 'REMOTE_PROVIDER_DATA_GID=0' "Windows installer does not derive the Docker Desktop provider group"
-assert_not_contains "installers/windows/lib/env-generator.ps1" 'REMOTE_PROVIDER_DATA_GID=\$\(Get-EnvOrNew' "Windows installer may preserve a stale remote-provider data group"
+assert_not_contains "installers/windows/lib/env-generator.ps1" 'REMOTE_PROVIDER_DATA_GID=\\(Get-EnvOrNew' "Windows installer may preserve a stale remote-provider data group"
 assert_contains "installers/windows/install-windows.ps1" 'Invoke-ODSWindowsComposeImagePreflight' "Windows installer does not preflight compose images before launch"
 assert_contains "installers/windows/install-windows.ps1" '--pull", "never' "Windows installer still allows implicit compose pulls during install launch"
 
@@ -965,36 +965,36 @@ assert_contains "installers/windows/phases/07-devtools.ps1" 'Resolve-ODSHostAgen
 assert_contains "installers/windows/phases/07-devtools.ps1" 'WindowsApps' "Windows installer does not reject Microsoft Store Python aliases"
 assert_contains "installers/windows/phases/07-devtools.ps1" 'winget install --exact --id Python\.Python\.3\.12' "Windows installer does not bootstrap Python for host-agent"
 assert_contains "installers/windows/phases/07-devtools.ps1" 'PrefixArgs' "Windows installer does not support py launcher -3 arguments"
-assert_contains "installers/windows/phases/07-devtools.ps1" 'Invoke-ODSNativeQuiet -FilePath \$_python3\.FilePath -Arguments \$_checkArgs' "Windows host-agent dependency probe should not abort on native Python stderr"
-assert_contains "installers/windows/phases/07-devtools.ps1" 'Invoke-ODSNativeQuiet -FilePath \$_python3\.FilePath -Arguments \$_installArgs -LogPath \$script:LOG_FILE' "Windows host-agent dependency install should not abort on native Python stderr"
+assert_contains "installers/windows/phases/07-devtools.ps1" 'Invoke-ODSNativeQuiet -FilePath \_python3\.FilePath -Arguments \$_checkArgs' "Windows host-agent dependency probe should not abort on native Python stderr"
+assert_contains "installers/windows/phases/07-devtools.ps1" 'Invoke-ODSNativeQuiet -FilePath \_python3\.FilePath -Arguments \$_installArgs -LogPath \$script:LOG_FILE' "Windows host-agent dependency install should not abort on native Python stderr"
 assert_not_contains "installers/windows/phases/07-devtools.ps1" 'Write-AIInfo' "Windows devtools phase should only call UI writer functions that exist"
-assert_contains "installers/windows/lib/ui.ps1" 'Invoke-ODSNativeQuiet -FilePath \$python\.FilePath -Arguments \$checkArgs' "Windows Hugging Face fallback dependency probe should not abort on native Python stderr"
-assert_contains "installers/windows/lib/ui.ps1" 'Invoke-ODSNativeQuiet -FilePath \$python\.FilePath -Arguments \$installArgs' "Windows Hugging Face fallback dependency install should not abort on native Python stderr"
-assert_contains "installers/windows/phases/07-devtools.ps1" 'Start-ScheduledTask -TaskName \$script:ODS_AGENT_TASK_NAME' "Windows installer should start host-agent through Scheduled Tasks"
+assert_contains "installers/windows/lib/ui.ps1" 'Invoke-ODSNativeQuiet -FilePath \python\.FilePath -Arguments \$checkArgs' "Windows Hugging Face fallback dependency probe should not abort on native Python stderr"
+assert_contains "installers/windows/lib/ui.ps1" 'Invoke-ODSNativeQuiet -FilePath \python\.FilePath -Arguments \$installArgs' "Windows Hugging Face fallback dependency install should not abort on native Python stderr"
+assert_contains "installers/windows/phases/07-devtools.ps1" 'Start-ScheduledTask -TaskName \script:ODS_AGENT_TASK_NAME' "Windows installer should start host-agent through Scheduled Tasks"
 assert_contains "installers/windows/lib/env-generator.ps1" 'ODS_AGENT_BIND=.*0\.0\.0\.0' "Windows installer should bind host-agent for dashboard-api container access"
 assert_contains "installers/windows/ods.ps1" 'Resolve-ODSHostAgentPython' "ods.ps1 agent start does not resolve a real Python"
 assert_contains "installers/windows/ods.ps1" 'WindowsApps' "ods.ps1 agent start does not reject Microsoft Store Python aliases"
 assert_contains "installers/windows/ods.ps1" 'PrefixArgs' "ods.ps1 agent start does not support py launcher -3 arguments"
-assert_contains "installers/windows/ods.ps1" 'Register-ScheduledTask -TaskName \$script:ODS_AGENT_TASK_NAME' "ods.ps1 agent start should use Scheduled Tasks so SSH-launched agents persist"
+assert_contains "installers/windows/ods.ps1" 'Register-ScheduledTask -TaskName \script:ODS_AGENT_TASK_NAME' "ods.ps1 agent start should use Scheduled Tasks so SSH-launched agents persist"
 assert_contains "installers/windows/ods.ps1" 'RedirectStandardError' "ods.ps1 agent task should redirect stderr away from SSH/CLI parents"
 assert_not_contains "installers/windows/ods.ps1" 'RedirectStandardError .* -Wait' "ods.ps1 agent task should detach from host-agent callers"
 assert_contains "lib/python-cmd.sh" 'windowsapps/python3' "Bash Python resolver should reject WindowsApps python3 aliases"
 
-fake_winapps="$tmpdir/Local/Microsoft/WindowsApps"
-fake_realbin="$tmpdir/real-python"
-mkdir -p "$fake_winapps" "$fake_realbin"
-cat >"$fake_winapps/python3" <<'EOF'
+fake_winapps="tmpdir/Local/Microsoft/WindowsApps"
+fake_realbin="tmpdir/real-python"
+mkdir -p "fake_winapps" "$fake_realbin"
+cat >"fake_winapps/python3" <<'EOF'
 #!/usr/bin/env bash
 exit 0
 EOF
-cat >"$fake_realbin/python" <<'EOF'
+cat >"fake_realbin/python" <<'EOF'
 #!/usr/bin/env bash
 exit 0
 EOF
-chmod +x "$fake_winapps/python3" "$fake_realbin/python"
-resolver_out="$(PATH="$fake_winapps:$fake_realbin:$PATH" bash -c '. "$1"; ods_detect_python_cmd' bash "$ROOT_DIR/lib/python-cmd.sh")"
-if [[ "$resolver_out" != "python" ]]; then
-  echo "Bash Python resolver selected '$resolver_out' instead of real python after a WindowsApps python3 alias" >&2
+chmod +x "fake_winapps/python3" "$fake_realbin/python"
+resolver_out="(PATH="$fake_winapps:$fake_realbin:$PATH" bash -c '. "$1"; ods_detect_python_cmd' bash "$ROOT_DIR/lib/python-cmd.sh")"
+if [[ "resolver_out" != "python" ]]; then
+  echo "Bash Python resolver selected 'resolver_out' instead of real python after a WindowsApps python3 alias" >&2
   exit 1
 fi
 

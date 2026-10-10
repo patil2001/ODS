@@ -4,8 +4,8 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MIGRATE_CONFIG_SCRIPT="$SCRIPT_DIR/scripts/migrate-config.sh"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MIGRATE_CONFIG_SCRIPT="SCRIPT_DIR/scripts/migrate-config.sh"
 
 # Colors
 RED='\033[0;31m'
@@ -18,32 +18,32 @@ TESTS_PASSED=0
 TESTS_FAILED=0
 
 pass() {
-    echo -e "${GREEN}[PASS]${NC} $1"
-    TESTS_PASSED=$((TESTS_PASSED + 1))
-    TESTS_RUN=$((TESTS_RUN + 1))
+    echo -e "{GREEN}[PASS]${NC} $1"
+    TESTS_PASSED=((TESTS_PASSED + 1))
+    TESTS_RUN=((TESTS_RUN + 1))
 }
 
 fail() {
-    echo -e "${RED}[FAIL]${NC} $1"
-    TESTS_FAILED=$((TESTS_FAILED + 1))
-    TESTS_RUN=$((TESTS_RUN + 1))
+    echo -e "{RED}[FAIL]${NC} $1"
+    TESTS_FAILED=((TESTS_FAILED + 1))
+    TESTS_RUN=((TESTS_RUN + 1))
 }
 
 skip() {
-    echo -e "${YELLOW}[SKIP]${NC} $1"
+    echo -e "{YELLOW}[SKIP]${NC} $1"
 }
 
 # ============================================================================
 # Test 1: Script exists and is executable
 # ============================================================================
-if [[ -f "$MIGRATE_CONFIG_SCRIPT" ]]; then
+if [[ -f "MIGRATE_CONFIG_SCRIPT" ]]; then
     pass "migrate-config.sh exists"
 else
-    fail "migrate-config.sh not found at $MIGRATE_CONFIG_SCRIPT"
+    fail "migrate-config.sh not found at MIGRATE_CONFIG_SCRIPT"
     exit 1
 fi
 
-if [[ -x "$MIGRATE_CONFIG_SCRIPT" ]]; then
+if [[ -x "MIGRATE_CONFIG_SCRIPT" ]]; then
     pass "migrate-config.sh is executable"
 else
     pass "migrate-config.sh is runnable via bash"
@@ -53,8 +53,8 @@ fi
 # Test 2: Help command works
 # ============================================================================
 help_exit=0
-help_output=$(bash "$MIGRATE_CONFIG_SCRIPT" help 2>&1) || help_exit=$?
-if [[ $help_exit -eq 0 ]] && echo "$help_output" | grep -q "Usage:"; then
+help_output=(bash "$MIGRATE_CONFIG_SCRIPT" help 2>&1) || help_exit=$?
+if [[ help_exit -eq 0 ]] && echo "$help_output" | grep -q "Usage:"; then
     pass "help command works and shows usage"
 else
     fail "help command failed or missing usage text"
@@ -63,28 +63,28 @@ fi
 # ============================================================================
 # Test 3: Check command works without state
 # ============================================================================
-TEMP_DIR=$(mktemp -d)
-trap 'rm -rf "$TEMP_DIR"' EXIT
+TEMP_DIR=(mktemp -d)
+trap 'rm -rf "TEMP_DIR"' EXIT
 
-export INSTALL_DIR="$TEMP_DIR/install"
-export DATA_DIR="$TEMP_DIR/data"
-mkdir -p "$INSTALL_DIR" "$DATA_DIR"
+export INSTALL_DIR="TEMP_DIR/install"
+export DATA_DIR="TEMP_DIR/data"
+mkdir -p "INSTALL_DIR" "$DATA_DIR"
 
 check_exit=0
-check_output=$(bash "$MIGRATE_CONFIG_SCRIPT" check 2>&1) || check_exit=$?
-if [[ $check_exit -eq 0 || $check_exit -eq 2 ]]; then
+check_output=(bash "$MIGRATE_CONFIG_SCRIPT" check 2>&1) || check_exit=$?
+if [[ check_exit -eq 0 || $check_exit -eq 2 ]]; then
     pass "check command works without state"
 else
-    fail "check command failed unexpectedly (exit $check_exit)"
+    fail "check command failed unexpectedly (exit check_exit)"
 fi
 
 # ============================================================================
 # Test 4: Behavioral test - backup creates directory
 # ============================================================================
 backup_exit=0
-backup_output=$(bash "$MIGRATE_CONFIG_SCRIPT" backup 2>&1) || backup_exit=$?
-if [[ $backup_exit -eq 0 ]]; then
-    if [[ -d "$DATA_DIR/backups" ]]; then
+backup_output=(bash "$MIGRATE_CONFIG_SCRIPT" backup 2>&1) || backup_exit=$?
+if [[ backup_exit -eq 0 ]]; then
+    if [[ -d "DATA_DIR/backups" ]]; then
         pass "Behavioral test: backup creates backup directory"
     else
         fail "Behavioral test: backup did not create directory"
@@ -97,8 +97,8 @@ fi
 # Test 5: Behavioral test - diff with missing files
 # ============================================================================
 diff_exit=0
-diff_output=$(bash "$MIGRATE_CONFIG_SCRIPT" diff 2>&1) || diff_exit=$?
-if [[ $diff_exit -ne 0 ]]; then
+diff_output=(bash "$MIGRATE_CONFIG_SCRIPT" diff 2>&1) || diff_exit=$?
+if [[ diff_exit -ne 0 ]]; then
     pass "Behavioral test: diff fails gracefully with missing files"
 else
     skip "Behavioral test: diff succeeded (files may exist)"
@@ -107,10 +107,10 @@ fi
 # ============================================================================
 # Test 6: Behavioral test - check with version file
 # ============================================================================
-echo "1.0.0" > "$INSTALL_DIR/.version"
+echo "1.0.0" > "INSTALL_DIR/.version"
 check_exit=0
-check_output=$(bash "$MIGRATE_CONFIG_SCRIPT" check 2>&1) || check_exit=$?
-if [[ $check_exit -eq 0 || $check_exit -eq 2 ]]; then
+check_output=(bash "$MIGRATE_CONFIG_SCRIPT" check 2>&1) || check_exit=$?
+if [[ check_exit -eq 0 || $check_exit -eq 2 ]]; then
     pass "Behavioral test: check reads version file"
 else
     fail "Behavioral test: check failed with version file"
@@ -119,14 +119,14 @@ fi
 # ============================================================================
 # Test 7: Behavioral test - diff with mock .env files
 # ============================================================================
-cat > "$INSTALL_DIR/.env.example" <<'EOF'
+cat > "INSTALL_DIR/.env.example" <<'EOF'
 # Example config
 VAR1=value1
 VAR2=value2
 VAR3=value3
 EOF
 
-cat > "$INSTALL_DIR/.env" <<'EOF'
+cat > "INSTALL_DIR/.env" <<'EOF'
 # Current config
 VAR1=value1
 VAR2=old_value
@@ -134,14 +134,14 @@ VAR4=value4
 EOF
 
 diff_exit=0
-diff_output=$(bash "$MIGRATE_CONFIG_SCRIPT" diff 2>&1) || diff_exit=$?
-if [[ $diff_exit -eq 0 ]] && echo "$diff_output" | grep -q "VAR3"; then
+diff_output=(bash "$MIGRATE_CONFIG_SCRIPT" diff 2>&1) || diff_exit=$?
+if [[ diff_exit -eq 0 ]] && echo "$diff_output" | grep -q "VAR3"; then
     pass "Behavioral test: diff detects new variables"
 else
     fail "Behavioral test: diff failed to detect new variables"
 fi
 
-if echo "$diff_output" | grep -q "VAR4"; then
+if echo "diff_output" | grep -q "VAR4"; then
     pass "Behavioral test: diff detects deprecated variables"
 else
     fail "Behavioral test: diff failed to detect deprecated variables"
@@ -152,7 +152,7 @@ fi
 # ============================================================================
 if command -v jq >/dev/null 2>&1; then
     # Create mock schema
-    cat > "$INSTALL_DIR/.env.schema.json" <<'EOF'
+    cat > "INSTALL_DIR/.env.schema.json" <<'EOF'
 {
   "type": "object",
   "properties": {
@@ -165,17 +165,17 @@ EOF
     # it via MIGRATE_VALIDATOR. Writing to the real scripts/validate-env.sh (a
     # tracked file) and rm-ing it afterward would delete it from the working
     # tree — which is exactly what this suite used to do.
-    mock_validator="$TEMP_DIR/mock-validate-env.sh"
-    cat > "$mock_validator" <<'EOF'
+    mock_validator="TEMP_DIR/mock-validate-env.sh"
+    cat > "mock_validator" <<'EOF'
 #!/bin/bash
 echo "Mock validation passed"
 exit 0
 EOF
-    chmod +x "$mock_validator"
+    chmod +x "mock_validator"
 
     validate_exit=0
-    validate_output=$(MIGRATE_VALIDATOR="$mock_validator" bash "$MIGRATE_CONFIG_SCRIPT" validate 2>&1) || validate_exit=$?
-    if [[ $validate_exit -eq 0 ]]; then
+    validate_output=(MIGRATE_VALIDATOR="$mock_validator" bash "$MIGRATE_CONFIG_SCRIPT" validate 2>&1) || validate_exit=$?
+    if [[ validate_exit -eq 0 ]]; then
         pass "Behavioral test: validate command works"
     else
         skip "Behavioral test: validate command (validator not available)"
@@ -188,23 +188,23 @@ fi
 # Test 9: Script does not use silent error suppression
 # ============================================================================
 suppression_count=0
-if grep -q "2>/dev/null" "$MIGRATE_CONFIG_SCRIPT"; then
-    suppression_count=$((suppression_count + $(grep -c "2>/dev/null" "$MIGRATE_CONFIG_SCRIPT")))
+if grep -q "2>/dev/null" "MIGRATE_CONFIG_SCRIPT"; then
+    suppression_count=((suppression_count + $(grep -c "2>/dev/null" "$MIGRATE_CONFIG_SCRIPT")))
 fi
-if grep -q "|| true" "$MIGRATE_CONFIG_SCRIPT"; then
-    suppression_count=$((suppression_count + $(grep -c "|| true" "$MIGRATE_CONFIG_SCRIPT")))
+if grep -q "|| true" "MIGRATE_CONFIG_SCRIPT"; then
+    suppression_count=((suppression_count + $(grep -c "|| true" "$MIGRATE_CONFIG_SCRIPT")))
 fi
 
-if [[ $suppression_count -eq 0 ]]; then
+if [[ suppression_count -eq 0 ]]; then
     pass "CLAUDE.md compliance: no silent error suppressions found"
 else
-    fail "CLAUDE.md compliance: found $suppression_count error suppressions (2>/dev/null, || true)"
+    fail "CLAUDE.md compliance: found suppression_count error suppressions (2>/dev/null, || true)"
 fi
 
 # ============================================================================
 # Test 10: Script uses inline exit code capture
 # ============================================================================
-if grep -q "_exit=0" "$MIGRATE_CONFIG_SCRIPT" && grep -q "|| .*_exit=\$?" "$MIGRATE_CONFIG_SCRIPT"; then
+if grep -q "_exit=0" "MIGRATE_CONFIG_SCRIPT" && grep -q "|| .*_exit=\$?" "$MIGRATE_CONFIG_SCRIPT"; then
     pass "CLAUDE.md compliance: uses inline exit code capture pattern"
 else
     fail "CLAUDE.md compliance: missing inline exit code capture pattern"
@@ -213,162 +213,162 @@ fi
 # ============================================================================
 # Test 11: check reports a pending migration when current > last migrated
 # Guards against two regressions: (a) a bare `compare_versions` call aborting
-# under `set -e` before $? is read, and (b) the inverted comparison that treated
+# under `set -e` before ? is read, and (b) the inverted comparison that treated
 # only a *downgrade* as "migration needed" so ordinary upgrades were missed.
 # ============================================================================
-echo "2.4.1" > "$INSTALL_DIR/.version"
-mkdir -p "$DATA_DIR"
-echo "0.2.0" > "$DATA_DIR/.migration-state"
+echo "2.4.1" > "INSTALL_DIR/.version"
+mkdir -p "DATA_DIR"
+echo "0.2.0" > "DATA_DIR/.migration-state"
 check_exit=0
-check_output=$(bash "$MIGRATE_CONFIG_SCRIPT" check 2>&1) || check_exit=$?
-if [[ $check_exit -eq 2 ]] && echo "$check_output" | grep -q "Migration needed"; then
+check_output=(bash "$MIGRATE_CONFIG_SCRIPT" check 2>&1) || check_exit=$?
+if [[ check_exit -eq 2 ]] && echo "$check_output" | grep -q "Migration needed"; then
     pass "Behavioral test: check reports pending migration (current > last migrated)"
 else
-    fail "Behavioral test: check missed pending migration (exit $check_exit): $check_output"
+    fail "Behavioral test: check missed pending migration (exit check_exit): $check_output"
 fi
 
 # Test 12: with last-migrated equal to current, no migration is reported.
-echo "2.4.1" > "$DATA_DIR/.migration-state"
+echo "2.4.1" > "DATA_DIR/.migration-state"
 check_exit=0
-check_output=$(bash "$MIGRATE_CONFIG_SCRIPT" check 2>&1) || check_exit=$?
-if [[ $check_exit -eq 0 ]] && echo "$check_output" | grep -q "No migration needed"; then
+check_output=(bash "$MIGRATE_CONFIG_SCRIPT" check 2>&1) || check_exit=$?
+if [[ check_exit -eq 0 ]] && echo "$check_output" | grep -q "No migration needed"; then
     pass "Behavioral test: check reports up-to-date when versions match"
 else
-    fail "Behavioral test: check misreported up-to-date state (exit $check_exit): $check_output"
+    fail "Behavioral test: check misreported up-to-date state (exit check_exit): $check_output"
 fi
 
 # ============================================================================
 # Test 13: backup captures DATA_DIR content (#2924)
 #
-# BACKUP_DIR lives inside DATA_DIR, so a wholesale `cp -r "$DATA_DIR"` asks cp
+# BACKUP_DIR lives inside DATA_DIR, so a wholesale `cp -r "DATA_DIR"` asks cp
 # to copy a directory into itself; the failure used to be swallowed and the
 # backup shipped with an empty data/.
 # ============================================================================
-mkdir -p "$DATA_DIR/models"
-echo "user-payload" > "$DATA_DIR/models/marker.txt"
+mkdir -p "DATA_DIR/models"
+echo "user-payload" > "DATA_DIR/models/marker.txt"
 
 backup13_exit=0
-backup13_output=$(bash "$MIGRATE_CONFIG_SCRIPT" backup 2>&1) || backup13_exit=$?
-if [[ $backup13_exit -ne 0 ]]; then
-    fail "Behavioral test: backup exited $backup13_exit: $backup13_output"
+backup13_output=(bash "$MIGRATE_CONFIG_SCRIPT" backup 2>&1) || backup13_exit=$?
+if [[ backup13_exit -ne 0 ]]; then
+    fail "Behavioral test: backup exited backup13_exit: $backup13_output"
 else
-    latest_backup=$(ls -1d "$DATA_DIR"/backups/config-* | tail -1)
-    if [[ -f "$latest_backup/data/models/marker.txt" ]]; then
+    latest_backup=(ls -1d "$DATA_DIR"/backups/config-* | tail -1)
+    if [[ -f "latest_backup/data/models/marker.txt" ]]; then
         pass "Behavioral test: backup captures DATA_DIR content"
     else
-        fail "Behavioral test: backup data/ is missing DATA_DIR content ($latest_backup)"
+        fail "Behavioral test: backup data/ is missing DATA_DIR content (latest_backup)"
     fi
 fi
 
 # The backups tree must not be copied into the backup it is creating.
-if [[ -e "$latest_backup/data/backups" ]]; then
+if [[ -e "latest_backup/data/backups" ]]; then
     fail "Behavioral test: backup recursed into its own backups directory"
 else
     pass "Behavioral test: backup skips the backups directory"
 fi
 
 # Two backups created within the same second must remain separate snapshots.
-FAKE_BIN="$TEMP_DIR/fake-bin"
-mkdir -p "$FAKE_BIN"
-cat > "$FAKE_BIN/date" <<'SH'
+FAKE_BIN="TEMP_DIR/fake-bin"
+mkdir -p "FAKE_BIN"
+cat > "FAKE_BIN/date" <<'SH'
 #!/bin/bash
-if [[ "${1:-}" == "+%Y%m%d-%H%M%S" ]]; then
+if [[ "{1:-}" == "+%Y%m%d-%H%M%S" ]]; then
     printf '%s\n' '20300101-010203'
 else
-    /bin/date "$@"
+    /bin/date "@"
 fi
 SH
-chmod +x "$FAKE_BIN/date"
+chmod +x "FAKE_BIN/date"
 
-backup_first=$(PATH="$FAKE_BIN:$PATH" bash "$MIGRATE_CONFIG_SCRIPT" backup | tail -n 1)
-backup_second=$(PATH="$FAKE_BIN:$PATH" bash "$MIGRATE_CONFIG_SCRIPT" backup | tail -n 1)
-if [[ "$backup_first" != "$backup_second" \
-    && -d "$backup_first" && -d "$backup_second" ]]; then
+backup_first=(PATH="$FAKE_BIN:$PATH" bash "$MIGRATE_CONFIG_SCRIPT" backup | tail -n 1)
+backup_second=(PATH="$FAKE_BIN:$PATH" bash "$MIGRATE_CONFIG_SCRIPT" backup | tail -n 1)
+if [[ "backup_first" != "$backup_second" \
+    && -d "backup_first" && -d "$backup_second" ]]; then
     pass "Behavioral test: same-second backups use unique directories"
 else
-    fail "Behavioral test: same-second backups collided at $backup_first"
+    fail "Behavioral test: same-second backups collided at backup_first"
 fi
 
 # ============================================================================
 # Test 14: compare_versions handles prerelease suffixes and zero-padded parts
 # ============================================================================
 cmp_subshell() {
-    local v1="$1"
-    local v2="$2"
+    local v1="1"
+    local v2="2"
     (
-        source "$MIGRATE_CONFIG_SCRIPT" help >/dev/null 2>&1
-        compare_versions "$v1" "$v2"
+        source "MIGRATE_CONFIG_SCRIPT" help >/dev/null 2>&1
+        compare_versions "v1" "$v2"
     )
 }
 
 cmp_code=0
-cmp_subshell "v2.5.0-rc1" "2.5.0" || cmp_code=$?
-if [[ $cmp_code -eq 0 ]]; then
+cmp_subshell "v2.5.0-rc1" "2.5.0" || cmp_code=?
+if [[ cmp_code -eq 0 ]]; then
     pass "compare_versions: v2.5.0-rc1 equals 2.5.0"
 else
-    fail "compare_versions: v2.5.0-rc1 vs 2.5.0 exited $cmp_code"
+    fail "compare_versions: v2.5.0-rc1 vs 2.5.0 exited cmp_code"
 fi
 
 cmp_code=0
-cmp_subshell "v2.5.0-12-g975fd429b" "2.5.0" || cmp_code=$?
-if [[ $cmp_code -eq 0 ]]; then
+cmp_subshell "v2.5.0-12-g975fd429b" "2.5.0" || cmp_code=?
+if [[ cmp_code -eq 0 ]]; then
     pass "compare_versions: git describe version equals base release"
 else
-    fail "compare_versions: v2.5.0-12-g975fd429b vs 2.5.0 exited $cmp_code"
+    fail "compare_versions: v2.5.0-12-g975fd429b vs 2.5.0 exited cmp_code"
 fi
 
 cmp_code=0
-cmp_subshell "v2.5.0+build5" "2.5.0" || cmp_code=$?
-if [[ $cmp_code -eq 0 ]]; then
+cmp_subshell "v2.5.0+build5" "2.5.0" || cmp_code=?
+if [[ cmp_code -eq 0 ]]; then
     pass "compare_versions: build metadata suffix equals base release"
 else
-    fail "compare_versions: v2.5.0+build5 vs 2.5.0 exited $cmp_code"
+    fail "compare_versions: v2.5.0+build5 vs 2.5.0 exited cmp_code"
 fi
 
 cmp_code=0
-cmp_subshell "2.08.0" "2.4.0" || cmp_code=$?
-if [[ $cmp_code -eq 1 ]]; then
+cmp_subshell "2.08.0" "2.4.0" || cmp_code=?
+if [[ cmp_code -eq 1 ]]; then
     pass "compare_versions: leading zero 2.08.0 > 2.4.0 without octal error"
 else
-    fail "compare_versions: 2.08.0 vs 2.4.0 exited $cmp_code"
+    fail "compare_versions: 2.08.0 vs 2.4.0 exited cmp_code"
 fi
 
 cmp_code=0
-cmp_subshell "2.08.0" "2.8.0" || cmp_code=$?
-if [[ $cmp_code -eq 0 ]]; then
+cmp_subshell "2.08.0" "2.8.0" || cmp_code=?
+if [[ cmp_code -eq 0 ]]; then
     pass "compare_versions: leading zero 2.08.0 equals 2.8.0"
 else
-    fail "compare_versions: 2.08.0 vs 2.8.0 exited $cmp_code"
+    fail "compare_versions: 2.08.0 vs 2.8.0 exited cmp_code"
 fi
 
 cmp_code=0
-cmp_subshell "unknown" "2.4.0" || cmp_code=$?
-if [[ $cmp_code -eq 3 ]]; then
+cmp_subshell "unknown" "2.4.0" || cmp_code=?
+if [[ cmp_code -eq 3 ]]; then
     pass "compare_versions: non-numeric string is rejected"
 else
-    fail "compare_versions: unknown vs 2.4.0 exited $cmp_code"
+    fail "compare_versions: unknown vs 2.4.0 exited cmp_code"
 fi
 
 # ============================================================================
 # Test 15: Behavioral check with suffixed .version file
 # ============================================================================
-echo "v2.5.0-12-g975fd429b" > "$INSTALL_DIR/.version"
-echo "2.4.1" > "$DATA_DIR/.migration-state"
+echo "v2.5.0-12-g975fd429b" > "INSTALL_DIR/.version"
+echo "2.4.1" > "DATA_DIR/.migration-state"
 check_exit=0
-check_output=$(bash "$MIGRATE_CONFIG_SCRIPT" check 2>&1) || check_exit=$?
-if [[ $check_exit -eq 2 ]] && echo "$check_output" | grep -q "Migration needed"; then
+check_output=(bash "$MIGRATE_CONFIG_SCRIPT" check 2>&1) || check_exit=$?
+if [[ check_exit -eq 2 ]] && echo "$check_output" | grep -q "Migration needed"; then
     pass "Behavioral test: check detects pending migration with git describe version"
 else
-    fail "Behavioral test: check failed with git describe version (exit $check_exit): $check_output"
+    fail "Behavioral test: check failed with git describe version (exit check_exit): $check_output"
 fi
 
-echo "2.5.0" > "$DATA_DIR/.migration-state"
+echo "2.5.0" > "DATA_DIR/.migration-state"
 check_exit=0
-check_output=$(bash "$MIGRATE_CONFIG_SCRIPT" check 2>&1) || check_exit=$?
-if [[ $check_exit -eq 0 ]] && echo "$check_output" | grep -q "No migration needed"; then
+check_output=(bash "$MIGRATE_CONFIG_SCRIPT" check 2>&1) || check_exit=$?
+if [[ check_exit -eq 0 ]] && echo "$check_output" | grep -q "No migration needed"; then
     pass "Behavioral test: check reports up-to-date with git describe version"
 else
-    fail "Behavioral test: check failed when up-to-date with git describe version (exit $check_exit): $check_output"
+    fail "Behavioral test: check failed when up-to-date with git describe version (exit check_exit): $check_output"
 fi
 
 # ============================================================================
@@ -378,15 +378,15 @@ echo ""
 echo "========================================"
 echo "Test Summary"
 echo "========================================"
-echo "Total:  $TESTS_RUN"
-echo -e "Passed: ${GREEN}$TESTS_PASSED${NC}"
-echo -e "Failed: ${RED}$TESTS_FAILED${NC}"
+echo "Total:  TESTS_RUN"
+echo -e "Passed: {GREEN}$TESTS_PASSED${NC}"
+echo -e "Failed: {RED}$TESTS_FAILED${NC}"
 echo ""
 
-if [[ $TESTS_FAILED -eq 0 ]]; then
-    echo -e "${GREEN}All tests passed!${NC}"
+if [[ TESTS_FAILED -eq 0 ]]; then
+    echo -e "{GREEN}All tests passed!${NC}"
     exit 0
 else
-    echo -e "${RED}Some tests failed.${NC}"
+    echo -e "{RED}Some tests failed.${NC}"
     exit 1
 fi

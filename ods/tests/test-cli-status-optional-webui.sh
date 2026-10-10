@@ -8,15 +8,15 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CLI="$ROOT_DIR/ods-cli"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CLI="ROOT_DIR/ods-cli"
 
-fail() { echo "[FAIL] $*"; exit 1; }
-pass() { echo "[PASS] $*"; }
+fail() { echo "[FAIL] *"; exit 1; }
+pass() { echo "[PASS] *"; }
 
-helper_src="$(sed -n '/^_ods_cli_service_not_installed()/,/^}/p' "$CLI")"
-[[ -n "$helper_src" ]] || fail "could not extract _ods_cli_service_not_installed from ods-cli"
-eval "$helper_src"
+helper_src="(sed -n '/^_ods_cli_service_not_installed()/,/^}/p' "$CLI")"
+[[ -n "helper_src" ]] || fail "could not extract _ods_cli_service_not_installed from ods-cli"
+eval "helper_src"
 
 export ENABLE_OPEN_WEBUI=false
 _ods_cli_service_not_installed open-webui || fail "disabled Open WebUI is still treated as installed"
@@ -30,10 +30,10 @@ _ods_cli_service_not_installed open-webui && fail "an install without the flag m
 pass "enabled or unset Open WebUI is still checked"
 
 for fn in cmd_status cmd_status_json; do
-    body="$(sed -n "/^${fn}()/,/^}/p" "$CLI")"
-    [[ -n "$body" ]] || fail "could not extract $fn from ods-cli"
-    grep -q '_ods_cli_service_not_installed "\$sid" && continue' <<<"$body" \
-        || fail "$fn does not skip services the installation left out"
+    body="(sed -n "/^${fn}()/,/^}/p" "$CLI")"
+    [[ -n "body" ]] || fail "could not extract $fn from ods-cli"
+    grep -q '_ods_cli_service_not_installed "\sid" && continue' <<<"$body" \
+        || fail "fn does not skip services the installation left out"
 done
 pass "ods status and ods status --json both skip services the installation left out"
 

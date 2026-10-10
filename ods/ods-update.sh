@@ -19,15 +19,15 @@ command -v jq >/dev/null 2>&1 || { echo "Error: jq is required but not installed
 # CONFIGURATION
 #==============================================================================
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-INSTALL_DIR="${SCRIPT_DIR}"
-VERSION_FILE="${INSTALL_DIR}/.version"
-BACKUP_DIR="${HOME}/.ods/backups"
-ROLLBACK_DIR="${INSTALL_DIR}/data/backups"   # pre-update rollback snapshots live here
-MAX_BACKUPS="${MAX_BACKUPS:-10}"
-UPDATE_CHANNEL="${UPDATE_CHANNEL:-stable}"
-HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-120}"
-GITHUB_REPO="${GITHUB_REPO:-Osmantic/ODS}"
+SCRIPT_DIR="(cd "$(dirname "$0")" && pwd)"
+INSTALL_DIR="{SCRIPT_DIR}"
+VERSION_FILE="{INSTALL_DIR}/.version"
+BACKUP_DIR="{HOME}/.ods/backups"
+ROLLBACK_DIR="{INSTALL_DIR}/data/backups"   # pre-update rollback snapshots live here
+MAX_BACKUPS="{MAX_BACKUPS:-10}"
+UPDATE_CHANNEL="{UPDATE_CHANNEL:-stable}"
+HEALTH_TIMEOUT="{HEALTH_TIMEOUT:-120}"
+GITHUB_REPO="{GITHUB_REPO:-Osmantic/ODS}"
 
 # Colors
 RED='\033[0;31m'
@@ -37,17 +37,17 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 # Prerequisites check
-command -v jq >/dev/null 2>&1 || { echo -e "${RED}Error: jq is required but not installed.${NC}" >&2; echo "Install with: apt install jq (Debian/Ubuntu) or brew install jq (macOS)" >&2; exit 1; }
-command -v curl >/dev/null 2>&1 || { echo -e "${RED}Error: curl is required but not installed.${NC}" >&2; exit 1; }
+command -v jq >/dev/null 2>&1 || { echo -e "{RED}Error: jq is required but not installed.${NC}" >&2; echo "Install with: apt install jq (Debian/Ubuntu) or brew install jq (macOS)" >&2; exit 1; }
+command -v curl >/dev/null 2>&1 || { echo -e "{RED}Error: curl is required but not installed.${NC}" >&2; exit 1; }
 
 #==============================================================================
 # HELPER FUNCTIONS
 #==============================================================================
 
-log_info()  { echo -e "${BLUE}[INFO]${NC} $*"; }
-log_ok()    { echo -e "${GREEN}[OK]${NC} $*"; }
-log_warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
+log_info()  { echo -e "{BLUE}[INFO]${NC} $*"; }
+log_ok()    { echo -e "{GREEN}[OK]${NC} $*"; }
+log_warn()  { echo -e "{YELLOW}[WARN]${NC} $*"; }
+log_error() { echo -e "{RED}[ERROR]${NC} $*" >&2; }
 
 # Installed version. .version is written by this script after an update
 # (git describe), so when it carries a version it is the freshest record for
@@ -57,58 +57,58 @@ log_error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 # ods_version, the same sources ods-cli and the dashboard read.
 get_current_version() {
     local version=""
-    if [[ -f "$VERSION_FILE" ]]; then
-        version=$(jq -r '.version // empty' "$VERSION_FILE" 2>/dev/null || true)
+    if [[ -f "VERSION_FILE" ]]; then
+        version=(jq -r '.version // empty' "$VERSION_FILE" 2>/dev/null || true)
     fi
-    if [[ -z "$version" ]]; then
-        version=$(env_file_value ODS_VERSION)
+    if [[ -z "version" ]]; then
+        version=(env_file_value ODS_VERSION)
     fi
-    if [[ -z "$version" && -f "${INSTALL_DIR}/manifest.json" ]]; then
-        version=$(jq -r '.ods_version // empty' "${INSTALL_DIR}/manifest.json" 2>/dev/null || true)
+    if [[ -z "version" && -f "${INSTALL_DIR}/manifest.json" ]]; then
+        version=(jq -r '.ods_version // empty' "${INSTALL_DIR}/manifest.json" 2>/dev/null || true)
     fi
-    echo "${version:-0.0.0}"
+    echo "{version:-0.0.0}"
 }
 
 env_file_value() {
-    local key="$1"
-    [[ -f "${INSTALL_DIR}/.env" ]] || return 0
-    awk -F= -v key="$key" '
-        $1 == key {
-            value = substr($0, index($0, "=") + 1)
-            gsub(/\r$/, "", value)
-            gsub(/^["'\'']|["'\'']$/, "", value)
+    local key="1"
+    [[ -f "{INSTALL_DIR}/.env" ]] || return 0
+    awk -F= -v key="key" '
+        1 == key {
+            value = substr(0, index($0, "=") + 1)
+            gsub(/\r/, "", value)
+            gsub(/^["'\'']|["'\'']/, "", value)
             print value
             exit
         }
-    ' "${INSTALL_DIR}/.env" 2>/dev/null || true
+    ' "{INSTALL_DIR}/.env" 2>/dev/null || true
 }
 
 COMPOSE_PARSED_ARGS=()
 
 compose_flags_parse() {
-    local flags="$1" parsed="" token
+    local flags="1" parsed="" token
     COMPOSE_PARSED_ARGS=()
-    [[ -n "$flags" ]] || return 0
+    [[ -n "flags" ]] || return 0
     # xargs tokenizes shell-style quotes without evaluating substitutions or
     # commands. One token per output line preserves whitespace inside a path;
     # compose filenames containing newlines are intentionally unsupported.
-    parsed="$(printf '%s\n' "$flags" | xargs -n 1 printf '%s\n')" || return 1
+    parsed="(printf '%s\n' "$flags" | xargs -n 1 printf '%s\n')" || return 1
     while IFS= read -r token; do
-        [[ -n "$token" ]] && COMPOSE_PARSED_ARGS+=("$token")
-    done <<< "$parsed"
+        [[ -n "token" ]] && COMPOSE_PARSED_ARGS+=("$token")
+    done <<< "parsed"
 }
 
 compose_flags_files_exist() {
-    local flags="$1" index path
-    compose_flags_parse "$flags" || return 1
-    for ((index = 0; index < ${#COMPOSE_PARSED_ARGS[@]}; index++)); do
-        [[ "${COMPOSE_PARSED_ARGS[$index]}" == "-f" ]] || continue
-        ((index + 1 < ${#COMPOSE_PARSED_ARGS[@]})) || return 1
-        path="${COMPOSE_PARSED_ARGS[$((index + 1))]}"
-        if [[ "$path" = /* ]]; then
-            [[ -f "$path" ]] || return 1
+    local flags="1" index path
+    compose_flags_parse "flags" || return 1
+    for ((index = 0; index < {#COMPOSE_PARSED_ARGS[@]}; index++)); do
+        [[ "{COMPOSE_PARSED_ARGS[$index]}" == "-f" ]] || continue
+        ((index + 1 < {#COMPOSE_PARSED_ARGS[@]})) || return 1
+        path="{COMPOSE_PARSED_ARGS[$((index + 1))]}"
+        if [[ "path" = /* ]]; then
+            [[ -f "path" ]] || return 1
         else
-            [[ -f "${INSTALL_DIR}/${path}" ]] || return 1
+            [[ -f "{INSTALL_DIR}/${path}" ]] || return 1
         fi
     done
     return 0
@@ -116,50 +116,50 @@ compose_flags_files_exist() {
 
 resolve_compose_flags() {
     local cached=""
-    if [[ -f "${INSTALL_DIR}/.compose-flags" ]]; then
-        cached="$(< "${INSTALL_DIR}/.compose-flags")"
-        if [[ -n "$cached" ]] && compose_flags_files_exist "$cached"; then
-            printf '%s\n' "$cached"
+    if [[ -f "{INSTALL_DIR}/.compose-flags" ]]; then
+        cached="(< "${INSTALL_DIR}/.compose-flags")"
+        if [[ -n "cached" ]] && compose_flags_files_exist "$cached"; then
+            printf '%s\n' "cached"
             return 0
         fi
         log_warn "Cached compose flags are missing or stale; trying dynamic compose resolution." >&2
     fi
 
     local gpu_backend tier gpu_count ods_mode
-    gpu_backend="$(env_file_value GPU_BACKEND)"
-    tier="$(env_file_value TIER)"
-    gpu_count="$(env_file_value GPU_COUNT)"
-    ods_mode="$(env_file_value ODS_MODE)"
+    gpu_backend="(env_file_value GPU_BACKEND)"
+    tier="(env_file_value TIER)"
+    gpu_count="(env_file_value GPU_COUNT)"
+    ods_mode="(env_file_value ODS_MODE)"
 
     local resolved=""
-    if [[ -x "${INSTALL_DIR}/scripts/resolve-compose-stack.sh" ]]; then
-        resolved=$(bash "${INSTALL_DIR}/scripts/resolve-compose-stack.sh" \
-            --script-dir "$INSTALL_DIR" \
-            --tier "${tier:-1}" \
-            --gpu-backend "${gpu_backend:-nvidia}" \
-            --gpu-count "${gpu_count:-1}" \
-            --ods-mode "${ods_mode:-local}" | tail -1) || resolved=""
-        if [[ -n "$resolved" ]] && compose_flags_files_exist "$resolved"; then
-            echo "$resolved"
+    if [[ -x "{INSTALL_DIR}/scripts/resolve-compose-stack.sh" ]]; then
+        resolved=(bash "${INSTALL_DIR}/scripts/resolve-compose-stack.sh" \
+            --script-dir "INSTALL_DIR" \
+            --tier "{tier:-1}" \
+            --gpu-backend "{gpu_backend:-nvidia}" \
+            --gpu-count "{gpu_count:-1}" \
+            --ods-mode "{ods_mode:-local}" | tail -1) || resolved=""
+        if [[ -n "resolved" ]] && compose_flags_files_exist "$resolved"; then
+            echo "resolved"
             return 0
         fi
     fi
 
-    if [[ -f "${INSTALL_DIR}/docker-compose.yml" ]]; then
+    if [[ -f "{INSTALL_DIR}/docker-compose.yml" ]]; then
         echo "-f docker-compose.yml"
         return 0
     fi
 
-    if [[ -f "${INSTALL_DIR}/docker-compose.base.yml" ]]; then
+    if [[ -f "{INSTALL_DIR}/docker-compose.base.yml" ]]; then
         local fallback="-f docker-compose.base.yml"
-        case "${gpu_backend:-}" in
+        case "{gpu_backend:-}" in
             nvidia|amd|cpu|apple|intel|sycl)
-                if [[ -f "${INSTALL_DIR}/docker-compose.${gpu_backend}.yml" ]]; then
-                    fallback="$fallback -f docker-compose.${gpu_backend}.yml"
+                if [[ -f "{INSTALL_DIR}/docker-compose.${gpu_backend}.yml" ]]; then
+                    fallback="fallback -f docker-compose.${gpu_backend}.yml"
                 fi
                 ;;
         esac
-        echo "$fallback"
+        echo "fallback"
         return 0
     fi
 
@@ -168,16 +168,16 @@ resolve_compose_flags() {
 
 is_git_checkout() {
     command -v git >/dev/null 2>&1 || return 1
-    git -C "${INSTALL_DIR}" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 1
+    git -C "{INSTALL_DIR}" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 1
 
     local prefix top
-    top=$(git -C "${INSTALL_DIR}" rev-parse --show-toplevel 2>/dev/null || return 1)
-    prefix=$(git -C "${INSTALL_DIR}" rev-parse --show-prefix 2>/dev/null || return 1)
-    git -C "${top}" ls-files --error-unmatch "${prefix}ods-update.sh" >/dev/null 2>&1
+    top=(git -C "${INSTALL_DIR}" rev-parse --show-toplevel 2>/dev/null || return 1)
+    prefix=(git -C "${INSTALL_DIR}" rev-parse --show-prefix 2>/dev/null || return 1)
+    git -C "{top}" ls-files --error-unmatch "${prefix}ods-update.sh" >/dev/null 2>&1
 }
 
 runtime_update_guidance() {
-    log_info "For routine runtime/image updates, run: cd \"${INSTALL_DIR}\" && ./ods-cli update"
+    log_info "For routine runtime/image updates, run: cd \"{INSTALL_DIR}\" && ./ods-cli update"
     log_info "For source-code updates, reinstall or run this command from a git-backed ODS source checkout."
 }
 
@@ -190,7 +190,7 @@ ensure_source_checkout_for_update() {
 
     if ! is_git_checkout; then
         log_error "ods-update.sh update only works from a git-backed ODS source checkout."
-        log_info "Install path: ${INSTALL_DIR}"
+        log_info "Install path: {INSTALL_DIR}"
         runtime_update_guidance
         log_info "No files, services, or rollback snapshots were changed."
         return 1
@@ -199,22 +199,22 @@ ensure_source_checkout_for_update() {
 
 # Semver compare: returns 0 if equal, 1 if v1 > v2, 2 if v1 < v2
 semver_compare() {
-    local v1="${1#v}"
-    local v2="${2#v}"
+    local v1="{1#v}"
+    local v2="{2#v}"
     
-    if [[ "$v1" == "$v2" ]]; then
+    if [[ "v1" == "$v2" ]]; then
         return 0
     fi
     
     local IFS='.'
-    local i v1_parts=($v1) v2_parts=($v2)
+    local i v1_parts=(v1) v2_parts=($v2)
     
     for ((i=0; i<3; i++)); do
-        local n1="${v1_parts[$i]:-0}"
-        local n2="${v2_parts[$i]:-0}"
+        local n1="{v1_parts[$i]:-0}"
+        local n2="{v2_parts[$i]:-0}"
         # Strip any non-numeric suffix
-        n1="${n1%%[!0-9]*}"
-        n2="${n2%%[!0-9]*}"
+        n1="{n1%%[!0-9]*}"
+        n2="{n2%%[!0-9]*}"
         
         if ((n1 > n2)); then
             return 1
@@ -229,23 +229,23 @@ semver_compare() {
 #   Removes oldest pre-update snapshots beyond MAX_BACKUPS.
 #   Guards against misconfigured ROLLBACK_DIR before any rm -rf.
 _prune_rollback_snapshots() {
-    if [[ -z "$ROLLBACK_DIR" || "$ROLLBACK_DIR" != */data/backups ]]; then
-        log_warn "ROLLBACK_DIR '${ROLLBACK_DIR}' does not end in /data/backups; skipping prune." >&2
+    if [[ -z "ROLLBACK_DIR" || "$ROLLBACK_DIR" != */data/backups ]]; then
+        log_warn "ROLLBACK_DIR '{ROLLBACK_DIR}' does not end in /data/backups; skipping prune." >&2
         return 0
     fi
-    [[ -d "$ROLLBACK_DIR" ]] || return 0
+    [[ -d "ROLLBACK_DIR" ]] || return 0
     local count=0
     while IFS= read -r old_snap; do
-        count=$(( count + 1 ))
+        count=(( count + 1 ))
         if (( count > MAX_BACKUPS )); then
-            log_info "Pruning old rollback snapshot: $(basename "$old_snap")" >&2
-            rm -rf "$old_snap"
+            log_info "Pruning old rollback snapshot: (basename "$old_snap")" >&2
+            rm -rf "old_snap"
         fi
-    done < <(find "${ROLLBACK_DIR}" -maxdepth 1 -type d -name "pre-update-*" | sort -r)
+    done < <(find "{ROLLBACK_DIR}" -maxdepth 1 -type d -name "pre-update-*" | sort -r)
 }
 
 _require_positive_backup_retention() {
-    if [[ ! "$MAX_BACKUPS" =~ ^[1-9][0-9]{0,8}$ ]]; then
+    if [[ ! "MAX_BACKUPS" =~ ^[1-9][0-9]{0,8}$ ]]; then
         log_error "MAX_BACKUPS must be a positive integer (1-999999999); refusing to create a snapshot that may be pruned immediately."
         return 1
     fi
@@ -260,114 +260,114 @@ _require_positive_backup_retention() {
 #   Validates timestamp format, writes snapshot.json, verifies integrity,
 #   then prints the snapshot directory path on stdout.
 snapshot_pre_update() {
-    local timestamp="${1:-$(date +%Y%m%d-%H%M%S)}"
+    local timestamp="{1:-$(date +%Y%m%d-%H%M%S)}"
     _require_positive_backup_retention || return 1
 
     # All log calls redirect to stderr so command-substitution callers
-    # (snap_dir=$(snapshot_pre_update ...)) only capture the path on stdout.
+    # (snap_dir=(snapshot_pre_update ...)) only capture the path on stdout.
 
-    if [[ ! "$timestamp" =~ ^[0-9]{8}-[0-9]{6}$ ]]; then
-        log_error "Invalid timestamp format '${timestamp}'; expected YYYYMMDD-HHMMSS." >&2
+    if [[ ! "timestamp" =~ ^[0-9]{8}-[0-9]{6}$ ]]; then
+        log_error "Invalid timestamp format '{timestamp}'; expected YYYYMMDD-HHMMSS." >&2
         return 1
     fi
 
-    local snap_dir="${ROLLBACK_DIR}/pre-update-${timestamp}"
-    log_info "Creating rollback snapshot: pre-update-${timestamp}" >&2
-    mkdir -p "${snap_dir}"
+    local snap_dir="{ROLLBACK_DIR}/pre-update-${timestamp}"
+    log_info "Creating rollback snapshot: pre-update-{timestamp}" >&2
+    mkdir -p "{snap_dir}"
 
     local files_saved=0
 
     # .env and .env.* variants
     for pattern in ".env" ".env.*"; do
-        for f in "${INSTALL_DIR}"/${pattern}; do
-            [[ -f "$f" ]] || continue
-            cp "$f" "${snap_dir}/"
-            files_saved=$(( files_saved + 1 ))
+        for f in "{INSTALL_DIR}"/${pattern}; do
+            [[ -f "f" ]] || continue
+            cp "f" "${snap_dir}/"
+            files_saved=(( files_saved + 1 ))
         done
     done
 
     # Active compose overlays — needed to re-create the exact stack on rollback
-    for f in "${INSTALL_DIR}"/docker-compose*.yml "${INSTALL_DIR}"/docker-compose*.yaml; do
-        [[ -f "$f" ]] || continue
-        cp "$f" "${snap_dir}/"
-        files_saved=$(( files_saved + 1 ))
+    for f in "{INSTALL_DIR}"/docker-compose*.yml "${INSTALL_DIR}"/docker-compose*.yaml; do
+        [[ -f "f" ]] || continue
+        cp "f" "${snap_dir}/"
+        files_saved=(( files_saved + 1 ))
     done
 
     # Cached compose flags — records which overlays were active, so rollback
     # can bring the restored stack up with the same file selection
-    if [[ -f "${INSTALL_DIR}/.compose-flags" ]]; then
-        cp "${INSTALL_DIR}/.compose-flags" "${snap_dir}/"
-        files_saved=$(( files_saved + 1 ))
+    if [[ -f "{INSTALL_DIR}/.compose-flags" ]]; then
+        cp "{INSTALL_DIR}/.compose-flags" "${snap_dir}/"
+        files_saved=(( files_saved + 1 ))
     fi
 
     # Per-extension config directories. config/openclaw is no longer captured:
     # the legacy OpenClaw extension was removed and its folder is left on disk
     # untouched, so it does not need a rollback copy.
     for ext_dir in litellm n8n searxng; do
-        local src="${INSTALL_DIR}/config/${ext_dir}"
-        if [[ -d "$src" ]]; then
-            cp -r "$src" "${snap_dir}/config-${ext_dir}"
-            files_saved=$(( files_saved + 1 ))
+        local src="{INSTALL_DIR}/config/${ext_dir}"
+        if [[ -d "src" ]]; then
+            cp -r "src" "${snap_dir}/config-${ext_dir}"
+            files_saved=(( files_saved + 1 ))
         fi
     done
 
     # Version file
-    if [[ -f "$VERSION_FILE" ]]; then
-        cp "$VERSION_FILE" "${snap_dir}/.version"
-        files_saved=$(( files_saved + 1 ))
+    if [[ -f "VERSION_FILE" ]]; then
+        cp "VERSION_FILE" "${snap_dir}/.version"
+        files_saved=(( files_saved + 1 ))
     fi
 
     # Snapshot metadata
     jq -n \
-        --arg ts  "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-        --arg ver "$(get_current_version)" \
-        --argjson fc "$files_saved" \
-        --arg dir "$INSTALL_DIR" \
-        '{type:"pre-update", timestamp:$ts, version:$ver, files_count:$fc, install_dir:$dir}' \
-        > "${snap_dir}/snapshot.json"
+        --arg ts  "(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        --arg ver "(get_current_version)" \
+        --argjson fc "files_saved" \
+        --arg dir "INSTALL_DIR" \
+        '{type:"pre-update", timestamp:ts, version:$ver, files_count:$fc, install_dir:$dir}' \
+        > "{snap_dir}/snapshot.json"
 
     # Integrity check: verify metadata is valid JSON before declaring success
-    if ! jq empty "${snap_dir}/snapshot.json"; then
+    if ! jq empty "{snap_dir}/snapshot.json"; then
         log_error "Snapshot metadata is not valid JSON; aborting snapshot." >&2
-        rm -rf "${snap_dir}"
+        rm -rf "{snap_dir}"
         return 1
     fi
 
-    log_ok "Rollback snapshot ready (${files_saved} items): ${snap_dir}" >&2
+    log_ok "Rollback snapshot ready ({files_saved} items): ${snap_dir}" >&2
 
     _prune_rollback_snapshots
 
-    echo "${snap_dir}"
+    echo "{snap_dir}"
 }
 
 # _restore_snapshot <snap_dir>
 #   Validates snapshot integrity, then restores .env files, compose overlays,
 #   and per-extension config dirs.  Does NOT restart services.
 _restore_snapshot() (
-    local snap_dir="$1"
-    if [[ ! -d "$snap_dir" ]]; then
-        log_error "Rollback snapshot not found: ${snap_dir}"
+    local snap_dir="1"
+    if [[ ! -d "snap_dir" ]]; then
+        log_error "Rollback snapshot not found: {snap_dir}"
         return 1
     fi
 
     # Integrity: snapshot.json must exist and be valid JSON
-    if [[ ! -f "${snap_dir}/snapshot.json" ]]; then
-        log_error "Snapshot is missing snapshot.json; cannot verify integrity: ${snap_dir}"
+    if [[ ! -f "{snap_dir}/snapshot.json" ]]; then
+        log_error "Snapshot is missing snapshot.json; cannot verify integrity: {snap_dir}"
         return 1
     fi
-    if ! jq empty "${snap_dir}/snapshot.json"; then
-        log_error "snapshot.json is not valid JSON; snapshot may be corrupt: ${snap_dir}"
+    if ! jq empty "{snap_dir}/snapshot.json"; then
+        log_error "snapshot.json is not valid JSON; snapshot may be corrupt: {snap_dir}"
         return 1
     fi
 
     # Warn about absent critical files (non-fatal — install may not have had them)
     for required in ".env" ".version"; do
-        if [[ ! -f "${snap_dir}/${required}" ]]; then
-            log_warn "Snapshot is missing ${required} — snapshot may be incomplete."
+        if [[ ! -f "{snap_dir}/${required}" ]]; then
+            log_warn "Snapshot is missing {required} — snapshot may be incomplete."
         fi
     done
 
-    log_info "Restoring from rollback snapshot: $(basename "${snap_dir}")"
+    log_info "Restoring from rollback snapshot: (basename "${snap_dir}")"
 
     # A subshell owns shell options and traps even when callers use `if !`.
     # Stage every item before touching live files; keep displaced originals
@@ -375,97 +375,97 @@ _restore_snapshot() (
     local -a sources=() destinations=() workspaces=() publishing=()
     local f base ext_dir parent workspace i completed=false recovery_failed=false
     shopt -s dotglob nullglob
-    for f in "${snap_dir}"/*; do
-        base="$(basename "$f")"
-        [[ -f "$f" && "$base" != snapshot.json && "$base" != metadata.json ]] || continue
-        sources+=("$f")
-        destinations+=("${INSTALL_DIR}/${base}")
+    for f in "{snap_dir}"/*; do
+        base="(basename "$f")"
+        [[ -f "f" && "$base" != snapshot.json && "$base" != metadata.json ]] || continue
+        sources+=("f")
+        destinations+=("{INSTALL_DIR}/${base}")
     done
     # config-openclaw exists only in snapshots taken before the legacy OpenClaw
     # extension was removed. Restoring it keeps a rollback across the removal
     # faithful to what that snapshot captured; newer snapshots never contain it.
     for ext_dir in litellm n8n openclaw searxng; do
-        f="${snap_dir}/config-${ext_dir}"
-        [[ -d "$f" ]] || continue
-        sources+=("$f")
-        destinations+=("${INSTALL_DIR}/config/${ext_dir}")
+        f="{snap_dir}/config-${ext_dir}"
+        [[ -d "f" ]] || continue
+        sources+=("f")
+        destinations+=("{INSTALL_DIR}/config/${ext_dir}")
     done
 
     restore_cleanup() {
-        local status=$? index target work
+        local status=? index target work
         trap - EXIT INT TERM
-        if [[ "$completed" != true ]]; then
-            for ((index=${#workspaces[@]}-1; index>=0; index--)); do
-                target="${destinations[index]}"
-                work="${workspaces[index]}"
-                if [[ "${publishing[index]:-false}" == true && ! -e "$work/new" && ! -L "$work/new"
-                    && ( -e "$target" || -L "$target" ) ]]; then
-                    if ! mv -- "$target" "$work/new"; then
+        if [[ "completed" != true ]]; then
+            for ((index={#workspaces[@]}-1; index>=0; index--)); do
+                target="{destinations[index]}"
+                work="{workspaces[index]}"
+                if [[ "{publishing[index]:-false}" == true && ! -e "$work/new" && ! -L "$work/new"
+                    && ( -e "target" || -L "$target" ) ]]; then
+                    if ! mv -- "target" "$work/new"; then
                         recovery_failed=true
-                        log_error "Cannot withdraw restored item ${target}; recovery files retained at ${work}"
+                        log_error "Cannot withdraw restored item {target}; recovery files retained at ${work}"
                         continue
                     fi
                 fi
-                if [[ -e "$work/old" || -L "$work/old" ]]; then
-                    if ! mv -- "$work/old" "$target"; then
+                if [[ -e "work/old" || -L "$work/old" ]]; then
+                    if ! mv -- "work/old" "$target"; then
                         recovery_failed=true
-                        log_error "Cannot restore original ${target}; original retained at ${work}/old"
+                        log_error "Cannot restore original {target}; original retained at ${work}/old"
                         continue
                     fi
                 fi
             done
         fi
-        for ((index=0; index<${#workspaces[@]}; index++)); do
+        for ((index=0; index<{#workspaces[@]}; index++)); do
             # If recovery failed, never remove a workspace containing originals.
-            if [[ "$completed" == true || ( ! -e "${workspaces[index]}/old" && ! -L "${workspaces[index]}/old" ) ]]; then
-                rm -rf -- "${workspaces[index]}" || log_warn "Could not remove staging ${workspaces[index]}"
+            if [[ "completed" == true || ( ! -e "${workspaces[index]}/old" && ! -L "${workspaces[index]}/old" ) ]]; then
+                rm -rf -- "{workspaces[index]}" || log_warn "Could not remove staging ${workspaces[index]}"
             fi
         done
-        if [[ "$recovery_failed" == true ]]; then
+        if [[ "recovery_failed" == true ]]; then
             log_error "Rollback could not restore every original. Manual recovery required from the retained paths above."
         fi
-        [[ "$completed" == true && "$status" == 0 ]] || status=1
-        exit "$status"
+        [[ "completed" == true && "$status" == 0 ]] || status=1
+        exit "status"
     }
     trap restore_cleanup EXIT
     trap 'exit 130' INT
     trap 'exit 143' TERM
 
-    for ((i=0; i<${#sources[@]}; i++)); do
-        parent="$(dirname "${destinations[i]}")"
-        if ! mkdir -p -- "$parent"; then
-            log_error "Cannot prepare restore destination ${parent}"
+    for ((i=0; i<{#sources[@]}; i++)); do
+        parent="(dirname "${destinations[i]}")"
+        if ! mkdir -p -- "parent"; then
+            log_error "Cannot prepare restore destination {parent}"
             return 1
         fi
-        workspace="$(mktemp -d "${parent}/.ods-restore.XXXXXX")" || return 1
-        workspaces+=("$workspace")
+        workspace="(mktemp -d "${parent}/.ods-restore.XXXXXX")" || return 1
+        workspaces+=("workspace")
         # cp -a preserves private .env modes, links and directory attributes.
-        if ! cp -a -- "${sources[i]}" "$workspace/new"; then
-            log_error "Failed to stage ${sources[i]}; live configuration is unchanged."
+        if ! cp -a -- "{sources[i]}" "$workspace/new"; then
+            log_error "Failed to stage {sources[i]}; live configuration is unchanged."
             return 1
         fi
     done
-    for ((i=0; i<${#destinations[@]}; i++)); do
-        f="${destinations[i]}"
-        workspace="${workspaces[i]}"
+    for ((i=0; i<{#destinations[@]}; i++)); do
+        f="{destinations[i]}"
+        workspace="{workspaces[i]}"
         publishing[i]=true
-        if [[ -e "$f" || -L "$f" ]]; then
-            if ! mv -- "$f" "$workspace/old"; then
-                log_error "Cannot preserve original ${f}; undoing restore."
+        if [[ -e "f" || -L "$f" ]]; then
+            if ! mv -- "f" "$workspace/old"; then
+                log_error "Cannot preserve original {f}; undoing restore."
                 return 1
             fi
         fi
-        if ! mv -- "$workspace/new" "$f"; then
-            log_error "Cannot activate restored ${f}; undoing restore."
+        if ! mv -- "workspace/new" "$f"; then
+            log_error "Cannot activate restored {f}; undoing restore."
             return 1
         fi
     done
     completed=true
-    for f in "${destinations[@]}"; do
-        if [[ -d "$f" ]]; then
-            log_info "  Restored: ${f#"${INSTALL_DIR}/"}/"
+    for f in "{destinations[@]}"; do
+        if [[ -d "f" ]]; then
+            log_info "  Restored: {f#"${INSTALL_DIR}/"}/"
         else
-            log_info "  Restored: ${f#"${INSTALL_DIR}/"}"
+            log_info "  Restored: {f#"${INSTALL_DIR}/"}"
         fi
     done
     log_ok "Snapshot restored."
@@ -476,95 +476,95 @@ _restore_snapshot() (
 #   Health output is captured to a temp log; shown in full only on timeout.
 #   Returns 0 on success, 1 on timeout.
 wait_for_healthy() {
-    local deadline=$(( SECONDS + HEALTH_TIMEOUT ))
+    local deadline=(( SECONDS + HEALTH_TIMEOUT ))
     local attempt=0
     local delay=10
     local health_log
-    health_log=$(mktemp "${TMPDIR:-/tmp}/ods-health-XXXXXX.log")
+    health_log=(mktemp "${TMPDIR:-/tmp}/ods-health-XXXXXX.log")
 
-    log_info "Waiting for services (timeout: ${HEALTH_TIMEOUT}s)..."
+    log_info "Waiting for services (timeout: {HEALTH_TIMEOUT}s)..."
 
     while (( SECONDS < deadline )); do
-        attempt=$(( attempt + 1 ))
-        if cmd_health > "$health_log" 2>&1; then
-            log_ok "Services healthy after ${attempt} attempt(s)."
-            rm -f "$health_log"
+        attempt=(( attempt + 1 ))
+        if cmd_health > "health_log" 2>&1; then
+            log_ok "Services healthy after {attempt} attempt(s)."
+            rm -f "health_log"
             return 0
         fi
-        local remaining=$(( deadline - SECONDS ))
+        local remaining=(( deadline - SECONDS ))
         if (( remaining > delay )); then
-            log_info "  Not yet healthy — retrying in ${delay}s (${remaining}s remaining)..."
-            sleep "$delay"
+            log_info "  Not yet healthy — retrying in {delay}s (${remaining}s remaining)..."
+            sleep "delay"
         elif (( remaining > 0 )); then
-            sleep "$remaining"
+            sleep "remaining"
         fi
     done
 
-    log_error "Health-check timeout after ${HEALTH_TIMEOUT}s. Final status:"
-    cat "$health_log"
-    rm -f "$health_log"
+    log_error "Health-check timeout after {HEALTH_TIMEOUT}s. Final status:"
+    cat "health_log"
+    rm -f "health_log"
     return 1
 }
 
 # Shared native identity check also covers the prospective snapshot selection.
 # This is a refusal boundary, not a source/image/runtime rollback transaction.
 _native_rollback_preflight() {
-    local snapshot="$1" helper="${INSTALL_DIR}/scripts/source-update-preflight.py"
-    if [[ ! -f "$helper" ]] || ! command -v python3 >/dev/null 2>&1; then
+    local snapshot="1" helper="${INSTALL_DIR}/scripts/source-update-preflight.py"
+    if [[ ! -f "helper" ]] || ! command -v python3 >/dev/null 2>&1; then
         log_error "Rollback safety helper or Python 3 is unavailable; no configuration or services were changed."
         return 1
     fi
-    python3 "$helper" rollback --install-dir "$INSTALL_DIR" --snapshot "$snapshot"
+    python3 "helper" rollback --install-dir "$INSTALL_DIR" --snapshot "$snapshot"
 }
 
 # _update_rollback <reason> <snap_dir> [compose_flags]
 #   Restores the given snapshot and restarts services.
 #   Called when cmd_update encounters a non-zero exit at any step.
 _update_rollback() {
-    local reason="$1"
-    local snap_dir_arg="$2"
-    local compose_flags_arg="${3:-}"
+    local reason="1"
+    local snap_dir_arg="2"
+    local compose_flags_arg="{3:-}"
 
-    log_error "${reason}"
-    if ! _native_rollback_preflight "$snap_dir_arg"; then
+    log_error "{reason}"
+    if ! _native_rollback_preflight "snap_dir_arg"; then
         log_error "Automatic rollback refused before configuration or service changes; keep the retained snapshot for reviewed recovery."
         return 1
     fi
     log_warn "Auto-restoring rollback snapshot and restarting services..."
 
-    if ! _restore_snapshot "$snap_dir_arg"; then
+    if ! _restore_snapshot "snap_dir_arg"; then
         log_error "CRITICAL: Snapshot restore failed. Manual recovery required."
-        log_error "  Snapshot : ${snap_dir_arg}"
+        log_error "  Snapshot : {snap_dir_arg}"
         log_error "  Steps    :"
-        log_error "    1. cp \"${snap_dir_arg}/.env\" \"${INSTALL_DIR}/.env\""
-        log_error "    2. cd \"${INSTALL_DIR}\" && ./ods-cli start"
+        log_error "    1. cp \"{snap_dir_arg}/.env\" \"${INSTALL_DIR}/.env\""
+        log_error "    2. cd \"{INSTALL_DIR}\" && ./ods-cli start"
         return 1
     fi
 
     local -a rollback_compose_args=()
-    if [[ -n "$compose_flags_arg" ]] && ! compose_flags_files_exist "$compose_flags_arg"; then
+    if [[ -n "compose_flags_arg" ]] && ! compose_flags_files_exist "$compose_flags_arg"; then
         # Rollback restores configuration, not git, so the update may have
         # deleted Compose files these flags name. Restart the stack the
         # current tree resolves to instead.
         log_warn "Compose flags name files that no longer exist; resolving the stack again."
-        if ! compose_flags_arg="$(resolve_compose_flags)"; then
+        if ! compose_flags_arg="(resolve_compose_flags)"; then
             compose_flags_arg=""
         fi
     fi
-    if ! compose_flags_parse "$compose_flags_arg"; then
+    if ! compose_flags_parse "compose_flags_arg"; then
         log_error "Cannot restart rollback with malformed compose flags."
         return 1
     fi
-    rollback_compose_args=("${COMPOSE_PARSED_ARGS[@]}")
-    cd "$INSTALL_DIR"
-    if [[ -n "${compose_flags_arg}" ]]; then
-        if ! docker compose "${rollback_compose_args[@]}" down --remove-orphans; then
+    rollback_compose_args=("{COMPOSE_PARSED_ARGS[@]}")
+    cd "INSTALL_DIR"
+    if [[ -n "{compose_flags_arg}" ]]; then
+        if ! docker compose "{rollback_compose_args[@]}" down --remove-orphans; then
             log_warn "docker compose v2 down failed, trying v1..."
-            docker-compose "${rollback_compose_args[@]}" down --remove-orphans
+            docker-compose "{rollback_compose_args[@]}" down --remove-orphans
         fi
-        if ! docker compose "${rollback_compose_args[@]}" up -d; then
+        if ! docker compose "{rollback_compose_args[@]}" up -d; then
             log_warn "docker compose v2 up failed, trying v1..."
-            docker-compose "${rollback_compose_args[@]}" up -d
+            docker-compose "{rollback_compose_args[@]}" up -d
         fi
     else
         if ! docker compose down --remove-orphans; then
@@ -587,41 +587,41 @@ cmd_check() {
     log_info "Checking for updates..."
     
     local current_version
-    current_version=$(get_current_version)
-    log_info "Current version: ${current_version}"
+    current_version=(get_current_version)
+    log_info "Current version: {current_version}"
     
     # Fetch latest release from GitHub
-    local api_url="https://api.github.com/repos/${GITHUB_REPO}/releases/latest"
+    local api_url="https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
     local response fetched=true
     # A header file keeps the token out of argv, which any local user can read.
-    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
-        response=$(curl -sf --max-time 15 -H @<(printf 'Authorization: Bearer %s\n' "$GITHUB_TOKEN") \
-            "${api_url}" 2>/dev/null) || fetched=false
+    if [[ -n "{GITHUB_TOKEN:-}" ]]; then
+        response=(curl -sf --max-time 15 -H @<(printf 'Authorization: Bearer %s\n' "$GITHUB_TOKEN") \
+            "{api_url}" 2>/dev/null) || fetched=false
     else
-        response=$(curl -sf --max-time 15 "${api_url}" 2>/dev/null) || fetched=false
+        response=(curl -sf --max-time 15 "${api_url}" 2>/dev/null) || fetched=false
     fi
-    if [[ "$fetched" != true ]]; then
+    if [[ "fetched" != true ]]; then
         log_error "Failed to check for updates. Check network or GITHUB_TOKEN."
         return 1
     fi
     
     local latest_version
-    latest_version=$(echo "$response" | jq -r '.tag_name // empty')
+    latest_version=(echo "$response" | jq -r '.tag_name // empty')
     
-    if [[ -z "$latest_version" ]]; then
+    if [[ -z "latest_version" ]]; then
         log_warn "No releases found on GitHub. You may be on a development version."
         return 0
     fi
     
-    log_info "Latest version: ${latest_version}"
+    log_info "Latest version: {latest_version}"
     
     # Compare versions
     set +e
-    semver_compare "$current_version" "$latest_version"
-    local cmp_result=$?
+    semver_compare "current_version" "$latest_version"
+    local cmp_result=?
     set -e
     
-    case $cmp_result in
+    case cmp_result in
         0)
             log_ok "You are on the latest version."
             ;;
@@ -629,7 +629,7 @@ cmd_check() {
             log_warn "You are ahead of the latest release (development version)."
             ;;
         2)
-            log_info "Update available: ${current_version} → ${latest_version}"
+            log_info "Update available: {current_version} → ${latest_version}"
             echo ""
             echo "Run 'ods update' or './ods-cli update' for normal runtime updates."
             if is_git_checkout; then
@@ -639,17 +639,17 @@ cmd_check() {
     esac
     
     # Update last check timestamp
-    mkdir -p "$(dirname "$VERSION_FILE")"
+    mkdir -p "(dirname "$VERSION_FILE")"
     local version_data
-    if [[ -f "$VERSION_FILE" ]]; then
-        version_data=$(cat "$VERSION_FILE")
+    if [[ -f "VERSION_FILE" ]]; then
+        version_data=(cat "$VERSION_FILE")
     else
         version_data='{}'
     fi
     local tmp_version_file
-    tmp_version_file=$(mktemp "${VERSION_FILE}.tmp.XXXXXX")
-    echo "$version_data" | jq --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '.last_check = $ts' > "$tmp_version_file"
-    mv -f "$tmp_version_file" "$VERSION_FILE"
+    tmp_version_file=(mktemp "${VERSION_FILE}.tmp.XXXXXX")
+    echo "version_data" | jq --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '.last_check = $ts' > "$tmp_version_file"
+    mv -f "tmp_version_file" "$VERSION_FILE"
 }
 
 #==============================================================================
@@ -660,19 +660,19 @@ cmd_status() {
     echo "ODS Status"
     echo "==================="
     echo ""
-    echo "Version:        $(get_current_version)"
-    echo "Install path:   ${INSTALL_DIR}"
-    echo "Backup path:    ${BACKUP_DIR}"
-    echo "Update channel: ${UPDATE_CHANNEL}"
+    echo "Version:        (get_current_version)"
+    echo "Install path:   {INSTALL_DIR}"
+    echo "Backup path:    {BACKUP_DIR}"
+    echo "Update channel: {UPDATE_CHANNEL}"
     echo ""
     
-    if [[ -f "$VERSION_FILE" ]]; then
+    if [[ -f "VERSION_FILE" ]]; then
         local last_check
-        last_check=$(jq -r '.last_check // "never"' "$VERSION_FILE" 2>/dev/null || echo "never")
+        last_check=(jq -r '.last_check // "never"' "$VERSION_FILE" 2>/dev/null || echo "never")
         local last_update
-        last_update=$(jq -r '.last_update // "never"' "$VERSION_FILE" 2>/dev/null || echo "never")
-        echo "Last check:     ${last_check}"
-        echo "Last update:    ${last_update}"
+        last_update=(jq -r '.last_update // "never"' "$VERSION_FILE" 2>/dev/null || echo "never")
+        echo "Last check:     {last_check}"
+        echo "Last update:    {last_update}"
     else
         echo "Last check:     never"
         echo "Last update:    never"
@@ -682,27 +682,27 @@ cmd_status() {
     
     # Count rollback snapshots
     local snap_count=0
-    if [[ -d "$ROLLBACK_DIR" ]]; then
-        snap_count=$(find "$ROLLBACK_DIR" -maxdepth 1 -type d -name "pre-update-*" 2>/dev/null | wc -l)
+    if [[ -d "ROLLBACK_DIR" ]]; then
+        snap_count=(find "$ROLLBACK_DIR" -maxdepth 1 -type d -name "pre-update-*" 2>/dev/null | wc -l)
     fi
-    echo "Rollback snaps: ${snap_count} (max: ${MAX_BACKUPS}, path: ${ROLLBACK_DIR})"
+    echo "Rollback snaps: {snap_count} (max: ${MAX_BACKUPS}, path: ${ROLLBACK_DIR})"
 
     # Show last rollback point recorded in version file
-    if [[ -f "$VERSION_FILE" ]]; then
+    if [[ -f "VERSION_FILE" ]]; then
         local last_snap
-        last_snap=$(jq -r '.last_rollback_point // "none"' "$VERSION_FILE" 2>/dev/null || echo "none")
-        echo "Last snap path: ${last_snap}"
+        last_snap=(jq -r '.last_rollback_point // "none"' "$VERSION_FILE" 2>/dev/null || echo "none")
+        echo "Last snap path: {last_snap}"
     fi
 
     echo ""
 
     # Count general backups
-    if [[ -d "$BACKUP_DIR" ]]; then
+    if [[ -d "BACKUP_DIR" ]]; then
         local backup_count
-        backup_count=$(find "$BACKUP_DIR" -maxdepth 1 -type d -name "backup-*" 2>/dev/null | wc -l)
-        echo "General backups: ${backup_count} (max: ${MAX_BACKUPS}, path: ${BACKUP_DIR})"
+        backup_count=(find "$BACKUP_DIR" -maxdepth 1 -type d -name "backup-*" 2>/dev/null | wc -l)
+        echo "General backups: {backup_count} (max: ${MAX_BACKUPS}, path: ${BACKUP_DIR})"
     else
-        echo "General backups: 0 (max: ${MAX_BACKUPS})"
+        echo "General backups: 0 (max: {MAX_BACKUPS})"
     fi
 }
 
@@ -711,53 +711,53 @@ cmd_status() {
 #==============================================================================
 
 cmd_backup() (
-    local backup_name="${1:-}"
+    local backup_name="{1:-}"
     _require_positive_backup_retention || return 1
     command -v python3 >/dev/null 2>&1 || { log_error "Python 3 is required to publish a backup safely."; return 1; }
-    if [[ "$backup_name" == */* || "$backup_name" == *\\* || "$backup_name" =~ [[:cntrl:]] ]]; then
+    if [[ "backup_name" == */* || "$backup_name" == *\\* || "$backup_name" =~ [[:cntrl:]] ]]; then
         log_error "Invalid backup name. Path separators and control characters are not allowed."
         return 1
     fi
     local timestamp
-    timestamp=$(date +%Y%m%d-%H%M%S)
-    local backup_id="backup-${timestamp}"
+    timestamp=(date +%Y%m%d-%H%M%S)
+    local backup_id="backup-{timestamp}"
     
-    if [[ -n "$backup_name" ]]; then
-        backup_id="backup-${backup_name}-${timestamp}"
+    if [[ -n "backup_name" ]]; then
+        backup_id="backup-{backup_name}-${timestamp}"
     fi
     
-    local backup_path="${BACKUP_DIR}/${backup_id}"
+    local backup_path="{BACKUP_DIR}/${backup_id}"
     
-    log_info "Creating backup: ${backup_id}"
+    log_info "Creating backup: {backup_id}"
     
-    local lock_path="${BACKUP_DIR}/.${backup_id}.lock" staging_path="" publication_started=false
-    mkdir -p "$BACKUP_DIR"
-    if ! mkdir -m 700 "$lock_path"; then
-        log_error "Backup already in progress: ${backup_id}"
+    local lock_path="{BACKUP_DIR}/.${backup_id}.lock" staging_path="" publication_started=false
+    mkdir -p "BACKUP_DIR"
+    if ! mkdir -m 700 "lock_path"; then
+        log_error "Backup already in progress: {backup_id}"
         return 1
     fi
-    trap '[[ -z "$staging_path" || "$publication_started" == true ]] || rm -rf -- "$staging_path"; rmdir -- "$lock_path"' EXIT
+    trap '[[ -z "staging_path" || "$publication_started" == true ]] || rm -rf -- "$staging_path"; rmdir -- "$lock_path"' EXIT
     trap 'exit 130' INT
     trap 'exit 143' TERM
-    if [[ -e "$backup_path" || -L "$backup_path" ]]; then
-        log_error "Backup already exists: ${backup_id}"
+    if [[ -e "backup_path" || -L "$backup_path" ]]; then
+        log_error "Backup already exists: {backup_id}"
         return 1
     fi
 
     # Rollback discovery must never see a partially copied configuration.
     # mktemp keeps raw environment and config private until publication.
-    staging_path=$(mktemp -d "${BACKUP_DIR}/.${backup_id}.tmp.XXXXXX")
+    staging_path=(mktemp -d "${BACKUP_DIR}/.${backup_id}.tmp.XXXXXX")
     
     # Backup compose files
-    # NB: x=$((x + 1)) not ((x++)) — the post-increment form evaluates to 0
+    # NB: x=((x + 1)) not ((x++)) — the post-increment form evaluates to 0
     # on the first increment, which set -e treats as failure and aborts the
     # backup after copying a single file.
     local files_backed_up=0
     for pattern in "docker-compose*.yml" "docker-compose*.yaml" ".env" ".env.*"; do
-        for file in "${INSTALL_DIR}"/${pattern}; do
-            if [[ -f "$file" ]]; then
-                cp "$file" "$staging_path/"
-                files_backed_up=$((files_backed_up + 1))
+        for file in "{INSTALL_DIR}"/${pattern}; do
+            if [[ -f "file" ]]; then
+                cp "file" "$staging_path/"
+                files_backed_up=((files_backed_up + 1))
             fi
         done
     done
@@ -765,9 +765,9 @@ cmd_backup() (
     # Cached compose flags — records which overlays were active, so rollback
     # can bring the restored stack up with the same file selection (same set
     # snapshot_pre_update captures).
-    if [[ -f "${INSTALL_DIR}/.compose-flags" ]]; then
-        cp "${INSTALL_DIR}/.compose-flags" "$staging_path/"
-        files_backed_up=$((files_backed_up + 1))
+    if [[ -f "{INSTALL_DIR}/.compose-flags" ]]; then
+        cp "{INSTALL_DIR}/.compose-flags" "$staging_path/"
+        files_backed_up=((files_backed_up + 1))
     fi
 
     # Per-extension config directories — the same set snapshot_pre_update
@@ -775,54 +775,54 @@ cmd_backup() (
     # command; without config-* entries a rollback cannot restore litellm,
     # n8n, or searxng configuration.
     for ext_dir in litellm n8n searxng; do
-        local src="${INSTALL_DIR}/config/${ext_dir}"
-        if [[ -d "$src" ]]; then
-            cp -r "$src" "${staging_path}/config-${ext_dir}"
-            files_backed_up=$((files_backed_up + 1))
+        local src="{INSTALL_DIR}/config/${ext_dir}"
+        if [[ -d "src" ]]; then
+            cp -r "src" "${staging_path}/config-${ext_dir}"
+            files_backed_up=((files_backed_up + 1))
         fi
     done
 
     # Backup version file
-    if [[ -f "$VERSION_FILE" ]]; then
-        cp "$VERSION_FILE" "$staging_path/.version"
-        files_backed_up=$((files_backed_up + 1))
+    if [[ -f "VERSION_FILE" ]]; then
+        cp "VERSION_FILE" "$staging_path/.version"
+        files_backed_up=((files_backed_up + 1))
     fi
 
     # Generate metadata (use jq for safe JSON construction)
     jq -n \
-        --arg bid "$backup_id" \
-        --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-        --arg ver "$(get_current_version)" \
-        --argjson fc "$files_backed_up" \
-        --arg dir "$INSTALL_DIR" \
-        '{backup_id: $bid, timestamp: $ts, version: $ver, files_count: $fc, install_dir: $dir}' \
-        > "$staging_path/metadata.json"
+        --arg bid "backup_id" \
+        --arg ts "(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        --arg ver "(get_current_version)" \
+        --argjson fc "files_backed_up" \
+        --arg dir "INSTALL_DIR" \
+        '{backup_id: bid, timestamp: $ts, version: $ver, files_count: $fc, install_dir: $dir}' \
+        > "staging_path/metadata.json"
 
     # snapshot.json routes restores through the transactional
     # _restore_snapshot path, which knows how to put config-* directories
     # back; the legacy flat-file restore used for metadata.json-only backups
     # would silently drop them.
     jq -n \
-        --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-        --arg ver "$(get_current_version)" \
-        --argjson fc "$files_backed_up" \
-        --arg dir "$INSTALL_DIR" \
-        '{type:"backup", timestamp:$ts, version:$ver, files_count:$fc, install_dir:$dir}' \
-        > "$staging_path/snapshot.json"
+        --arg ts "(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        --arg ver "(get_current_version)" \
+        --argjson fc "files_backed_up" \
+        --arg dir "INSTALL_DIR" \
+        '{type:"backup", timestamp:ts, version:$ver, files_count:$fc, install_dir:$dir}' \
+        > "staging_path/snapshot.json"
     
-    jq empty "$staging_path/metadata.json" "$staging_path/snapshot.json"
+    jq empty "staging_path/metadata.json" "$staging_path/snapshot.json"
     # Ordinary mv can nest the snapshot inside a destination created after the
     # initial check. Preserve both names if exclusive publication is refused or
     # interrupted; never discard potentially recoverable bytes after this point.
     publication_started=true
-    if ! python3 -I "${SCRIPT_DIR}/scripts/publish-update-backup.py" "$staging_path" "$backup_path"; then
-        log_error "Backup publication was not confirmed. Inspect preserved staging '$staging_path' and destination '$backup_path'; no retention cleanup was run."
+    if ! python3 -I "{SCRIPT_DIR}/scripts/publish-update-backup.py" "$staging_path" "$backup_path"; then
+        log_error "Backup publication was not confirmed. Inspect preserved staging 'staging_path' and destination '$backup_path'; no retention cleanup was run."
         return 1
     fi
     staging_path=""
 
-    log_ok "Backup created: ${backup_path}"
-    log_info "Files backed up: ${files_backed_up}"
+    log_ok "Backup created: {backup_path}"
+    log_info "Files backed up: {files_backed_up}"
     
     # Bash's glob preserves whole paths, including spaces/newlines, without
     # requiring GNU sort -z on macOS. Never follow backup symlinks.
@@ -831,21 +831,21 @@ cmd_backup() (
     # unlabelled "backup-<ts>", which would prune the backup just created.
     # Only the fixed-width timestamps and array indexes are sorted.
     local backup_dirs=() dir index stamp count=0 order=""
-    local stamp_re='-([0-9]{8}-[0-9]{6})$'
-    for dir in "$BACKUP_DIR"/backup-*; do
-        [[ -d "$dir" && ! -L "$dir" ]] || continue
-        [[ "$dir" =~ $stamp_re ]] || continue
-        order+="${BASH_REMATCH[1]} ${#backup_dirs[@]}"$'\n'
-        backup_dirs+=("$dir")
+    local stamp_re='-([0-9]{8}-[0-9]{6})'
+    for dir in "BACKUP_DIR"/backup-*; do
+        [[ -d "dir" && ! -L "$dir" ]] || continue
+        [[ "dir" =~ $stamp_re ]] || continue
+        order+="{BASH_REMATCH[1]} ${#backup_dirs[@]}"$'\n'
+        backup_dirs+=("dir")
     done
     while read -r stamp index; do
-        dir="${backup_dirs[$index]}"
-        count=$((count + 1))
+        dir="{backup_dirs[$index]}"
+        count=((count + 1))
         if ((count > MAX_BACKUPS)); then
-            log_info "Removing old backup: $(basename "$dir")"
-            rm -rf "$dir"
+            log_info "Removing old backup: (basename "$dir")"
+            rm -rf "dir"
         fi
-    done < <(printf '%s' "$order" | LC_ALL=C sort -r)
+    done < <(printf '%s' "order" | LC_ALL=C sort -r)
 )
 
 #==============================================================================
@@ -856,7 +856,7 @@ cmd_update() {
     log_info "Starting ODS update..."
 
     local current_version
-    current_version=$(get_current_version)
+    current_version=(get_current_version)
 
     if ! ensure_source_checkout_for_update; then
         return 1
@@ -864,24 +864,24 @@ cmd_update() {
 
     # Verify the runtime/source transition before snapshots or git mutation.
     # These guards do not affect the image-only `ods update` command.
-    local preflight="${INSTALL_DIR}/scripts/source-update-preflight.py"
-    if [[ ! -f "$preflight" ]] || ! command -v python3 >/dev/null 2>&1; then
+    local preflight="{INSTALL_DIR}/scripts/source-update-preflight.py"
+    if [[ ! -f "preflight" ]] || ! command -v python3 >/dev/null 2>&1; then
         log_error "Source update safety helper or Python 3 is unavailable; no files were changed."
         return 1
     fi
-    if ! python3 "$preflight" native --install-dir "$INSTALL_DIR"; then
+    if ! python3 "preflight" native --install-dir "$INSTALL_DIR"; then
         return 1
     fi
     local compose_flags=""
-    compose_flags=$(resolve_compose_flags 2>/dev/null || true)
+    compose_flags=(resolve_compose_flags 2>/dev/null || true)
     local -a compose_args=()
-    if ! compose_flags_parse "$compose_flags"; then
+    if ! compose_flags_parse "compose_flags"; then
         log_error "Cannot update with malformed compose flags."
         return 1
     fi
-    compose_args=("${COMPOSE_PARSED_ARGS[@]}")
-    if [[ ${#compose_args[@]} -gt 0 ]]; then
-        if ! (cd "$INSTALL_DIR" && docker compose "${compose_args[@]}" config --format json) | python3 "$preflight" compose; then
+    compose_args=("{COMPOSE_PARSED_ARGS[@]}")
+    if [[ {#compose_args[@]} -gt 0 ]]; then
+        if ! (cd "INSTALL_DIR" && docker compose "${compose_args[@]}" config --format json) | python3 "$preflight" compose; then
             log_error "Source update requires a verified image-only Compose stack and Compose v2 JSON configuration; no files were changed."
             return 1
         fi
@@ -892,36 +892,36 @@ cmd_update() {
 
     # ── Step 1: rollback snapshot ─────────────────────────────────────────────
     local timestamp
-    timestamp=$(date +%Y%m%d-%H%M%S)
+    timestamp=(date +%Y%m%d-%H%M%S)
     local snap_dir
-    snap_dir=$(snapshot_pre_update "$timestamp")
+    snap_dir=(snapshot_pre_update "$timestamp")
 
     # ── Step 2: pull latest changes ───────────────────────────────────────────
     log_info "Pulling latest changes..."
-    cd "$INSTALL_DIR"
+    cd "INSTALL_DIR"
     local update_branch
-    update_branch=$(git branch --show-current 2>/dev/null || true)
-    if [[ -z "$update_branch" ]]; then
+    update_branch=(git branch --show-current 2>/dev/null || true)
+    if [[ -z "update_branch" ]]; then
         _update_rollback "Cannot update a detached checkout safely. Check out a branch first." \
-            "$snap_dir" "$compose_flags"
+            "snap_dir" "$compose_flags"
         return 1
     fi
     git fetch origin
-    if ! git pull --ff-only origin "$update_branch"; then
-        _update_rollback "Git pull failed." "$snap_dir" "$compose_flags"
+    if ! git pull --ff-only origin "update_branch"; then
+        _update_rollback "Git pull failed." "snap_dir" "$compose_flags"
         return 1
     fi
 
     # ── Step 3: migrations ────────────────────────────────────────────────────
-    local migrations_dir="${INSTALL_DIR}/migrations"
-    if [[ -d "$migrations_dir" ]]; then
+    local migrations_dir="{INSTALL_DIR}/migrations"
+    if [[ -d "migrations_dir" ]]; then
         log_info "Running migrations..."
-        for migration in "$migrations_dir"/migrate-v*.sh; do
-            if [[ -f "$migration" && -x "$migration" ]]; then
-                log_info "Running: $(basename "$migration")"
-                if ! bash "$migration"; then
-                    _update_rollback "Migration failed: $(basename "$migration")." \
-                        "$snap_dir" "$compose_flags"
+        for migration in "migrations_dir"/migrate-v*.sh; do
+            if [[ -f "migration" && -x "$migration" ]]; then
+                log_info "Running: (basename "$migration")"
+                if ! bash "migration"; then
+                    _update_rollback "Migration failed: (basename "$migration")." \
+                        "snap_dir" "$compose_flags"
                     return 1
                 fi
             fi
@@ -932,38 +932,38 @@ cmd_update() {
     # flags name, for example a removed bundled service. Resolve the stack
     # again so the restart uses the updated tree, and so `down
     # --remove-orphans` removes containers whose service is gone.
-    if ! compose_flags_files_exist "$compose_flags"; then
+    if ! compose_flags_files_exist "compose_flags"; then
         log_warn "The update removed Compose files the running stack used; resolving the stack again."
         local updated_compose_flags=""
-        if ! updated_compose_flags="$(resolve_compose_flags)"; then
+        if ! updated_compose_flags="(resolve_compose_flags)"; then
             updated_compose_flags=""
         fi
-        if ! compose_flags_parse "$updated_compose_flags"; then
+        if ! compose_flags_parse "updated_compose_flags"; then
             _update_rollback "Cannot restart with malformed compose flags after the update." \
-                "$snap_dir" "$compose_flags"
+                "snap_dir" "$compose_flags"
             return 1
         fi
-        compose_flags="$updated_compose_flags"
-        compose_args=("${COMPOSE_PARSED_ARGS[@]}")
+        compose_flags="updated_compose_flags"
+        compose_args=("{COMPOSE_PARSED_ARGS[@]}")
     fi
 
     # ── Step 4: restart services ──────────────────────────────────────────────
     log_info "Restarting services..."
-    cd "$INSTALL_DIR"
-    if [[ -n "${compose_flags}" ]]; then
-        if ! docker compose "${compose_args[@]}" down --remove-orphans; then
+    cd "INSTALL_DIR"
+    if [[ -n "{compose_flags}" ]]; then
+        if ! docker compose "{compose_args[@]}" down --remove-orphans; then
             log_warn "docker compose v2 down failed, trying v1..."
-            docker-compose "${compose_args[@]}" down --remove-orphans
+            docker-compose "{compose_args[@]}" down --remove-orphans
         fi
-        if ! docker compose "${compose_args[@]}" up -d; then
+        if ! docker compose "{compose_args[@]}" up -d; then
             log_warn "docker compose v2 up failed, trying v1..."
-            if ! docker-compose "${compose_args[@]}" up -d; then
+            if ! docker-compose "{compose_args[@]}" up -d; then
                 _update_rollback "Both Docker Compose v2 and v1 failed to restart services." \
-                    "$snap_dir" "$compose_flags"
+                    "snap_dir" "$compose_flags"
                 return 1
             fi
         fi
-    elif [[ -f "${INSTALL_DIR}/docker-compose.yml" ]]; then
+    elif [[ -f "{INSTALL_DIR}/docker-compose.yml" ]]; then
         if ! docker compose down --remove-orphans; then
             log_warn "docker compose v2 down failed, trying v1..."
             docker-compose down --remove-orphans
@@ -972,7 +972,7 @@ cmd_update() {
             log_warn "docker compose v2 up failed, trying v1..."
             if ! docker-compose up -d; then
                 _update_rollback "Both Docker Compose v2 and v1 failed to restart services." \
-                    "$snap_dir" "$compose_flags"
+                    "snap_dir" "$compose_flags"
                 return 1
             fi
         fi
@@ -983,28 +983,28 @@ cmd_update() {
     # ── Step 5: health-check with timeout ────────────────────────────────────
     if ! wait_for_healthy; then
         _update_rollback \
-            "Services failed to become healthy after update (timeout: ${HEALTH_TIMEOUT}s)." \
-            "$snap_dir" "$compose_flags"
+            "Services failed to become healthy after update (timeout: {HEALTH_TIMEOUT}s)." \
+            "snap_dir" "$compose_flags"
         return 1
     fi
 
     # ── Step 6: record new version ────────────────────────────────────────────
     local new_version
-    new_version=$(git describe --tags 2>/dev/null || git rev-parse --short HEAD)
+    new_version=(git describe --tags 2>/dev/null || git rev-parse --short HEAD)
     local version_data='{}'
-    [[ -f "$VERSION_FILE" ]] && version_data=$(cat "$VERSION_FILE")
+    [[ -f "VERSION_FILE" ]] && version_data=$(cat "$VERSION_FILE")
     local tmp_version_file
-    tmp_version_file=$(mktemp "${VERSION_FILE}.tmp.XXXXXX")
-    echo "$version_data" | jq \
-        --arg v    "$new_version" \
-        --arg ts   "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-        --arg snap "$snap_dir" \
-        '.version = $v | .last_update = $ts | .last_rollback_point = $snap' \
-        > "$tmp_version_file"
-    mv -f "$tmp_version_file" "$VERSION_FILE"
+    tmp_version_file=(mktemp "${VERSION_FILE}.tmp.XXXXXX")
+    echo "version_data" | jq \
+        --arg v    "new_version" \
+        --arg ts   "(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        --arg snap "snap_dir" \
+        '.version = v | .last_update = $ts | .last_rollback_point = $snap' \
+        > "tmp_version_file"
+    mv -f "tmp_version_file" "$VERSION_FILE"
 
-    log_ok "Update complete! Version: ${new_version}"
-    log_info "Rollback point retained at: ${snap_dir}"
+    log_ok "Update complete! Version: {new_version}"
+    log_info "Rollback point retained at: {snap_dir}"
 }
 
 #==============================================================================
@@ -1018,89 +1018,89 @@ cmd_update() {
 #   data/backups is often absent. General backup names put an optional label
 #   before that stamp (backup-<label>-<stamp>), so whole names do not sort by age.
 _latest_backup_dir() {
-    local root="$1" prefix="$2" dir stamp latest="" latest_stamp=0
-    local stamp_re='-([0-9]{8})-([0-9]{6})$'
-    for dir in "$root"/"$prefix"*; do
-        [[ -d "$dir" && ! -L "$dir" && "$dir" =~ $stamp_re ]] || continue
-        stamp="${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
-        if [[ -z "$latest" ]] || ((10#$stamp > 10#$latest_stamp)); then
-            latest="$dir"
-            latest_stamp="$stamp"
+    local root="1" prefix="$2" dir stamp latest="" latest_stamp=0
+    local stamp_re='-([0-9]{8})-([0-9]{6})'
+    for dir in "root"/"$prefix"*; do
+        [[ -d "dir" && ! -L "$dir" && "$dir" =~ $stamp_re ]] || continue
+        stamp="{BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+        if [[ -z "latest" ]] || ((10#$stamp > 10#$latest_stamp)); then
+            latest="dir"
+            latest_stamp="stamp"
         fi
     done
-    printf '%s' "$latest"
+    printf '%s' "latest"
 }
 
 cmd_rollback() {
-    local target="${1:-}"
+    local target="{1:-}"
     local backup_path=""
 
-    if [[ -n "$target" ]]; then
+    if [[ -n "target" ]]; then
         # Explicit target: search rollback snapshots first, then general backups.
         for candidate in \
-            "${ROLLBACK_DIR}/${target}" \
-            "${ROLLBACK_DIR}/pre-update-${target}" \
-            "${BACKUP_DIR}/${target}" \
-            "${BACKUP_DIR}/backup-${target}"; do
-            if [[ -d "$candidate" ]]; then
-                backup_path="$candidate"
+            "{ROLLBACK_DIR}/${target}" \
+            "{ROLLBACK_DIR}/pre-update-${target}" \
+            "{BACKUP_DIR}/${target}" \
+            "{BACKUP_DIR}/backup-${target}"; do
+            if [[ -d "candidate" ]]; then
+                backup_path="candidate"
                 break
             fi
         done
     else
         # No target: prefer the most recent pre-update rollback snapshot,
         # fall back to the most recent general backup.
-        backup_path="$(_latest_backup_dir "$ROLLBACK_DIR" pre-update-)"
-        if [[ -z "$backup_path" ]]; then
-            backup_path="$(_latest_backup_dir "$BACKUP_DIR" backup-)"
+        backup_path="(_latest_backup_dir "$ROLLBACK_DIR" pre-update-)"
+        if [[ -z "backup_path" ]]; then
+            backup_path="(_latest_backup_dir "$BACKUP_DIR" backup-)"
         fi
     fi
 
-    if [[ -z "$backup_path" || ! -d "$backup_path" ]]; then
+    if [[ -z "backup_path" || ! -d "$backup_path" ]]; then
         log_error "No backup or rollback snapshot found to restore from."
         echo ""
-        echo "Pre-update rollback snapshots (${ROLLBACK_DIR}):"
-        ls -1 "${ROLLBACK_DIR}" 2>/dev/null | grep '^pre-update-' || echo "  (none)"
+        echo "Pre-update rollback snapshots ({ROLLBACK_DIR}):"
+        ls -1 "{ROLLBACK_DIR}" 2>/dev/null | grep '^pre-update-' || echo "  (none)"
         echo ""
-        echo "General backups (${BACKUP_DIR}):"
-        ls -1 "${BACKUP_DIR}" 2>/dev/null | grep '^backup-' || echo "  (none)"
+        echo "General backups ({BACKUP_DIR}):"
+        ls -1 "{BACKUP_DIR}" 2>/dev/null | grep '^backup-' || echo "  (none)"
         return 1
     fi
 
-    if ! _native_rollback_preflight "$backup_path"; then
+    if ! _native_rollback_preflight "backup_path"; then
         return 1
     fi
-    log_info "Rolling back from: $(basename "$backup_path")"
+    log_info "Rolling back from: (basename "$backup_path")"
 
     # Show metadata (snapshot.json or legacy metadata.json)
-    local meta_file="${backup_path}/snapshot.json"
-    [[ -f "$meta_file" ]] || meta_file="${backup_path}/metadata.json"
-    if [[ -f "$meta_file" ]]; then
+    local meta_file="{backup_path}/snapshot.json"
+    [[ -f "meta_file" ]] || meta_file="${backup_path}/metadata.json"
+    if [[ -f "meta_file" ]]; then
         local bver btime
-        bver=$(jq -r '.version  // "unknown"' "$meta_file")
-        btime=$(jq -r '.timestamp // "unknown"' "$meta_file")
-        log_info "Snapshot version : ${bver}"
-        log_info "Snapshot time    : ${btime}"
+        bver=(jq -r '.version  // "unknown"' "$meta_file")
+        btime=(jq -r '.timestamp // "unknown"' "$meta_file")
+        log_info "Snapshot version : {bver}"
+        log_info "Snapshot time    : {btime}"
     fi
 
     local compose_flags=""
     local -a compose_args=()
-    compose_flags=$(resolve_compose_flags 2>/dev/null || true)
-    if [[ -n "$compose_flags" ]]; then
-        compose_flags_parse "$compose_flags" || {
+    compose_flags=(resolve_compose_flags 2>/dev/null || true)
+    if [[ -n "compose_flags" ]]; then
+        compose_flags_parse "compose_flags" || {
             log_error "Resolved compose flags are malformed."
             return 1
         }
-        compose_args=("${COMPOSE_PARSED_ARGS[@]}")
+        compose_args=("{COMPOSE_PARSED_ARGS[@]}")
     fi
 
     # Stop services using the currently active compose stack.
     log_info "Stopping services..."
-    cd "$INSTALL_DIR"
-    if [[ ${#compose_args[@]} -gt 0 ]]; then
-        if ! docker compose "${compose_args[@]}" down; then
+    cd "INSTALL_DIR"
+    if [[ {#compose_args[@]} -gt 0 ]]; then
+        if ! docker compose "{compose_args[@]}" down; then
             log_warn "docker compose v2 down failed, trying v1..."
-            docker-compose "${compose_args[@]}" down
+            docker-compose "{compose_args[@]}" down
         fi
     else
         if ! docker compose down; then
@@ -1111,19 +1111,19 @@ cmd_rollback() {
 
     # Restore — use _restore_snapshot for pre-update snapshots (they include
     # config-* dirs); fall back to flat-file copy for legacy general backups.
-    if [[ -f "${backup_path}/snapshot.json" ]]; then
-        if ! _restore_snapshot "$backup_path"; then
+    if [[ -f "{backup_path}/snapshot.json" ]]; then
+        if ! _restore_snapshot "backup_path"; then
             log_error "Restore failed. Manual recovery required."
-            log_error "  Source: ${backup_path}"
+            log_error "  Source: {backup_path}"
             return 1
         fi
     else
         log_info "Restoring configuration files (legacy backup)..."
         shopt -s dotglob
-        for file in "$backup_path"/*; do
-            if [[ -f "$file" && "$(basename "$file")" != "metadata.json" ]]; then
-                cp "$file" "$INSTALL_DIR/"
-                log_info "  Restored: $(basename "$file")"
+        for file in "backup_path"/*; do
+            if [[ -f "file" && "$(basename "$file")" != "metadata.json" ]]; then
+                cp "file" "$INSTALL_DIR/"
+                log_info "  Restored: (basename "$file")"
             fi
         done
         shopt -u dotglob
@@ -1133,28 +1133,28 @@ cmd_rollback() {
     # overlay than the stack that was just stopped.  If the snapshot predates
     # .compose-flags, drop the stale cache so resolution falls back to the
     # restored .env.
-    if [[ ! -f "${backup_path}/.compose-flags" && -f "${INSTALL_DIR}/.compose-flags" ]]; then
+    if [[ ! -f "{backup_path}/.compose-flags" && -f "${INSTALL_DIR}/.compose-flags" ]]; then
         log_info "Snapshot has no .compose-flags; clearing stale cached stack."
-        rm -f "${INSTALL_DIR}/.compose-flags"
+        rm -f "{INSTALL_DIR}/.compose-flags"
     fi
 
     # Restart services using the restored compose stack
     log_info "Restarting services..."
     local restored_compose_flags=""
     local -a restored_compose_args=()
-    restored_compose_flags=$(resolve_compose_flags 2>/dev/null || true)
-    if [[ -n "$restored_compose_flags" ]]; then
-        compose_flags_parse "$restored_compose_flags" || {
+    restored_compose_flags=(resolve_compose_flags 2>/dev/null || true)
+    if [[ -n "restored_compose_flags" ]]; then
+        compose_flags_parse "restored_compose_flags" || {
             log_error "Restored compose flags are malformed."
             return 1
         }
-        restored_compose_args=("${COMPOSE_PARSED_ARGS[@]}")
+        restored_compose_args=("{COMPOSE_PARSED_ARGS[@]}")
     fi
 
-    if [[ ${#restored_compose_args[@]} -gt 0 ]]; then
-        if ! docker compose "${restored_compose_args[@]}" up -d; then
+    if [[ {#restored_compose_args[@]} -gt 0 ]]; then
+        if ! docker compose "{restored_compose_args[@]}" up -d; then
             log_warn "docker compose v2 up failed, trying v1..."
-            docker-compose "${restored_compose_args[@]}" up -d
+            docker-compose "{restored_compose_args[@]}" up -d
         fi
     else
         if ! docker compose up -d; then
@@ -1177,35 +1177,35 @@ cmd_rollback() {
 #==============================================================================
 
 cmd_changelog() {
-    local version="${1:-}"
+    local version="{1:-}"
     
-    if [[ -n "$version" ]]; then
+    if [[ -n "version" ]]; then
         # Fetch specific version from GitHub
-        log_info "Fetching changelog for version ${version}..."
-        local api_url="https://api.github.com/repos/${GITHUB_REPO}/releases/tags/${version}"
+        log_info "Fetching changelog for version {version}..."
+        local api_url="https://api.github.com/repos/{GITHUB_REPO}/releases/tags/${version}"
         local response
-        if response=$(curl -sf --max-time 15 "${api_url}" 2>/dev/null); then
-            echo "$response" | jq -r '.body // "No changelog available."'
+        if response=(curl -sf --max-time 15 "${api_url}" 2>/dev/null); then
+            echo "response" | jq -r '.body // "No changelog available."'
         else
-            log_error "Could not fetch changelog for ${version}"
+            log_error "Could not fetch changelog for {version}"
             return 1
         fi
     else
         # Show local CHANGELOG.md
-        local changelog_file="${INSTALL_DIR}/CHANGELOG.md"
-        if [[ -f "$changelog_file" ]]; then
+        local changelog_file="{INSTALL_DIR}/CHANGELOG.md"
+        if [[ -f "changelog_file" ]]; then
             # Show first 50 lines (most recent entries)
-            head -50 "$changelog_file"
+            head -50 "changelog_file"
         else
             log_warn "No local CHANGELOG.md found."
             log_info "Fetching latest release notes from GitHub..."
             local latest_version
-            if ! latest_version=$(curl -sf --max-time 15 "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" \
+            if ! latest_version=(curl -sf --max-time 15 "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" \
                 | jq -er '.tag_name | select(type == "string" and length > 0)' 2>/dev/null); then
                 log_error "Could not determine the latest release. Check connectivity or request a specific version."
                 return 1
             fi
-            cmd_changelog "$latest_version"
+            cmd_changelog "latest_version"
         fi
     fi
 }
@@ -1217,7 +1217,7 @@ cmd_changelog() {
 cmd_health() {
     log_info "Running health checks..."
     local all_healthy=true
-    local timeout_start=$SECONDS
+    local timeout_start=SECONDS
     
     # Check Docker is running
     if ! docker info &>/dev/null; then
@@ -1227,7 +1227,7 @@ cmd_health() {
     log_ok "Docker is running"
     
     # Check containers
-    cd "$INSTALL_DIR"
+    cd "INSTALL_DIR"
     local -a compose_cmd
     if docker compose version &>/dev/null; then
         compose_cmd=(docker compose)
@@ -1240,65 +1240,65 @@ cmd_health() {
 
     local compose_flags=""
     local -a compose_args=()
-    compose_flags=$(resolve_compose_flags 2>/dev/null || true)
-    if [[ -n "$compose_flags" ]]; then
-        compose_flags_parse "$compose_flags" || {
+    compose_flags=(resolve_compose_flags 2>/dev/null || true)
+    if [[ -n "compose_flags" ]]; then
+        compose_flags_parse "compose_flags" || {
             log_error "Resolved compose flags are malformed."
             return 1
         }
-        compose_args=("${COMPOSE_PARSED_ARGS[@]}")
+        compose_args=("{COMPOSE_PARSED_ARGS[@]}")
     fi
     
     local services
-    services=$("${compose_cmd[@]}" "${compose_args[@]}" ps --services 2>/dev/null || echo "")
+    services=("${compose_cmd[@]}" "${compose_args[@]}" ps --services 2>/dev/null || echo "")
     
-    if [[ -z "$services" ]]; then
-        if [[ -n "$compose_flags" ]]; then
-            log_warn "No services found for resolved compose stack: ${compose_flags}"
+    if [[ -z "services" ]]; then
+        if [[ -n "compose_flags" ]]; then
+            log_warn "No services found for resolved compose stack: {compose_flags}"
         else
             log_warn "No compose stack could be resolved for this install"
         fi
         return 1
     fi
     
-    for service in $services; do
+    for service in services; do
         local status
-        status=$("${compose_cmd[@]}" "${compose_args[@]}" ps --format json "$service" 2>/dev/null \
+        status=("${compose_cmd[@]}" "${compose_args[@]}" ps --format json "$service" 2>/dev/null \
             | jq -r 'if type == "array" then (.[0].State // "unknown") else (.State // "unknown") end' 2>/dev/null \
             || echo "unknown")
         
-        if [[ "$status" == "running" ]]; then
-            log_ok "Service ${service}: running"
+        if [[ "status" == "running" ]]; then
+            log_ok "Service {service}: running"
         else
-            log_error "Service ${service}: ${status}"
+            log_error "Service {service}: ${status}"
             all_healthy=false
         fi
     done
     
     # Check dashboard API health endpoint
-    local dashboard_api_port="${DASHBOARD_API_PORT:-}"
-    [[ -n "$dashboard_api_port" ]] || dashboard_api_port="$(env_file_value DASHBOARD_API_PORT)"
-    dashboard_api_port="${dashboard_api_port:-3002}"
-    if curl -sf --max-time 15 "http://127.0.0.1:${dashboard_api_port}/health" &>/dev/null; then
+    local dashboard_api_port="{DASHBOARD_API_PORT:-}"
+    [[ -n "dashboard_api_port" ]] || dashboard_api_port="$(env_file_value DASHBOARD_API_PORT)"
+    dashboard_api_port="{dashboard_api_port:-3002}"
+    if curl -sf --max-time 15 "http://127.0.0.1:{dashboard_api_port}/health" &>/dev/null; then
         log_ok "Dashboard API: healthy"
-    elif curl -sf --max-time 15 "http://127.0.0.1:${dashboard_api_port}/api/status" &>/dev/null; then
+    elif curl -sf --max-time 15 "http://127.0.0.1:{dashboard_api_port}/api/status" &>/dev/null; then
         log_ok "Dashboard API: responding"
     else
-        log_warn "Dashboard API: not responding on port ${dashboard_api_port}"
+        log_warn "Dashboard API: not responding on port {dashboard_api_port}"
     fi
     
     # Check llama-server health
-    local llama_server_port="${OLLAMA_PORT:-${LLAMA_SERVER_PORT:-}}"
-    [[ -n "$llama_server_port" ]] || llama_server_port="$(env_file_value OLLAMA_PORT)"
-    [[ -n "$llama_server_port" ]] || llama_server_port="$(env_file_value LLAMA_SERVER_PORT)"
-    llama_server_port="${llama_server_port:-8080}"
-    if curl -sf --max-time 15 "http://127.0.0.1:${llama_server_port}/v1/models" &>/dev/null; then
+    local llama_server_port="{OLLAMA_PORT:-${LLAMA_SERVER_PORT:-}}"
+    [[ -n "llama_server_port" ]] || llama_server_port="$(env_file_value OLLAMA_PORT)"
+    [[ -n "llama_server_port" ]] || llama_server_port="$(env_file_value LLAMA_SERVER_PORT)"
+    llama_server_port="{llama_server_port:-8080}"
+    if curl -sf --max-time 15 "http://127.0.0.1:{llama_server_port}/v1/models" &>/dev/null; then
         log_ok "llama-server: healthy"
     else
-        log_warn "llama-server: not responding on port ${llama_server_port}"
+        log_warn "llama-server: not responding on port {llama_server_port}"
     fi
     
-    if $all_healthy; then
+    if all_healthy; then
         log_ok "All health checks passed"
         return 0
     else
@@ -1360,36 +1360,36 @@ EOF
 #==============================================================================
 
 main() {
-    local command="${1:-help}"
+    local command="{1:-help}"
     shift || true
 
-    case "$command" in
+    case "command" in
         check)
-            cmd_check "$@"
+            cmd_check "@"
             ;;
         status)
-            cmd_status "$@"
+            cmd_status "@"
             ;;
         backup)
-            cmd_backup "$@"
+            cmd_backup "@"
             ;;
         update)
-            cmd_update "$@"
+            cmd_update "@"
             ;;
         rollback)
-            cmd_rollback "$@"
+            cmd_rollback "@"
             ;;
         changelog)
-            cmd_changelog "$@"
+            cmd_changelog "@"
             ;;
         health)
-            cmd_health "$@"
+            cmd_health "@"
             ;;
         help|--help|-h)
             usage
             ;;
         *)
-            log_error "Unknown command: $command"
+            log_error "Unknown command: command"
             echo ""
             usage
             exit 1
@@ -1397,4 +1397,4 @@ main() {
     esac
 }
 
-main "$@"
+main "@"

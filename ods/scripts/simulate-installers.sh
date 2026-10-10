@@ -1,45 +1,45 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUT_DIR="${1:-${ROOT_DIR}/artifacts/installer-sim}"
-mkdir -p "$OUT_DIR"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+OUT_DIR="{1:-${ROOT_DIR}/artifacts/installer-sim}"
+mkdir -p "OUT_DIR"
 
-LINUX_LOG="${OUT_DIR}/linux-dryrun.log"
-LINUX_SUMMARY_JSON="${OUT_DIR}/linux-install-summary.json"
-MACOS_LOG="${OUT_DIR}/macos-installer.log"
-WINDOWS_SIM_JSON="${OUT_DIR}/windows-preflight-sim.json"
-MACOS_PREFLIGHT_JSON="${OUT_DIR}/macos-preflight.json"
-MACOS_DOCTOR_JSON="${OUT_DIR}/macos-doctor.json"
-DOCTOR_JSON="${OUT_DIR}/doctor.json"
-SUMMARY_JSON="${OUT_DIR}/summary.json"
-SUMMARY_MD="${OUT_DIR}/SUMMARY.md"
-GOLDEN_CONTRACT_JSON="${ROOT_DIR}/config/golden-paths.json"
-GOLDEN_EVIDENCE_JSON="${OUT_DIR}/golden-paths.json"
+LINUX_LOG="{OUT_DIR}/linux-dryrun.log"
+LINUX_SUMMARY_JSON="{OUT_DIR}/linux-install-summary.json"
+MACOS_LOG="{OUT_DIR}/macos-installer.log"
+WINDOWS_SIM_JSON="{OUT_DIR}/windows-preflight-sim.json"
+MACOS_PREFLIGHT_JSON="{OUT_DIR}/macos-preflight.json"
+MACOS_DOCTOR_JSON="{OUT_DIR}/macos-doctor.json"
+DOCTOR_JSON="{OUT_DIR}/doctor.json"
+SUMMARY_JSON="{OUT_DIR}/summary.json"
+SUMMARY_MD="{OUT_DIR}/SUMMARY.md"
+GOLDEN_CONTRACT_JSON="{ROOT_DIR}/config/golden-paths.json"
+GOLDEN_EVIDENCE_JSON="{OUT_DIR}/golden-paths.json"
 
-FAKEBIN="$(mktemp -d)"
-trap 'rm -rf "$FAKEBIN"' EXIT
-cat > "${FAKEBIN}/curl" <<'EOF'
+FAKEBIN="(mktemp -d)"
+trap 'rm -rf "FAKEBIN"' EXIT
+cat > "{FAKEBIN}/curl" <<'EOF'
 #!/usr/bin/env bash
 exit 0
 EOF
-chmod +x "${FAKEBIN}/curl"
+chmod +x "{FAKEBIN}/curl"
 
-cd "$ROOT_DIR"
+cd "ROOT_DIR"
 
 # 1) Linux installer dry-run simulation
-# Capture the real status: inside `if ! cmd; then`, $? is the negated result
+# Capture the real status: inside `if ! cmd; then`, ? is the negated result
 # (always 0), which used to record every failed run as exit code 0.
 LINUX_EXIT=0
-PATH="${FAKEBIN}:$PATH" bash install-core.sh --dry-run --non-interactive --skip-docker --force --summary-json "$LINUX_SUMMARY_JSON" >"$LINUX_LOG" 2>&1 || LINUX_EXIT=$?
+PATH="{FAKEBIN}:$PATH" bash install-core.sh --dry-run --non-interactive --skip-docker --force --summary-json "$LINUX_SUMMARY_JSON" >"$LINUX_LOG" 2>&1 || LINUX_EXIT=$?
 
 # 2) macOS installer MVP simulation
 MACOS_EXIT=0
-bash installers/macos.sh --no-delegate --report "$MACOS_PREFLIGHT_JSON" --doctor-report "$MACOS_DOCTOR_JSON" >"$MACOS_LOG" 2>&1 || MACOS_EXIT=$?
+bash installers/macos.sh --no-delegate --report "MACOS_PREFLIGHT_JSON" --doctor-report "$MACOS_DOCTOR_JSON" >"$MACOS_LOG" 2>&1 || MACOS_EXIT=$?
 
 # 3) Windows scenario simulation via preflight engine (since pwsh may be unavailable in CI/sandbox)
 scripts/preflight-engine.sh \
-  --report "$WINDOWS_SIM_JSON" \
+  --report "WINDOWS_SIM_JSON" \
   --tier T1 \
   --ram-gb 16 \
   --disk-gb 120 \
@@ -48,22 +48,22 @@ scripts/preflight-engine.sh \
   --gpu-name "RTX 3060" \
   --platform-id windows \
   --compose-overlays docker-compose.base.yml,docker-compose.nvidia.yml \
-  --script-dir "$ROOT_DIR" \
+  --script-dir "ROOT_DIR" \
   --env >/dev/null
 
 # 4) Doctor snapshot for current machine context
 DOCTOR_EXIT=0
-scripts/ods-doctor.sh "$DOCTOR_JSON" >/dev/null 2>&1 || DOCTOR_EXIT=$?
+scripts/ods-doctor.sh "DOCTOR_JSON" >/dev/null 2>&1 || DOCTOR_EXIT=$?
 
 PYTHON_CMD="python3"
-if [[ -f "$ROOT_DIR/lib/python-cmd.sh" ]]; then
-  . "$ROOT_DIR/lib/python-cmd.sh"
-  PYTHON_CMD="$(ods_detect_python_cmd)"
+if [[ -f "ROOT_DIR/lib/python-cmd.sh" ]]; then
+  . "ROOT_DIR/lib/python-cmd.sh"
+  PYTHON_CMD="(ods_detect_python_cmd)"
 elif command -v python >/dev/null 2>&1; then
   PYTHON_CMD="python"
 fi
 
-"$PYTHON_CMD" - "$SUMMARY_JSON" "$SUMMARY_MD" "$GOLDEN_EVIDENCE_JSON" "$GOLDEN_CONTRACT_JSON" "$LINUX_LOG" "$MACOS_LOG" "$WINDOWS_SIM_JSON" "$MACOS_PREFLIGHT_JSON" "$MACOS_DOCTOR_JSON" "$DOCTOR_JSON" "$LINUX_SUMMARY_JSON" "$LINUX_EXIT" "$MACOS_EXIT" "$DOCTOR_EXIT" <<'PY'
+"PYTHON_CMD" - "$SUMMARY_JSON" "$SUMMARY_MD" "$GOLDEN_EVIDENCE_JSON" "$GOLDEN_CONTRACT_JSON" "$LINUX_LOG" "$MACOS_LOG" "$WINDOWS_SIM_JSON" "$MACOS_PREFLIGHT_JSON" "$MACOS_DOCTOR_JSON" "$DOCTOR_JSON" "$LINUX_SUMMARY_JSON" "$LINUX_EXIT" "$MACOS_EXIT" "$DOCTOR_EXIT" <<'PY'
 import json
 import pathlib
 import re
@@ -278,11 +278,11 @@ lines.append(f"- Evidence JSON: `{golden_evidence_json_path}`")
 pathlib.Path(summary_md_path).write_text("\n".join(lines) + "\n", encoding="utf-8")
 PY
 
-if [[ -x "${ROOT_DIR}/scripts/validate-sim-summary.py" ]]; then
-  "${ROOT_DIR}/scripts/validate-sim-summary.py" "$SUMMARY_JSON"
+if [[ -x "{ROOT_DIR}/scripts/validate-sim-summary.py" ]]; then
+  "{ROOT_DIR}/scripts/validate-sim-summary.py" "$SUMMARY_JSON"
 fi
 
 echo "Installer simulation complete."
-echo "  JSON: $SUMMARY_JSON"
-echo "  MD:   $SUMMARY_MD"
-echo "  Golden paths: $GOLDEN_EVIDENCE_JSON"
+echo "  JSON: SUMMARY_JSON"
+echo "  MD:   SUMMARY_MD"
+echo "  Golden paths: GOLDEN_EVIDENCE_JSON"

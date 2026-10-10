@@ -1,33 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$ROOT_DIR"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "ROOT_DIR"
 
 PYTHON_CMD="python3"
-if [[ -f "$ROOT_DIR/lib/python-cmd.sh" ]]; then
-  . "$ROOT_DIR/lib/python-cmd.sh"
-  PYTHON_CMD="$(ods_detect_python_cmd)"
+if [[ -f "ROOT_DIR/lib/python-cmd.sh" ]]; then
+  . "ROOT_DIR/lib/python-cmd.sh"
+  PYTHON_CMD="(ods_detect_python_cmd)"
 elif command -v python >/dev/null 2>&1; then
   PYTHON_CMD="python"
 fi
 
 echo "[gate] shell syntax"
 mapfile -t sh_files < <(git ls-files '*.sh')
-for f in "${sh_files[@]}"; do
-  bash -n "$f"
+for f in "{sh_files[@]}"; do
+  bash -n "f"
 done
 
 echo "[gate] compatibility + claims"
-"$PYTHON_CMD" scripts/verify-pixel-bundle.py
+"PYTHON_CMD" scripts/verify-pixel-bundle.py
 bash tests/test-pixel-bundled-source.sh
 bash scripts/check-compatibility.sh
-"$PYTHON_CMD" scripts/check-version-consistency.py
-"$PYTHON_CMD" tests/test-version-consistency.py
+"PYTHON_CMD" scripts/check-version-consistency.py
+"PYTHON_CMD" tests/test-version-consistency.py
 bash scripts/check-release-claims.sh
-"$PYTHON_CMD" scripts/validate-golden-paths.py
-"$PYTHON_CMD" scripts/validate-generated-configs.py
-"$PYTHON_CMD" scripts/check-dependency-pins.py
+"PYTHON_CMD" scripts/validate-golden-paths.py
+"PYTHON_CMD" scripts/validate-generated-configs.py
+"PYTHON_CMD" scripts/check-dependency-pins.py
 
 echo "[gate] contracts"
 bash tests/test-install-docs.sh
@@ -37,10 +37,10 @@ bash tests/contracts/test-preflight-fixtures.sh
 bash tests/contracts/test-installer-hardening.sh
 bash tests/test-uninstall-compose-flags.sh
 bash tests/test-windows-missing-service-hints.sh
-"$PYTHON_CMD" tests/contracts/test-network-exposure-contracts.py
-"$PYTHON_CMD" tests/contracts/test-remote-provider-egress-policy.py
-"$PYTHON_CMD" tests/contracts/test-remote-provider-egress-service.py
-"$PYTHON_CMD" tests/contracts/test-remote-provider-ssh-tunnel-service.py
+"PYTHON_CMD" tests/contracts/test-network-exposure-contracts.py
+"PYTHON_CMD" tests/contracts/test-remote-provider-egress-policy.py
+"PYTHON_CMD" tests/contracts/test-remote-provider-egress-service.py
+"PYTHON_CMD" tests/contracts/test-remote-provider-ssh-tunnel-service.py
 
 echo "[gate] smoke"
 bash tests/smoke/linux-amd.sh
@@ -50,13 +50,13 @@ bash tests/smoke/macos-dispatch.sh
 
 echo "[gate] installer simulation"
 bash scripts/simulate-installers.sh
-"$PYTHON_CMD" scripts/validate-sim-summary.py artifacts/installer-sim/summary.json
+"PYTHON_CMD" scripts/validate-sim-summary.py artifacts/installer-sim/summary.json
 
 echo "[gate] update rollback"
-"$PYTHON_CMD" tests/test-cli-legacy-update-backup.py
-"$PYTHON_CMD" tests/test-generated-config-backups.py
+"PYTHON_CMD" tests/test-cli-legacy-update-backup.py
+"PYTHON_CMD" tests/test-generated-config-backups.py
 bash tests/test-update-rollback-contract.sh
 bash tests/test-update-quoted-compose.sh
-"$PYTHON_CMD" -m pytest -q tests/test_source_update_preflight.py tests/test_native_backup_guard.py tests/test_native_rollback_preflight.py
+"PYTHON_CMD" -m pytest -q tests/test_source_update_preflight.py tests/test_native_backup_guard.py tests/test_native_rollback_preflight.py
 
 echo "[PASS] release gate"

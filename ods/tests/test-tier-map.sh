@@ -10,35 +10,35 @@
 
 set -uo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PASS=0
 FAIL=0
 
 # Minimal stubs for dependencies
-error() { echo "ERROR: $*" >&2; return 1; }
+error() { echo "ERROR: *" >&2; return 1; }
 
 # Source the module under test
-source "$SCRIPT_DIR/installers/lib/tier-map.sh"
-source "$SCRIPT_DIR/lib/safe-env.sh"
+source "SCRIPT_DIR/installers/lib/tier-map.sh"
+source "SCRIPT_DIR/lib/safe-env.sh"
 
 load_selector_env() {
-    load_model_selector_env_from_output <<< "$1"
+    load_model_selector_env_from_output <<< "1"
 }
 
 assert_eq() {
-    local label="$1" expected="$2" actual="$3"
-    if [[ "$expected" == "$actual" ]]; then
-        echo "  PASS: $label"
+    local label="1" expected="$2" actual="$3"
+    if [[ "expected" == "$actual" ]]; then
+        echo "  PASS: label"
         ((PASS++))
     else
-        echo "  FAIL: $label (expected '$expected', got '$actual')"
+        echo "  FAIL: label (expected '$expected', got '$actual')"
         ((FAIL++))
     fi
 }
 
 run_tier() {
-    local tier_val="$1"
-    TIER="$tier_val"
+    local tier_val="1"
+    TIER="tier_val"
     # Reset globals
     TIER_NAME="" LLM_MODEL="" GGUF_FILE="" GGUF_URL="" MAX_CONTEXT=""
     GPU_BACKEND="" N_GPU_LAYERS=""
@@ -51,72 +51,72 @@ echo ""
 # --- Tier 0: Lightweight ---
 echo "Tier 0 (Lightweight):"
 run_tier 0
-assert_eq "TIER_NAME"   "Lightweight"                          "$TIER_NAME"
-assert_eq "LLM_MODEL"   "qwen3.5-2b"                          "$LLM_MODEL"
-assert_eq "GGUF_FILE"   "Qwen3.5-2B-Q4_K_M.gguf"             "$GGUF_FILE"
-assert_eq "MAX_CONTEXT"  "8192"                                 "$MAX_CONTEXT"
+assert_eq "TIER_NAME"   "Lightweight"                          "TIER_NAME"
+assert_eq "LLM_MODEL"   "qwen3.5-2b"                          "LLM_MODEL"
+assert_eq "GGUF_FILE"   "Qwen3.5-2B-Q4_K_M.gguf"             "GGUF_FILE"
+assert_eq "MAX_CONTEXT"  "8192"                                 "MAX_CONTEXT"
 echo ""
 # --- Tier 1: Entry Level ---
 echo "Tier 1 (Entry Level):"
 run_tier 1
-assert_eq "TIER_NAME"   "Entry Level"                          "$TIER_NAME"
-assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                   "$MODEL_PROFILE_EFFECTIVE"
-assert_eq "LLM_MODEL"   "qwen3.5-9b"                         "$LLM_MODEL"
-assert_eq "GGUF_FILE"   "Qwen3.5-9B-Q4_K_M.gguf"             "$GGUF_FILE"
-assert_eq "MAX_CONTEXT"  "16384"                                "$MAX_CONTEXT"
+assert_eq "TIER_NAME"   "Entry Level"                          "TIER_NAME"
+assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                   "MODEL_PROFILE_EFFECTIVE"
+assert_eq "LLM_MODEL"   "qwen3.5-9b"                         "LLM_MODEL"
+assert_eq "GGUF_FILE"   "Qwen3.5-9B-Q4_K_M.gguf"             "GGUF_FILE"
+assert_eq "MAX_CONTEXT"  "16384"                                "MAX_CONTEXT"
 echo ""
 
 # --- Tier 2: Prosumer ---
 echo "Tier 2 (Prosumer):"
 run_tier 2
-assert_eq "TIER_NAME"   "Prosumer"                             "$TIER_NAME"
-assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                   "$MODEL_PROFILE_EFFECTIVE"
-assert_eq "LLM_MODEL"   "qwen3.5-9b"                         "$LLM_MODEL"
-assert_eq "GGUF_FILE"   "Qwen3.5-9B-Q4_K_M.gguf"             "$GGUF_FILE"
-assert_eq "MAX_CONTEXT"  "32768"                                "$MAX_CONTEXT"
+assert_eq "TIER_NAME"   "Prosumer"                             "TIER_NAME"
+assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                   "MODEL_PROFILE_EFFECTIVE"
+assert_eq "LLM_MODEL"   "qwen3.5-9b"                         "LLM_MODEL"
+assert_eq "GGUF_FILE"   "Qwen3.5-9B-Q4_K_M.gguf"             "GGUF_FILE"
+assert_eq "MAX_CONTEXT"  "32768"                                "MAX_CONTEXT"
 echo ""
 
 # --- Tier 3: Pro ---
 echo "Tier 3 (Pro):"
 run_tier 3
-assert_eq "TIER_NAME"   "Pro"                                  "$TIER_NAME"
-assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                   "$MODEL_PROFILE_EFFECTIVE"
-assert_eq "LLM_MODEL"   "qwen3.5-27b"                         "$LLM_MODEL"
-assert_eq "GGUF_FILE"   "Qwen3.5-27B-Q4_K_M.gguf"             "$GGUF_FILE"
-assert_eq "MAX_CONTEXT"  "65536"                                "$MAX_CONTEXT"
-assert_eq "LLM_MODEL_SIZE_MB" "16700"                           "$LLM_MODEL_SIZE_MB"
+assert_eq "TIER_NAME"   "Pro"                                  "TIER_NAME"
+assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                   "MODEL_PROFILE_EFFECTIVE"
+assert_eq "LLM_MODEL"   "qwen3.5-27b"                         "LLM_MODEL"
+assert_eq "GGUF_FILE"   "Qwen3.5-27B-Q4_K_M.gguf"             "GGUF_FILE"
+assert_eq "MAX_CONTEXT"  "65536"                                "MAX_CONTEXT"
+assert_eq "LLM_MODEL_SIZE_MB" "16700"                           "LLM_MODEL_SIZE_MB"
 echo ""
 
 # --- Tier 4: Enterprise ---
 echo "Tier 4 (Enterprise):"
 run_tier 4
-assert_eq "TIER_NAME"   "Enterprise"                           "$TIER_NAME"
-assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                   "$MODEL_PROFILE_EFFECTIVE"
-assert_eq "LLM_MODEL"   "qwen3.6-35b-a3b"                     "$LLM_MODEL"
-assert_eq "GGUF_FILE"   "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf"      "$GGUF_FILE"
-assert_eq "MAX_CONTEXT"  "131072"                               "$MAX_CONTEXT"
-assert_eq "LLM_MODEL_SIZE_MB" "21110"                           "$LLM_MODEL_SIZE_MB"
+assert_eq "TIER_NAME"   "Enterprise"                           "TIER_NAME"
+assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                   "MODEL_PROFILE_EFFECTIVE"
+assert_eq "LLM_MODEL"   "qwen3.6-35b-a3b"                     "LLM_MODEL"
+assert_eq "GGUF_FILE"   "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf"      "GGUF_FILE"
+assert_eq "MAX_CONTEXT"  "131072"                               "MAX_CONTEXT"
+assert_eq "LLM_MODEL_SIZE_MB" "21110"                           "LLM_MODEL_SIZE_MB"
 echo ""
 
 # --- NV_ULTRA ---
 echo "NV_ULTRA (NVIDIA Ultra 90GB+):"
 unset HOST_ARCH
 run_tier NV_ULTRA
-assert_eq "TIER_NAME"   "NVIDIA Ultra (90GB+)"                 "$TIER_NAME"
-assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                   "$MODEL_PROFILE_EFFECTIVE"
-assert_eq "LLM_MODEL"   "qwen3-coder-next"                   "$LLM_MODEL"
-assert_eq "GGUF_FILE"   "qwen3-coder-next-Q4_K_M.gguf"       "$GGUF_FILE"
-assert_eq "MAX_CONTEXT"  "131072"                               "$MAX_CONTEXT"
+assert_eq "TIER_NAME"   "NVIDIA Ultra (90GB+)"                 "TIER_NAME"
+assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                   "MODEL_PROFILE_EFFECTIVE"
+assert_eq "LLM_MODEL"   "qwen3-coder-next"                   "LLM_MODEL"
+assert_eq "GGUF_FILE"   "qwen3-coder-next-Q4_K_M.gguf"       "GGUF_FILE"
+assert_eq "MAX_CONTEXT"  "131072"                               "MAX_CONTEXT"
 echo ""
 
 echo "NV_ULTRA (aarch64 A3B substitution):"
 HOST_ARCH=arm64
 run_tier NV_ULTRA
-assert_eq "TIER_NAME"   "NVIDIA Ultra (90GB+, aarch64 — A3B substitution)" "$TIER_NAME"
-assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                   "$MODEL_PROFILE_EFFECTIVE"
-assert_eq "LLM_MODEL"   "qwen3.6-35b-a3b"                    "$LLM_MODEL"
-assert_eq "GGUF_FILE"   "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf"     "$GGUF_FILE"
-assert_eq "MAX_CONTEXT"  "131072"                               "$MAX_CONTEXT"
+assert_eq "TIER_NAME"   "NVIDIA Ultra (90GB+, aarch64 — A3B substitution)" "TIER_NAME"
+assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                   "MODEL_PROFILE_EFFECTIVE"
+assert_eq "LLM_MODEL"   "qwen3.6-35b-a3b"                    "LLM_MODEL"
+assert_eq "GGUF_FILE"   "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf"     "GGUF_FILE"
+assert_eq "MAX_CONTEXT"  "131072"                               "MAX_CONTEXT"
 unset HOST_ARCH
 echo ""
 
@@ -125,45 +125,45 @@ echo ""
 # NV_ULTRA aarch64 — see tier-map.sh SH_LARGE block.
 echo "SH_LARGE (Strix Halo 90+):"
 run_tier SH_LARGE
-assert_eq "TIER_NAME"   "Strix Halo 90+"                      "$TIER_NAME"
-assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                   "$MODEL_PROFILE_EFFECTIVE"
-assert_eq "LLM_MODEL"   "qwen3.6-35b-a3b"                    "$LLM_MODEL"
-assert_eq "GGUF_FILE"   "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf"     "$GGUF_FILE"
-assert_eq "MAX_CONTEXT"  "131072"                               "$MAX_CONTEXT"
+assert_eq "TIER_NAME"   "Strix Halo 90+"                      "TIER_NAME"
+assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                   "MODEL_PROFILE_EFFECTIVE"
+assert_eq "LLM_MODEL"   "qwen3.6-35b-a3b"                    "LLM_MODEL"
+assert_eq "GGUF_FILE"   "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf"     "GGUF_FILE"
+assert_eq "MAX_CONTEXT"  "131072"                               "MAX_CONTEXT"
 echo ""
 
 # --- SH_COMPACT ---
 echo "SH_COMPACT (Strix Halo Compact):"
 run_tier SH_COMPACT
-assert_eq "TIER_NAME"   "Strix Halo Compact"                  "$TIER_NAME"
-assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                   "$MODEL_PROFILE_EFFECTIVE"
-assert_eq "LLM_MODEL"   "qwen3.6-35b-a3b"                     "$LLM_MODEL"
-assert_eq "GGUF_FILE"   "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf"      "$GGUF_FILE"
-assert_eq "MAX_CONTEXT"  "131072"                               "$MAX_CONTEXT"
+assert_eq "TIER_NAME"   "Strix Halo Compact"                  "TIER_NAME"
+assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                   "MODEL_PROFILE_EFFECTIVE"
+assert_eq "LLM_MODEL"   "qwen3.6-35b-a3b"                     "LLM_MODEL"
+assert_eq "GGUF_FILE"   "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf"      "GGUF_FILE"
+assert_eq "MAX_CONTEXT"  "131072"                               "MAX_CONTEXT"
 echo ""
 
 # --- ARC ---
 echo "ARC (Intel Arc ≥12 GB, e.g. A770 16 GB):"
 run_tier ARC
-assert_eq "TIER_NAME"    "Intel Arc"                           "$TIER_NAME"
-assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                   "$MODEL_PROFILE_EFFECTIVE"
-assert_eq "LLM_MODEL"    "qwen3.5-9b"                        "$LLM_MODEL"
-assert_eq "GGUF_FILE"    "Qwen3.5-9B-Q4_K_M.gguf"            "$GGUF_FILE"
-assert_eq "MAX_CONTEXT"  "32768"                               "$MAX_CONTEXT"
-assert_eq "GPU_BACKEND"  "sycl"                                "$GPU_BACKEND"
-assert_eq "N_GPU_LAYERS" "99"                                  "$N_GPU_LAYERS"
+assert_eq "TIER_NAME"    "Intel Arc"                           "TIER_NAME"
+assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                   "MODEL_PROFILE_EFFECTIVE"
+assert_eq "LLM_MODEL"    "qwen3.5-9b"                        "LLM_MODEL"
+assert_eq "GGUF_FILE"    "Qwen3.5-9B-Q4_K_M.gguf"            "GGUF_FILE"
+assert_eq "MAX_CONTEXT"  "32768"                               "MAX_CONTEXT"
+assert_eq "GPU_BACKEND"  "sycl"                                "GPU_BACKEND"
+assert_eq "N_GPU_LAYERS" "99"                                  "N_GPU_LAYERS"
 echo ""
 
 # --- ARC_LITE ---
 echo "ARC_LITE (Intel Arc <12 GB, e.g. A750 8 GB / A380 6 GB):"
 run_tier ARC_LITE
-assert_eq "TIER_NAME"    "Intel Arc Lite"                      "$TIER_NAME"
-assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                   "$MODEL_PROFILE_EFFECTIVE"
-assert_eq "LLM_MODEL"    "qwen3.5-4b"                        "$LLM_MODEL"
-assert_eq "GGUF_FILE"    "Qwen3.5-4B-Q4_K_M.gguf"            "$GGUF_FILE"
-assert_eq "MAX_CONTEXT"  "16384"                               "$MAX_CONTEXT"
-assert_eq "GPU_BACKEND"  "sycl"                                "$GPU_BACKEND"
-assert_eq "N_GPU_LAYERS" "99"                                  "$N_GPU_LAYERS"
+assert_eq "TIER_NAME"    "Intel Arc Lite"                      "TIER_NAME"
+assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                   "MODEL_PROFILE_EFFECTIVE"
+assert_eq "LLM_MODEL"    "qwen3.5-4b"                        "LLM_MODEL"
+assert_eq "GGUF_FILE"    "Qwen3.5-4B-Q4_K_M.gguf"            "GGUF_FILE"
+assert_eq "MAX_CONTEXT"  "16384"                               "MAX_CONTEXT"
+assert_eq "GPU_BACKEND"  "sycl"                                "GPU_BACKEND"
+assert_eq "N_GPU_LAYERS" "99"                                  "N_GPU_LAYERS"
 echo ""
 
 # --- Invalid tier should fail ---
@@ -180,12 +180,12 @@ echo ""
 # --- GGUF_URL should be set for all tiers ---
 echo "GGUF_URL populated for all tiers:"
 for t in 0 1 2 3 4 NV_ULTRA SH_LARGE SH_COMPACT ARC ARC_LITE; do
-    run_tier "$t"
-    if [[ -n "$GGUF_URL" && "$GGUF_URL" == https://* ]]; then
-        echo "  PASS: Tier $t has valid GGUF_URL"
+    run_tier "t"
+    if [[ -n "GGUF_URL" && "$GGUF_URL" == https://* ]]; then
+        echo "  PASS: Tier t has valid GGUF_URL"
         ((PASS++))
     else
-        echo "  FAIL: Tier $t missing or invalid GGUF_URL"
+        echo "  FAIL: Tier t missing or invalid GGUF_URL"
         ((FAIL++))
     fi
 done
@@ -194,56 +194,56 @@ echo ""
 # --- Gemma 4 profile opt-in ---
 echo "Gemma 4 profile (tier 2):"
 MODEL_PROFILE=gemma4 run_tier 2
-assert_eq "MODEL_PROFILE_EFFECTIVE" "gemma4"                   "$MODEL_PROFILE_EFFECTIVE"
-assert_eq "LLM_MODEL"               "gemma-4-e4b-it"           "$LLM_MODEL"
-assert_eq "GGUF_FILE"               "gemma-4-E4B-it-Q4_K_M.gguf" "$GGUF_FILE"
-assert_eq "LLAMA_SERVER_IMAGE" "ghcr.io/ggml-org/llama.cpp:server-cuda-b11429@sha256:883915ea20a4b350e98f7284098f4d400c21e9b366e248d397cd42d90602a84c" "$LLAMA_SERVER_IMAGE"
-assert_eq "LLAMA_CPP_RELEASE_TAG_OVERRIDE" "b9014"             "$LLAMA_CPP_RELEASE_TAG_OVERRIDE"
+assert_eq "MODEL_PROFILE_EFFECTIVE" "gemma4"                   "MODEL_PROFILE_EFFECTIVE"
+assert_eq "LLM_MODEL"               "gemma-4-e4b-it"           "LLM_MODEL"
+assert_eq "GGUF_FILE"               "gemma-4-E4B-it-Q4_K_M.gguf" "GGUF_FILE"
+assert_eq "LLAMA_SERVER_IMAGE" "ghcr.io/ggml-org/llama.cpp:server-cuda-b11429@sha256:883915ea20a4b350e98f7284098f4d400c21e9b366e248d397cd42d90602a84c" "LLAMA_SERVER_IMAGE"
+assert_eq "LLAMA_CPP_RELEASE_TAG_OVERRIDE" "b9014"             "LLAMA_CPP_RELEASE_TAG_OVERRIDE"
 unset MODEL_PROFILE
 echo ""
 
 echo "Auto profile (tier 0 fallback):"
 MODEL_PROFILE=auto run_tier 0
-assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                     "$MODEL_PROFILE_EFFECTIVE"
-assert_eq "LLM_MODEL"               "qwen3.5-2b"               "$LLM_MODEL"
+assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                     "MODEL_PROFILE_EFFECTIVE"
+assert_eq "LLM_MODEL"               "qwen3.5-2b"               "LLM_MODEL"
 unset MODEL_PROFILE
 echo ""
 
 echo "Auto profile (tier 3 prefers Gemma with safer context):"
 MODEL_PROFILE=auto run_tier 3
-assert_eq "MODEL_PROFILE_EFFECTIVE" "gemma4"                   "$MODEL_PROFILE_EFFECTIVE"
-assert_eq "LLM_MODEL"               "gemma-4-26b-a4b-it"       "$LLM_MODEL"
-assert_eq "MAX_CONTEXT"             "16384"                    "$MAX_CONTEXT"
+assert_eq "MODEL_PROFILE_EFFECTIVE" "gemma4"                   "MODEL_PROFILE_EFFECTIVE"
+assert_eq "LLM_MODEL"               "gemma-4-26b-a4b-it"       "LLM_MODEL"
+assert_eq "MAX_CONTEXT"             "16384"                    "MAX_CONTEXT"
 unset MODEL_PROFILE
 echo ""
 
 echo "Auto profile (tier 4 prefers Gemma with safer context):"
 MODEL_PROFILE=auto run_tier 4
-assert_eq "MODEL_PROFILE_EFFECTIVE" "gemma4"                   "$MODEL_PROFILE_EFFECTIVE"
-assert_eq "LLM_MODEL"               "gemma-4-31b-it"           "$LLM_MODEL"
-assert_eq "MAX_CONTEXT"             "65536"                    "$MAX_CONTEXT"
+assert_eq "MODEL_PROFILE_EFFECTIVE" "gemma4"                   "MODEL_PROFILE_EFFECTIVE"
+assert_eq "LLM_MODEL"               "gemma-4-31b-it"           "LLM_MODEL"
+assert_eq "MAX_CONTEXT"             "65536"                    "MAX_CONTEXT"
 unset MODEL_PROFILE
 echo ""
 
 echo "Auto profile (SH_COMPACT prefers Gemma with safer context):"
 MODEL_PROFILE=auto run_tier SH_COMPACT
-assert_eq "MODEL_PROFILE_EFFECTIVE" "gemma4"                   "$MODEL_PROFILE_EFFECTIVE"
-assert_eq "LLM_MODEL"               "gemma-4-26b-a4b-it"       "$LLM_MODEL"
-assert_eq "MAX_CONTEXT"             "65536"                    "$MAX_CONTEXT"
+assert_eq "MODEL_PROFILE_EFFECTIVE" "gemma4"                   "MODEL_PROFILE_EFFECTIVE"
+assert_eq "LLM_MODEL"               "gemma-4-26b-a4b-it"       "LLM_MODEL"
+assert_eq "MAX_CONTEXT"             "65536"                    "MAX_CONTEXT"
 unset MODEL_PROFILE
 echo ""
 
 echo "Explicit qwen profile (tier 2):"
 MODEL_PROFILE=qwen run_tier 2
-assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                     "$MODEL_PROFILE_EFFECTIVE"
-assert_eq "LLM_MODEL"               "qwen3.5-9b"               "$LLM_MODEL"
-assert_eq "GGUF_FILE"               "Qwen3.5-9B-Q4_K_M.gguf"   "$GGUF_FILE"
+assert_eq "MODEL_PROFILE_EFFECTIVE" "qwen"                     "MODEL_PROFILE_EFFECTIVE"
+assert_eq "LLM_MODEL"               "qwen3.5-9b"               "LLM_MODEL"
+assert_eq "GGUF_FILE"               "Qwen3.5-9B-Q4_K_M.gguf"   "GGUF_FILE"
 unset MODEL_PROFILE
 echo ""
 
 echo "Catalog selector (amd64 NV_ULTRA keeps coder-next):"
-_selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
-    --catalog "$SCRIPT_DIR/config/model-library.json" \
+_selector_env="(python3 "$SCRIPT_DIR/scripts/select-model.py" \
+    --catalog "SCRIPT_DIR/config/model-library.json" \
     --backend nvidia \
     --memory-type discrete \
     --vram-mb 98304 \
@@ -254,10 +254,10 @@ _selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
     --installable-only \
     --env)"
 LLM_MODEL="" GGUF_FILE="" MODEL_RECOMMENDATION_POLICY=""
-load_selector_env "$_selector_env"
-assert_eq "SELECTOR_LLM_MODEL" "qwen3-coder-next" "$LLM_MODEL"
-assert_eq "SELECTOR_GGUF_FILE" "qwen3-coder-next-Q4_K_M.gguf" "$GGUF_FILE"
-assert_eq "SELECTOR_POLICY" "context-aware-curated-fit-v2" "$MODEL_RECOMMENDATION_POLICY"
+load_selector_env "_selector_env"
+assert_eq "SELECTOR_LLM_MODEL" "qwen3-coder-next" "LLM_MODEL"
+assert_eq "SELECTOR_GGUF_FILE" "qwen3-coder-next-Q4_K_M.gguf" "GGUF_FILE"
+assert_eq "SELECTOR_POLICY" "context-aware-curated-fit-v2" "MODEL_RECOMMENDATION_POLICY"
 echo ""
 
 # Qwen 3.6 27B is a fleet A/B candidate (install_recommendation=false). The
@@ -268,32 +268,32 @@ echo "Catalog selector (24-32GB discrete GPUs keep Qwen 3.5 27B; Qwen 3.6 27B st
 for _vram_mb in 24576 32607; do
     for _backend in nvidia amd; do
         for _max_size_mb in 18600 0; do
-            _selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
-                --catalog "$SCRIPT_DIR/config/model-library.json" \
-                --backend "$_backend" \
+            _selector_env="(python3 "$SCRIPT_DIR/scripts/select-model.py" \
+                --catalog "SCRIPT_DIR/config/model-library.json" \
+                --backend "_backend" \
                 --memory-type discrete \
-                --vram-mb "$_vram_mb" \
+                --vram-mb "_vram_mb" \
                 --ram-gb 64 \
                 --profile qwen \
                 --tier 3 \
-                --max-size-mb "$_max_size_mb" \
+                --max-size-mb "_max_size_mb" \
                 --host-arch amd64 \
                 --installable-only \
                 --env)"
             LLM_MODEL="" GGUF_FILE="" MAX_CONTEXT="" MODEL_RECOMMENDED_ALTERNATIVES=""
-            load_selector_env "$_selector_env"
-            _case="${_backend} ${_vram_mb}MB max-size ${_max_size_mb}"
-            assert_eq "SELECTOR_LLM_MODEL ($_case)" "qwen3.5-27b" "$LLM_MODEL"
-            assert_eq "SELECTOR_GGUF_FILE ($_case)" "Qwen3.5-27B-Q4_K_M.gguf" "$GGUF_FILE"
+            load_selector_env "_selector_env"
+            _case="{_backend} ${_vram_mb}MB max-size ${_max_size_mb}"
+            assert_eq "SELECTOR_LLM_MODEL (_case)" "qwen3.5-27b" "$LLM_MODEL"
+            assert_eq "SELECTOR_GGUF_FILE (_case)" "Qwen3.5-27B-Q4_K_M.gguf" "$GGUF_FILE"
             # The catalog's operating default is 64K: the 27B is selected at
             # the context the Hermes floor used to raise it to (tower1/tower3).
-            assert_eq "SELECTOR_CONTEXT ($_case)" "65536" "$MAX_CONTEXT"
-            case ";$MODEL_RECOMMENDED_ALTERNATIVES" in
+            assert_eq "SELECTOR_CONTEXT (_case)" "65536" "$MAX_CONTEXT"
+            case ";MODEL_RECOMMENDED_ALTERNATIVES" in
                 *";qwen3.6-27b-ud-q4-k-xl:"*)
-                    echo "  FAIL: SELECTOR_ALTERNATIVES ($_case) offers the Qwen 3.6 27B candidate"
+                    echo "  FAIL: SELECTOR_ALTERNATIVES (_case) offers the Qwen 3.6 27B candidate"
                     ((FAIL++)) ;;
                 *)
-                    echo "  PASS: SELECTOR_ALTERNATIVES ($_case) omits the Qwen 3.6 27B candidate"
+                    echo "  PASS: SELECTOR_ALTERNATIVES (_case) omits the Qwen 3.6 27B candidate"
                     ((PASS++)) ;;
             esac
         done
@@ -303,8 +303,8 @@ unset _vram_mb _backend _max_size_mb _case
 echo ""
 
 echo "Catalog selector (arm64 NV_ULTRA preserves A3B substitution):"
-_selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
-    --catalog "$SCRIPT_DIR/config/model-library.json" \
+_selector_env="(python3 "$SCRIPT_DIR/scripts/select-model.py" \
+    --catalog "SCRIPT_DIR/config/model-library.json" \
     --backend nvidia \
     --memory-type unified \
     --vram-mb 0 \
@@ -315,18 +315,18 @@ _selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
     --installable-only \
     --env)"
 LLM_MODEL="" GGUF_FILE="" MODEL_RECOMMENDATION_POLICY=""
-load_selector_env "$_selector_env"
-assert_eq "SELECTOR_LLM_MODEL" "qwen3.6-35b-a3b" "$LLM_MODEL"
-assert_eq "SELECTOR_GGUF_FILE" "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf" "$GGUF_FILE"
-assert_eq "SELECTOR_POLICY" "context-aware-curated-fit-v2+spark-aarch64-nv-ultra-a3b-v1" "$MODEL_RECOMMENDATION_POLICY"
+load_selector_env "_selector_env"
+assert_eq "SELECTOR_LLM_MODEL" "qwen3.6-35b-a3b" "LLM_MODEL"
+assert_eq "SELECTOR_GGUF_FILE" "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf" "GGUF_FILE"
+assert_eq "SELECTOR_POLICY" "context-aware-curated-fit-v2+spark-aarch64-nv-ultra-a3b-v1" "MODEL_RECOMMENDATION_POLICY"
 echo ""
 
 # Strix Halo (SH_LARGE, AMD Ryzen AI MAX+ 395, 124 GB unified) hit the same
 # coder-next pathology as Spark aarch64. The selector should substitute to
 # 35B-A3B via the unified-memory policy (distinct tag from the Spark one).
 echo "Catalog selector (amd unified SH_LARGE substitutes coder-next → A3B):"
-_selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
-    --catalog "$SCRIPT_DIR/config/model-library.json" \
+_selector_env="(python3 "$SCRIPT_DIR/scripts/select-model.py" \
+    --catalog "SCRIPT_DIR/config/model-library.json" \
     --backend amd \
     --memory-type unified \
     --vram-mb 0 \
@@ -337,15 +337,15 @@ _selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
     --installable-only \
     --env)"
 LLM_MODEL="" GGUF_FILE="" MODEL_RECOMMENDATION_POLICY=""
-load_selector_env "$_selector_env"
-assert_eq "SELECTOR_LLM_MODEL" "qwen3.6-35b-a3b" "$LLM_MODEL"
-assert_eq "SELECTOR_GGUF_FILE" "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf" "$GGUF_FILE"
-assert_eq "SELECTOR_POLICY" "context-aware-curated-fit-v2+unified-memory-coder-next-a3b-v1" "$MODEL_RECOMMENDATION_POLICY"
+load_selector_env "_selector_env"
+assert_eq "SELECTOR_LLM_MODEL" "qwen3.6-35b-a3b" "LLM_MODEL"
+assert_eq "SELECTOR_GGUF_FILE" "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf" "GGUF_FILE"
+assert_eq "SELECTOR_POLICY" "context-aware-curated-fit-v2+unified-memory-coder-next-a3b-v1" "MODEL_RECOMMENDATION_POLICY"
 echo ""
 
 echo "Catalog selector (16GB Apple unified qwen keeps ranked fit):"
-_selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
-    --catalog "$SCRIPT_DIR/config/model-library.json" \
+_selector_env="(python3 "$SCRIPT_DIR/scripts/select-model.py" \
+    --catalog "SCRIPT_DIR/config/model-library.json" \
     --backend metal \
     --memory-type unified \
     --vram-mb 0 \
@@ -356,16 +356,16 @@ _selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
     --installable-only \
     --env)"
 LLM_MODEL="" GGUF_FILE="" MODEL_RECOMMENDATION_SOURCE="" MODEL_RECOMMENDATION_POLICY=""
-load_selector_env "$_selector_env"
-assert_eq "SELECTOR_LLM_MODEL" "qwen3.5-9b" "$LLM_MODEL"
-assert_eq "SELECTOR_GGUF_FILE" "Qwen3.5-9B-Q4_K_M.gguf" "$GGUF_FILE"
-assert_eq "SELECTOR_SOURCE" "catalog_fit_pre_download" "$MODEL_RECOMMENDATION_SOURCE"
-assert_eq "SELECTOR_POLICY" "context-aware-curated-fit-v2" "$MODEL_RECOMMENDATION_POLICY"
+load_selector_env "_selector_env"
+assert_eq "SELECTOR_LLM_MODEL" "qwen3.5-9b" "LLM_MODEL"
+assert_eq "SELECTOR_GGUF_FILE" "Qwen3.5-9B-Q4_K_M.gguf" "GGUF_FILE"
+assert_eq "SELECTOR_SOURCE" "catalog_fit_pre_download" "MODEL_RECOMMENDATION_SOURCE"
+assert_eq "SELECTOR_POLICY" "context-aware-curated-fit-v2" "MODEL_RECOMMENDATION_POLICY"
 echo ""
 
 echo "Catalog selector (32GB Apple unified picks the Pixel-verified 9B at 64K, not phi-4 at 16K):"
-_selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
-    --catalog "$SCRIPT_DIR/config/model-library.json" \
+_selector_env="(python3 "$SCRIPT_DIR/scripts/select-model.py" \
+    --catalog "SCRIPT_DIR/config/model-library.json" \
     --backend metal \
     --memory-type unified \
     --vram-mb 0 \
@@ -376,16 +376,16 @@ _selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
     --installable-only \
     --env)"
 LLM_MODEL="" GGUF_FILE="" MODEL_RECOMMENDATION_SOURCE="" MODEL_RECOMMENDATION_POLICY=""
-load_selector_env "$_selector_env"
-assert_eq "SELECTOR_LLM_MODEL" "qwen3.5-9b" "$LLM_MODEL"
-assert_eq "SELECTOR_GGUF_FILE" "Qwen3.5-9B-Q4_K_M.gguf" "$GGUF_FILE"
-assert_eq "SELECTOR_SOURCE" "catalog_fit_pre_download" "$MODEL_RECOMMENDATION_SOURCE"
-assert_eq "SELECTOR_POLICY" "context-aware-curated-fit-v2" "$MODEL_RECOMMENDATION_POLICY"
+load_selector_env "_selector_env"
+assert_eq "SELECTOR_LLM_MODEL" "qwen3.5-9b" "LLM_MODEL"
+assert_eq "SELECTOR_GGUF_FILE" "Qwen3.5-9B-Q4_K_M.gguf" "GGUF_FILE"
+assert_eq "SELECTOR_SOURCE" "catalog_fit_pre_download" "MODEL_RECOMMENDATION_SOURCE"
+assert_eq "SELECTOR_POLICY" "context-aware-curated-fit-v2" "MODEL_RECOMMENDATION_POLICY"
 echo ""
 
 echo "Catalog selector (--max-size-mb bounds tier 2 on 48GB Apple unified — issue #1881):"
-_selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
-    --catalog "$SCRIPT_DIR/config/model-library.json" \
+_selector_env="(python3 "$SCRIPT_DIR/scripts/select-model.py" \
+    --catalog "SCRIPT_DIR/config/model-library.json" \
     --backend apple \
     --memory-type unified \
     --vram-mb 0 \
@@ -397,18 +397,18 @@ _selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
     --installable-only \
     --env)"
 LLM_MODEL="" GGUF_FILE="" MODEL_RECOMMENDATION_SOURCE="" MODEL_RECOMMENDATION_REASON=""
-load_selector_env "$_selector_env"
-assert_eq "SELECTOR_LLM_MODEL" "qwen3.5-9b" "$LLM_MODEL"
-assert_eq "SELECTOR_GGUF_FILE" "Qwen3.5-9B-Q4_K_M.gguf" "$GGUF_FILE"
-case "$MODEL_RECOMMENDATION_REASON" in
+load_selector_env "_selector_env"
+assert_eq "SELECTOR_LLM_MODEL" "qwen3.5-9b" "LLM_MODEL"
+assert_eq "SELECTOR_GGUF_FILE" "Qwen3.5-9B-Q4_K_M.gguf" "GGUF_FILE"
+case "MODEL_RECOMMENDATION_REASON" in
     *"Bounded by --tier 2's model size ceiling"*) echo "  PASS: SELECTOR_REASON mentions ceiling"; ((PASS++)) ;;
-    *) echo "  FAIL: SELECTOR_REASON missing ceiling note (got '$MODEL_RECOMMENDATION_REASON')"; ((FAIL++)) ;;
+    *) echo "  FAIL: SELECTOR_REASON missing ceiling note (got 'MODEL_RECOMMENDATION_REASON')"; ((FAIL++)) ;;
 esac
 echo ""
 
 echo "Catalog selector (--max-size-mb absent still auto-upgrades; 48GB Apple gets the 35B-A3B MoE):"
-_selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
-    --catalog "$SCRIPT_DIR/config/model-library.json" \
+_selector_env="(python3 "$SCRIPT_DIR/scripts/select-model.py" \
+    --catalog "SCRIPT_DIR/config/model-library.json" \
     --backend apple \
     --memory-type unified \
     --vram-mb 0 \
@@ -419,13 +419,13 @@ _selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
     --installable-only \
     --env)"
 LLM_MODEL="" GGUF_FILE=""
-load_selector_env "$_selector_env"
-assert_eq "SELECTOR_LLM_MODEL" "qwen3.6-35b-a3b" "$LLM_MODEL"
+load_selector_env "_selector_env"
+assert_eq "SELECTOR_LLM_MODEL" "qwen3.6-35b-a3b" "LLM_MODEL"
 echo ""
 
 echo "Catalog selector (tiny --max-size-mb falls back to smallest fitting model, not smallest overall):"
-_selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
-    --catalog "$SCRIPT_DIR/config/model-library.json" \
+_selector_env="(python3 "$SCRIPT_DIR/scripts/select-model.py" \
+    --catalog "SCRIPT_DIR/config/model-library.json" \
     --backend apple \
     --memory-type unified \
     --vram-mb 0 \
@@ -437,13 +437,13 @@ _selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
     --installable-only \
     --env)"
 LLM_MODEL="" GGUF_FILE=""
-load_selector_env "$_selector_env"
-assert_eq "SELECTOR_LLM_MODEL" "qwen3.5-2b" "$LLM_MODEL"
+load_selector_env "_selector_env"
+assert_eq "SELECTOR_LLM_MODEL" "qwen3.5-2b" "LLM_MODEL"
 echo ""
 
 echo "Catalog selector (amd unified SH_COMPACT uses ranked A3B without override):"
-_selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
-    --catalog "$SCRIPT_DIR/config/model-library.json" \
+_selector_env="(python3 "$SCRIPT_DIR/scripts/select-model.py" \
+    --catalog "SCRIPT_DIR/config/model-library.json" \
     --backend amd \
     --memory-type unified \
     --vram-mb 0 \
@@ -454,16 +454,16 @@ _selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
     --installable-only \
     --env)"
 LLM_MODEL="" GGUF_FILE="" MODEL_RECOMMENDATION_SOURCE="" MODEL_RECOMMENDATION_POLICY=""
-load_selector_env "$_selector_env"
-assert_eq "SELECTOR_LLM_MODEL" "qwen3.6-35b-a3b" "$LLM_MODEL"
-assert_eq "SELECTOR_GGUF_FILE" "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf" "$GGUF_FILE"
-assert_eq "SELECTOR_SOURCE" "catalog_fit_pre_download" "$MODEL_RECOMMENDATION_SOURCE"
-assert_eq "SELECTOR_POLICY" "context-aware-curated-fit-v2" "$MODEL_RECOMMENDATION_POLICY"
+load_selector_env "_selector_env"
+assert_eq "SELECTOR_LLM_MODEL" "qwen3.6-35b-a3b" "LLM_MODEL"
+assert_eq "SELECTOR_GGUF_FILE" "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf" "GGUF_FILE"
+assert_eq "SELECTOR_SOURCE" "catalog_fit_pre_download" "MODEL_RECOMMENDATION_SOURCE"
+assert_eq "SELECTOR_POLICY" "context-aware-curated-fit-v2" "MODEL_RECOMMENDATION_POLICY"
 echo ""
 
 echo "Catalog selector (8GB NVIDIA qwen uses the live-proven 64K Q8-KV interactive profile):"
-_selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
-    --catalog "$SCRIPT_DIR/config/model-library.json" \
+_selector_env="(python3 "$SCRIPT_DIR/scripts/select-model.py" \
+    --catalog "SCRIPT_DIR/config/model-library.json" \
     --backend nvidia \
     --memory-type discrete \
     --vram-mb 8188 \
@@ -474,21 +474,21 @@ _selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
     --installable-only \
     --env)"
 LLM_MODEL="" GGUF_FILE="" MAX_CONTEXT="" MODEL_RUNTIME_PROFILE="" LLAMA_ARG_N_CPU_MOE="" LLAMA_ARG_FLASH_ATTN="" LLAMA_ARG_CACHE_TYPE_K="" LLAMA_ARG_CACHE_TYPE_V="" LLAMA_ARG_CHECKPOINT_EVERY_NT=""
-load_selector_env "$_selector_env"
-assert_eq "SELECTOR_LLM_MODEL" "qwen3.5-9b" "$LLM_MODEL"
-assert_eq "SELECTOR_GGUF_FILE" "Qwen3.5-9B-Q4_K_M.gguf" "$GGUF_FILE"
-assert_eq "SELECTOR_CONTEXT" "65536" "$MAX_CONTEXT"
-assert_eq "SELECTOR_RUNTIME_PROFILE" "nvidia-8gb-64k-q8-kv" "$MODEL_RUNTIME_PROFILE"
-assert_eq "SELECTOR_N_CPU_MOE" "" "$LLAMA_ARG_N_CPU_MOE"
-assert_eq "SELECTOR_FLASH_ATTN" "on" "$LLAMA_ARG_FLASH_ATTN"
-assert_eq "SELECTOR_CACHE_K" "q8_0" "$LLAMA_ARG_CACHE_TYPE_K"
-assert_eq "SELECTOR_CACHE_V" "q8_0" "$LLAMA_ARG_CACHE_TYPE_V"
-assert_eq "SELECTOR_CHECKPOINTS" "" "$LLAMA_ARG_CHECKPOINT_EVERY_NT"
+load_selector_env "_selector_env"
+assert_eq "SELECTOR_LLM_MODEL" "qwen3.5-9b" "LLM_MODEL"
+assert_eq "SELECTOR_GGUF_FILE" "Qwen3.5-9B-Q4_K_M.gguf" "GGUF_FILE"
+assert_eq "SELECTOR_CONTEXT" "65536" "MAX_CONTEXT"
+assert_eq "SELECTOR_RUNTIME_PROFILE" "nvidia-8gb-64k-q8-kv" "MODEL_RUNTIME_PROFILE"
+assert_eq "SELECTOR_N_CPU_MOE" "" "LLAMA_ARG_N_CPU_MOE"
+assert_eq "SELECTOR_FLASH_ATTN" "on" "LLAMA_ARG_FLASH_ATTN"
+assert_eq "SELECTOR_CACHE_K" "q8_0" "LLAMA_ARG_CACHE_TYPE_K"
+assert_eq "SELECTOR_CACHE_V" "q8_0" "LLAMA_ARG_CACHE_TYPE_V"
+assert_eq "SELECTOR_CHECKPOINTS" "" "LLAMA_ARG_CHECKPOINT_EVERY_NT"
 echo ""
 
 echo "Catalog selector (8GB NVIDIA gemma uses upstream catalog fit):"
-_selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
-    --catalog "$SCRIPT_DIR/config/model-library.json" \
+_selector_env="(python3 "$SCRIPT_DIR/scripts/select-model.py" \
+    --catalog "SCRIPT_DIR/config/model-library.json" \
     --backend nvidia \
     --memory-type discrete \
     --vram-mb 8188 \
@@ -499,20 +499,20 @@ _selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
     --installable-only \
     --env)"
 LLM_MODEL="" GGUF_FILE="" MAX_CONTEXT="" MODEL_RUNTIME_PROFILE="" LLAMA_ARG_N_CPU_MOE="" LLAMA_ARG_CACHE_TYPE_V=""
-load_selector_env "$_selector_env"
-assert_eq "SELECTOR_LLM_MODEL" "gemma-4-e4b-it" "$LLM_MODEL"
-assert_eq "SELECTOR_GGUF_FILE" "gemma-4-E4B-it-Q4_K_M.gguf" "$GGUF_FILE"
+load_selector_env "_selector_env"
+assert_eq "SELECTOR_LLM_MODEL" "gemma-4-e4b-it" "LLM_MODEL"
+assert_eq "SELECTOR_GGUF_FILE" "gemma-4-E4B-it-Q4_K_M.gguf" "GGUF_FILE"
 # Sliding-window layout: 64K costs ~6.1 GiB (1 GiB of KV), within 8 GB.
-assert_eq "SELECTOR_CONTEXT" "65536" "$MAX_CONTEXT"
-assert_eq "SELECTOR_RUNTIME_PROFILE" "" "$MODEL_RUNTIME_PROFILE"
-assert_eq "SELECTOR_N_CPU_MOE" "" "$LLAMA_ARG_N_CPU_MOE"
-assert_eq "SELECTOR_CACHE_V" "" "$LLAMA_ARG_CACHE_TYPE_V"
+assert_eq "SELECTOR_CONTEXT" "65536" "MAX_CONTEXT"
+assert_eq "SELECTOR_RUNTIME_PROFILE" "" "MODEL_RUNTIME_PROFILE"
+assert_eq "SELECTOR_N_CPU_MOE" "" "LLAMA_ARG_N_CPU_MOE"
+assert_eq "SELECTOR_CACHE_V" "" "LLAMA_ARG_CACHE_TYPE_V"
 echo ""
 
 echo "Catalog selector excludes Hugging Face imports from a mixed catalog:"
-_selector_catalog="$(mktemp)"
-trap 'rm -f "$_selector_catalog"' EXIT
-python3 - "$_selector_catalog" <<'PY'
+_selector_catalog="(mktemp)"
+trap 'rm -f "_selector_catalog"' EXIT
+python3 - "_selector_catalog" <<'PY'
 import json
 import sys
 
@@ -542,8 +542,8 @@ models = [
 with open(sys.argv[1], "w", encoding="utf-8") as handle:
     json.dump({"models": models}, handle)
 PY
-_selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
-    --catalog "$_selector_catalog" \
+_selector_env="(python3 "$SCRIPT_DIR/scripts/select-model.py" \
+    --catalog "_selector_catalog" \
     --backend nvidia \
     --memory-type discrete \
     --vram-mb 8192 \
@@ -553,14 +553,14 @@ _selector_env="$(python3 "$SCRIPT_DIR/scripts/select-model.py" \
     --host-arch amd64 \
     --installable-only \
     --env)"
-rm -f "$_selector_catalog"
+rm -f "_selector_catalog"
 trap - EXIT
 LLM_MODEL="" GGUF_FILE=""
-load_selector_env "$_selector_env"
-assert_eq "SELECTOR_CURATED_SOURCE" "curated-model" "$LLM_MODEL"
+load_selector_env "_selector_env"
+assert_eq "SELECTOR_CURATED_SOURCE" "curated-model" "LLM_MODEL"
 echo ""
 
-if python3 "$SCRIPT_DIR/tests/test-gemma4-artifact-pins.py"; then
+if python3 "SCRIPT_DIR/tests/test-gemma4-artifact-pins.py"; then
     ((PASS++))
 else
     ((FAIL++))
@@ -569,7 +569,7 @@ echo ""
 
 # --- Summary ---
 echo "==============================="
-echo "Results: $PASS passed, $FAIL failed"
+echo "Results: PASS passed, $FAIL failed"
 echo "==============================="
 
-[[ $FAIL -eq 0 ]] && exit 0 || exit 1
+[[ FAIL -eq 0 ]] && exit 0 || exit 1

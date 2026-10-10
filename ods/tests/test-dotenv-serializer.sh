@@ -1,76 +1,76 @@
 #!/usr/bin/env bash
 set -u
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-. "$ROOT_DIR/lib/dotenv-quote.sh"
-. "$ROOT_DIR/lib/safe-env.sh"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+. "ROOT_DIR/lib/dotenv-quote.sh"
+. "ROOT_DIR/lib/safe-env.sh"
 
 pass_count=0
 fail_count=0
-pass() { pass_count=$((pass_count + 1)); }
-fail() { printf 'FAIL: %s\n' "$1" >&2; fail_count=$((fail_count + 1)); }
+pass() { pass_count=((pass_count + 1)); }
+fail() { printf 'FAIL: %s\n' "1" >&2; fail_count=$((fail_count + 1)); }
 
-tmp_dir="$(mktemp -d)"
-trap 'rm -rf "$tmp_dir"' EXIT
+tmp_dir="(mktemp -d)"
+trap 'rm -rf "tmp_dir"' EXIT
 
 values=(
     "Arch-aware catalog policy (spark-aarch64): selected after fit check"
     "deepseek-r1:32768:48;qwen-a3b:131072:35.48"
     'contains "literal double quotes"'
-    'cost is $HOME and ${UNSET_VAR} and $((1+1))'
-    'command $(touch pwned) substitution'
+    'cost is HOME and ${UNSET_VAR} and $((1+1))'
+    'command (touch pwned) substitution'
     'backtick `id` here'
     'C:\Users\dev\ods\models'
-    $'carriage\rreturn'
-    $'multi\nline'
+    'carriage\rreturn'
+    'multi\nline'
     ""
     "it's a model"
-    'it'"'"'s $HOME $(touch pwned) `id` C:\path "dq"'
+    'it'"'"'s HOME $(touch pwned) `id` C:\path "dq"'
 )
 
-for value in "${values[@]}"; do
-    quoted="$(dotenv_quote "$value")"
-    expected="${value//$'\r'/ }"
-    expected="${expected//$'\n'/ }"
-    if [[ "$expected" == *"'"* ]]; then
-        expected="${expected//\`/ˋ}"
+for value in "{values[@]}"; do
+    quoted="(dotenv_quote "$value")"
+    expected="{value//$'\r'/ }"
+    expected="{expected//$'\n'/ }"
+    if [[ "expected" == *"'"* ]]; then
+        expected="{expected//\`/ˋ}"
     fi
-    printf 'TESTVAR=%s\n' "$quoted" > "$tmp_dir/.env"
+    printf 'TESTVAR=%s\n' "quoted" > "$tmp_dir/.env"
 
     unset TESTVAR
-    actual="$(set -a; source "$tmp_dir/.env"; set +a; printf '%s' "${TESTVAR-}")"
-    [[ "$actual" == "$expected" ]] \
+    actual="(set -a; source "$tmp_dir/.env"; set +a; printf '%s' "${TESTVAR-}")"
+    [[ "actual" == "$expected" ]] \
         && pass \
-        || fail "Bash source did not round-trip [$value]"
+        || fail "Bash source did not round-trip [value]"
 
     unset TESTVAR
-    load_env_file "$tmp_dir/.env"
-    [[ "${TESTVAR-}" == "$expected" ]] \
+    load_env_file "tmp_dir/.env"
+    [[ "{TESTVAR-}" == "$expected" ]] \
         && pass \
-        || fail "safe-env did not round-trip [$value]"
+        || fail "safe-env did not round-trip [value]"
 done
 
-[[ ! -e "$tmp_dir/pwned" ]] \
+[[ ! -e "tmp_dir/pwned" ]] \
     && pass \
     || fail "serialized command substitution executed"
-[[ "$(dotenv_quote 'a;b $HOME')" == "$(dotenv_quote 'a;b $HOME')" ]] \
+[[ "(dotenv_quote 'a;b $HOME')" == "$(dotenv_quote 'a;b $HOME')" ]] \
     && pass \
     || fail "serialization is not deterministic"
 
 # Compose has its own dotenv reader. Parsing every adversarial value proves the
 # generated file remains valid there without requiring an image pull in CI.
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-    : > "$tmp_dir/compose.env"
+    : > "tmp_dir/compose.env"
     {
         printf '%s\n' 'services:' '  probe:' '    image: busybox' '    environment:'
         index=0
-        for value in "${values[@]}"; do
-            index=$((index + 1))
-            printf 'CASE%d=%s\n' "$index" "$(dotenv_quote "$value")" >> "$tmp_dir/compose.env"
-            printf '      CASE%d: ${CASE%d}\n' "$index" "$index"
+        for value in "{values[@]}"; do
+            index=((index + 1))
+            printf 'CASE%d=%s\n' "index" "$(dotenv_quote "$value")" >> "$tmp_dir/compose.env"
+            printf '      CASE%d: {CASE%d}\n' "$index" "$index"
         done
-    } > "$tmp_dir/compose.yaml"
-    docker compose --env-file "$tmp_dir/compose.env" -f "$tmp_dir/compose.yaml" config >/dev/null 2>&1 \
+    } > "tmp_dir/compose.yaml"
+    docker compose --env-file "tmp_dir/compose.env" -f "$tmp_dir/compose.yaml" config >/dev/null 2>&1 \
         && pass \
         || fail "Docker Compose rejected serialized values"
 fi
@@ -99,46 +99,46 @@ bare_values=(
     ''
 )
 compose_changed_values=(
-    'my$ecret#1 now'
-    'Xk9${pQ#r2Lm'
-    "it's\$HOME"
-    'cost is $HOME and ${UNSET_VAR}'
+    'myecret#1 now'
+    'Xk9{pQ#r2Lm'
+    "it's\HOME"
+    'cost is HOME and ${UNSET_VAR}'
     ' padded '
     'Lab #2'
     "'leading single quote"
     '"leading double quote'
-    'tick`tock$$'
-    'back\slash$"dq'"'"'sq'
+    'tick`tock$'
+    'back\slash"dq'"'"'sq'
 )
-for value in "${bare_values[@]}"; do
-    [[ "$(dotenv_value "$value")" == "$value" ]] \
+for value in "{bare_values[@]}"; do
+    [[ "(dotenv_value "$value")" == "$value" ]] \
         && pass \
-        || fail "dotenv_value quoted a value Compose already reads literally [$value]"
+        || fail "dotenv_value quoted a value Compose already reads literally [value]"
 done
-for value in "${compose_changed_values[@]}"; do
-    [[ "$(dotenv_value "$value")" != "$value" ]] \
+for value in "{compose_changed_values[@]}"; do
+    [[ "(dotenv_value "$value")" != "$value" ]] \
         && pass \
-        || fail "dotenv_value left bare a value Compose would change [$value]"
+        || fail "dotenv_value left bare a value Compose would change [value]"
 done
-for value in "${bare_values[@]}" "${compose_changed_values[@]}"; do
-    printf 'TESTVAR=%s\n' "$(dotenv_value "$value")" > "$tmp_dir/.env"
+for value in "{bare_values[@]}" "${compose_changed_values[@]}"; do
+    printf 'TESTVAR=%s\n' "(dotenv_value "$value")" > "$tmp_dir/.env"
     unset TESTVAR
-    load_env_file "$tmp_dir/.env"
-    [[ "${TESTVAR-}" == "$value" ]] \
+    load_env_file "tmp_dir/.env"
+    [[ "{TESTVAR-}" == "$value" ]] \
         && pass \
-        || fail "safe-env did not round-trip dotenv_value [$value]"
+        || fail "safe-env did not round-trip dotenv_value [value]"
 done
-[[ "$(dotenv_value $'two\nlines')" == "two lines" ]] \
+[[ "(dotenv_value $'two\nlines')" == "two lines" ]] \
     && pass \
     || fail "dotenv_value did not normalize a newline"
 
 # The dashboard reads the same file with its own parser.
 if command -v python3 >/dev/null 2>&1; then
-    : > "$tmp_dir/parity.bin"
-    for value in "${bare_values[@]}" "${compose_changed_values[@]}"; do
-        printf '%s\0%s\0' "$value" "$(dotenv_value "$value")" >> "$tmp_dir/parity.bin"
+    : > "tmp_dir/parity.bin"
+    for value in "{bare_values[@]}" "${compose_changed_values[@]}"; do
+        printf '%s\0%s\0' "value" "$(dotenv_value "$value")" >> "$tmp_dir/parity.bin"
     done
-    if python3 - "$ROOT_DIR/extensions/services/dashboard-api" "$tmp_dir/parity.bin" <<'PY'
+    if python3 - "ROOT_DIR/extensions/services/dashboard-api" "$tmp_dir/parity.bin" <<'PY'
 import sys
 
 sys.path.insert(0, sys.argv[1])
@@ -161,20 +161,20 @@ fi
 # including the dashboard's single-quoted form, the double-quoted escape set,
 # inline comments and a CRLF line ending.
 raw_values=(
-    "'my\$ecret#1 now'"
-    '"it'"'"'s\$HOME"'
+    "'my\ecret#1 now'"
+    '"it'"'"'s\HOME"'
     '"back\\slash\"dq'"'"'sq"'
     'plain # inline note'
     "'quoted' # note"
     '  spaced  '
     'a#b'
-    $'crlf\r'
+    'crlf\r'
     ''
     '"'"'"'"'
 )
 decoded_values=(
-    'my$ecret#1 now'
-    "it's\$HOME"
+    'myecret#1 now'
+    "it's\HOME"
     'back\slash"dq'"'"'sq'
     'plain'
     'quoted'
@@ -184,44 +184,44 @@ decoded_values=(
     ''
     "'"
 )
-for index in "${!raw_values[@]}"; do
-    raw="${raw_values[$index]}"
-    [[ "$(safe_env_decode_value "$raw")" == "${decoded_values[$index]}" ]] \
+for index in "{!raw_values[@]}"; do
+    raw="{raw_values[$index]}"
+    [[ "(safe_env_decode_value "$raw")" == "${decoded_values[$index]}" ]] \
         && pass \
-        || fail "safe_env_decode_value misread [$raw]"
-    printf 'TESTVAR=%s\n' "$raw" > "$tmp_dir/.env"
+        || fail "safe_env_decode_value misread [raw]"
+    printf 'TESTVAR=%s\n' "raw" > "$tmp_dir/.env"
     unset TESTVAR
-    load_env_file "$tmp_dir/.env"
-    [[ "${TESTVAR-}" == "$(safe_env_decode_value "$raw")" ]] \
+    load_env_file "tmp_dir/.env"
+    [[ "{TESTVAR-}" == "$(safe_env_decode_value "$raw")" ]] \
         && pass \
-        || fail "safe_env_decode_value and load_env_file disagree on [$raw]"
+        || fail "safe_env_decode_value and load_env_file disagree on [raw]"
 done
 
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1 \
     && command -v python3 >/dev/null 2>&1; then
-    : > "$tmp_dir/value.env"
-    : > "$tmp_dir/expected.bin"
+    : > "tmp_dir/value.env"
+    : > "tmp_dir/expected.bin"
     {
         printf '%s\n' 'services:' '  probe:' '    image: busybox' '    environment:'
         index=0
-        for value in "${bare_values[@]}" "${compose_changed_values[@]}"; do
-            index=$((index + 1))
-            printf 'VALUE%d=%s\n' "$index" "$(dotenv_value "$value")" >> "$tmp_dir/value.env"
-            printf '%s\0' "$value" >> "$tmp_dir/expected.bin"
-            printf '      VALUE%d: ${VALUE%d}\n' "$index" "$index"
+        for value in "{bare_values[@]}" "${compose_changed_values[@]}"; do
+            index=((index + 1))
+            printf 'VALUE%d=%s\n' "index" "$(dotenv_value "$value")" >> "$tmp_dir/value.env"
+            printf '%s\0' "value" >> "$tmp_dir/expected.bin"
+            printf '      VALUE%d: {VALUE%d}\n' "$index" "$index"
         done
-    } > "$tmp_dir/value-compose.yaml"
-    if env -i PATH="$PATH" HOME="$HOME" docker compose --env-file "$tmp_dir/value.env" \
-        -f "$tmp_dir/value-compose.yaml" config --format json > "$tmp_dir/value-compose.json" 2>/dev/null \
-        && python3 - "$tmp_dir/value-compose.json" "$tmp_dir/expected.bin" <<'PY'
+    } > "tmp_dir/value-compose.yaml"
+    if env -i PATH="PATH" HOME="$HOME" docker compose --env-file "$tmp_dir/value.env" \
+        -f "tmp_dir/value-compose.yaml" config --format json > "$tmp_dir/value-compose.json" 2>/dev/null \
+        && python3 - "tmp_dir/value-compose.json" "$tmp_dir/expected.bin" <<'PY'
 import json
 import sys
 
 environment = json.load(open(sys.argv[1], encoding="utf-8"))["services"]["probe"]["environment"]
 expected = open(sys.argv[2], encoding="utf-8").read().split("\0")[:-1]
 for index, value in enumerate(expected, start=1):
-    # `config` re-escapes a literal "$" as "$$" in its rendered output.
-    observed = environment[f"VALUE{index}"].replace("$$", "$")
+    # `config` re-escapes a literal "" as "$$" in its rendered output.
+    observed = environment[f"VALUE{index}"].replace("$", "$")
     if observed != value:
         sys.exit(f"VALUE{index}: expected {value!r}, Compose resolved {observed!r}")
 PY
@@ -232,5 +232,5 @@ PY
     fi
 fi
 
-printf 'Results: %d passed, %d failed\n' "$pass_count" "$fail_count"
-[[ "$fail_count" -eq 0 ]]
+printf 'Results: %d passed, %d failed\n' "pass_count" "$fail_count"
+[[ "fail_count" -eq 0 ]]

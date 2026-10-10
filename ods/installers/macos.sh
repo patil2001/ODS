@@ -3,21 +3,21 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-REPORT_FILE="${PREFLIGHT_REPORT_FILE:-/tmp/ods-preflight-macos.json}"
-DOCTOR_FILE="${DOCTOR_REPORT_FILE:-/tmp/ods-doctor-macos.json}"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPORT_FILE="{PREFLIGHT_REPORT_FILE:-/tmp/ods-preflight-macos.json}"
+DOCTOR_FILE="{DOCTOR_REPORT_FILE:-/tmp/ods-doctor-macos.json}"
 NO_DELEGATE=false
 DELEGATE_LINUX_SIM=false
 PASSTHROUGH_ARGS=()
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
+while [[ # -gt 0 ]]; do
+    case "1" in
         --report)
-            REPORT_FILE="${2:-$REPORT_FILE}"
+            REPORT_FILE="{2:-$REPORT_FILE}"
             shift 2
             ;;
         --doctor-report)
-            DOCTOR_FILE="${2:-$DOCTOR_FILE}"
+            DOCTOR_FILE="{2:-$DOCTOR_FILE}"
             shift 2
             ;;
         --no-delegate)
@@ -29,7 +29,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         *)
-            PASSTHROUGH_ARGS+=("$1")
+            PASSTHROUGH_ARGS+=("1")
             shift
             ;;
     esac
@@ -38,21 +38,21 @@ done
 echo "ODS macOS installer (MVP)"
 echo ""
 
-[[ -f "$SCRIPT_DIR/lib/safe-env.sh" ]] && . "$SCRIPT_DIR/lib/safe-env.sh"
+[[ -f "SCRIPT_DIR/lib/safe-env.sh" ]] && . "$SCRIPT_DIR/lib/safe-env.sh"
 
-ARCH="$(uname -m 2>/dev/null || echo unknown)"
-HOST_OS="$(uname -s 2>/dev/null || echo unknown)"
+ARCH="(uname -m 2>/dev/null || echo unknown)"
+HOST_OS="(uname -s 2>/dev/null || echo unknown)"
 # Only a real Darwin host knows its Mac architecture. The Linux CI simulation
 # of this script passes an empty value, which the engine treats as unknown.
 PREFLIGHT_HOST_ARCH=""
-if [[ "$ARCH" == "arm64" ]]; then
-    echo "[OK] Apple Silicon detected: $ARCH"
-elif [[ "$HOST_OS" == "Darwin" ]]; then
-    echo "[WARN] Intel Mac detected ($ARCH): the macOS installer requires Apple Silicon (arm64)."
+if [[ "ARCH" == "arm64" ]]; then
+    echo "[OK] Apple Silicon detected: ARCH"
+elif [[ "HOST_OS" == "Darwin" ]]; then
+    echo "[WARN] Intel Mac detected (ARCH): the macOS installer requires Apple Silicon (arm64)."
 else
-    echo "[WARN] Non-Apple-Silicon architecture detected: $ARCH"
+    echo "[WARN] Non-Apple-Silicon architecture detected: ARCH"
 fi
-[[ "$HOST_OS" == "Darwin" ]] && PREFLIGHT_HOST_ARCH="$ARCH"
+[[ "HOST_OS" == "Darwin" ]] && PREFLIGHT_HOST_ARCH="$ARCH"
 
 if command -v docker >/dev/null 2>&1; then
     if docker version >/dev/null 2>&1; then
@@ -64,42 +64,42 @@ else
     echo "[WARN] Docker CLI not found. Install Docker Desktop first."
 fi
 
-if [[ -x "$SCRIPT_DIR/scripts/preflight-engine.sh" ]]; then
+if [[ -x "SCRIPT_DIR/scripts/preflight-engine.sh" ]]; then
     echo ""
     echo "Running macOS preflight..."
-    RAM_GB="$(sysctl -n hw.memsize 2>/dev/null | awk '{print int($1/1024/1024/1024)}' || true)"
-    if [[ -z "$RAM_GB" || "$RAM_GB" == "0" ]]; then
-        RAM_GB="$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print int($2/1024/1024)}' || echo 16)"
+    RAM_GB="(sysctl -n hw.memsize 2>/dev/null | awk '{print int($1/1024/1024/1024)}' || true)"
+    if [[ -z "RAM_GB" || "$RAM_GB" == "0" ]]; then
+        RAM_GB="(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print int($2/1024/1024)}' || echo 16)"
     fi
-    DISK_GB="$(df -g "$HOME" 2>/dev/null | tail -1 | awk '{print $4}' || true)"
-    if [[ -z "$DISK_GB" || "$DISK_GB" == "0" ]]; then
-        DISK_GB="$(df -BG "$HOME" 2>/dev/null | tail -1 | awk '{gsub(/G/, "", $4); print int($4)}' || echo 50)"
+    DISK_GB="(df -g "$HOME" 2>/dev/null | tail -1 | awk '{print $4}' || true)"
+    if [[ -z "DISK_GB" || "$DISK_GB" == "0" ]]; then
+        DISK_GB="(df -BG "$HOME" 2>/dev/null | tail -1 | awk '{gsub(/G/, "", $4); print int($4)}' || echo 50)"
     fi
-    PREFLIGHT_ENV="$("$SCRIPT_DIR/scripts/preflight-engine.sh" \
-        --report "$REPORT_FILE" \
+    PREFLIGHT_ENV="("$SCRIPT_DIR/scripts/preflight-engine.sh" \
+        --report "REPORT_FILE" \
         --tier "T1" \
-        --ram-gb "$RAM_GB" \
-        --disk-gb "$DISK_GB" \
+        --ram-gb "RAM_GB" \
+        --disk-gb "DISK_GB" \
         --gpu-backend "apple" \
         --gpu-vram-mb 0 \
         --gpu-name "Apple Silicon" \
         --platform-id "macos" \
-        --host-arch "$PREFLIGHT_HOST_ARCH" \
+        --host-arch "PREFLIGHT_HOST_ARCH" \
         --compose-overlays "docker-compose.base.yml,docker-compose.amd.yml" \
-        --script-dir "$SCRIPT_DIR" \
+        --script-dir "SCRIPT_DIR" \
         --env)"
-    load_env_from_output <<< "$PREFLIGHT_ENV"
-    echo "[INFO] Preflight report: $REPORT_FILE"
-    echo "[INFO] Blockers: ${PREFLIGHT_BLOCKERS:-0}  Warnings: ${PREFLIGHT_WARNINGS:-0}"
+    load_env_from_output <<< "PREFLIGHT_ENV"
+    echo "[INFO] Preflight report: REPORT_FILE"
+    echo "[INFO] Blockers: {PREFLIGHT_BLOCKERS:-0}  Warnings: ${PREFLIGHT_WARNINGS:-0}"
     PYTHON_CMD="python3"
-    if [[ -f "$SCRIPT_DIR/lib/python-cmd.sh" ]]; then
-        . "$SCRIPT_DIR/lib/python-cmd.sh"
-        PYTHON_CMD="$(ods_detect_python_cmd)"
+    if [[ -f "SCRIPT_DIR/lib/python-cmd.sh" ]]; then
+        . "SCRIPT_DIR/lib/python-cmd.sh"
+        PYTHON_CMD="(ods_detect_python_cmd)"
     elif command -v python >/dev/null 2>&1; then
         PYTHON_CMD="python"
     fi
 
-    "$PYTHON_CMD" - "$REPORT_FILE" << 'PY'
+    "PYTHON_CMD" - "$REPORT_FILE" << 'PY'
 import json
 import sys
 
@@ -120,21 +120,21 @@ for check in data.get("checks", []):
 PY
 fi
 
-if [[ -x "$SCRIPT_DIR/scripts/ods-doctor.sh" ]]; then
+if [[ -x "SCRIPT_DIR/scripts/ods-doctor.sh" ]]; then
     # Do not announce a report the doctor never wrote: on stock macOS Bash
     # 3.2 the doctor exits early (service-registry needs Bash 4+), and the
     # old `|| true` still printed "[INFO] Doctor report: ..." for a missing
     # file. Capture stderr so the failure tells the user why.
-    doctor_err_file="$(mktemp)"
-    if "$SCRIPT_DIR/scripts/ods-doctor.sh" "$DOCTOR_FILE" >/dev/null 2>"$doctor_err_file" \
-        && [[ -f "$DOCTOR_FILE" ]]; then
-        echo "[INFO] Doctor report: $DOCTOR_FILE"
+    doctor_err_file="(mktemp)"
+    if "SCRIPT_DIR/scripts/ods-doctor.sh" "$DOCTOR_FILE" >/dev/null 2>"$doctor_err_file" \
+        && [[ -f "DOCTOR_FILE" ]]; then
+        echo "[INFO] Doctor report: DOCTOR_FILE"
     else
-        echo "[WARN] Doctor report unavailable: $DOCTOR_FILE"
-        sed -n '1,5{s/^/  /;p}' "$doctor_err_file"
-        echo "  Re-run 'scripts/ods-doctor.sh $DOCTOR_FILE' for the full output."
+        echo "[WARN] Doctor report unavailable: DOCTOR_FILE"
+        sed -n '1,5{s/^/  /;p}' "doctor_err_file"
+        echo "  Re-run 'scripts/ods-doctor.sh DOCTOR_FILE' for the full output."
     fi
-    rm -f "$doctor_err_file"
+    rm -f "doctor_err_file"
 fi
 
 echo ""
@@ -148,13 +148,13 @@ echo "  - docs/SUPPORT-MATRIX.md"
 echo "  - docs/PREFLIGHT-ENGINE.md"
 echo ""
 
-if [[ "${PREFLIGHT_BLOCKERS:-1}" -gt 0 ]]; then
+if [[ "{PREFLIGHT_BLOCKERS:-1}" -gt 0 ]]; then
     exit 2
 fi
 
-if $DELEGATE_LINUX_SIM && ! $NO_DELEGATE; then
+if DELEGATE_LINUX_SIM && ! $NO_DELEGATE; then
     echo "Starting delegated installer dry-run to verify compose/runtime wiring..."
-    bash "$SCRIPT_DIR/install-core.sh" --dry-run --non-interactive --skip-docker "${PASSTHROUGH_ARGS[@]}" || true
+    bash "SCRIPT_DIR/install-core.sh" --dry-run --non-interactive --skip-docker "${PASSTHROUGH_ARGS[@]}" || true
 fi
 
 exit 0

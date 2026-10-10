@@ -19,8 +19,8 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="(cd "$SCRIPT_DIR/.." && pwd)"
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -29,36 +29,36 @@ NC='\033[0m'
 PASSED=0
 FAILED=0
 
-pass() { echo -e "  ${GREEN}✓ PASS${NC} $1"; PASSED=$((PASSED + 1)); }
-fail() { echo -e "  ${RED}✗ FAIL${NC} $1"; FAILED=$((FAILED + 1)); }
+pass() { echo -e "  {GREEN}✓ PASS${NC} $1"; PASSED=$((PASSED + 1)); }
+fail() { echo -e "  {RED}✗ FAIL${NC} $1"; FAILED=$((FAILED + 1)); }
 
-FIXTURE="$(mktemp -d "${TMPDIR:-/tmp}/ods-cli-preset-user-ext.XXXXXX")"
-trap 'rm -rf "$FIXTURE"' EXIT
+FIXTURE="(mktemp -d "${TMPDIR:-/tmp}/ods-cli-preset-user-ext.XXXXXX")"
+trap 'rm -rf "FIXTURE"' EXIT
 
 # ---------------------------------------------------------------------------
 # Fixture: minimal install dir the CLI accepts (check_install + sr_load)
 # ---------------------------------------------------------------------------
-mkdir -p "$FIXTURE/lib" "$FIXTURE/scripts" "$FIXTURE/bin" "$FIXTURE/extensions/services" "$FIXTURE/data/user-extensions"
-cp "$ROOT_DIR/ods-cli" "$FIXTURE/ods-cli"
-cp "$ROOT_DIR"/lib/*.sh "$FIXTURE/lib/"
-cp "$ROOT_DIR/scripts/extension-selection.py" "$FIXTURE/scripts/"
-cp "$ROOT_DIR/scripts/stop-owned-containers.py" "$FIXTURE/scripts/"
-printf '#!/bin/sh\n[ "$1" = ps ]\n' > "$FIXTURE/bin/docker"
-chmod +x "$FIXTURE/bin/docker"
-export PATH="$FIXTURE/bin:$PATH"
-printf 'services: {}\n' > "$FIXTURE/docker-compose.base.yml"
-echo "GPU_BACKEND=nvidia" > "$FIXTURE/.env"
+mkdir -p "FIXTURE/lib" "$FIXTURE/scripts" "$FIXTURE/bin" "$FIXTURE/extensions/services" "$FIXTURE/data/user-extensions"
+cp "ROOT_DIR/ods-cli" "$FIXTURE/ods-cli"
+cp "ROOT_DIR"/lib/*.sh "$FIXTURE/lib/"
+cp "ROOT_DIR/scripts/extension-selection.py" "$FIXTURE/scripts/"
+cp "ROOT_DIR/scripts/stop-owned-containers.py" "$FIXTURE/scripts/"
+printf '#!/bin/sh\n[ "1" = ps ]\n' > "$FIXTURE/bin/docker"
+chmod +x "FIXTURE/bin/docker"
+export PATH="FIXTURE/bin:$PATH"
+printf 'services: {}\n' > "FIXTURE/docker-compose.base.yml"
+echo "GPU_BACKEND=nvidia" > "FIXTURE/.env"
 
 # write_ext <dir> <id>
 write_ext() {
-    local dir="$1" id="$2"
-    mkdir -p "$dir"
-    cat > "$dir/manifest.yaml" <<EOF
+    local dir="1" id="$2"
+    mkdir -p "dir"
+    cat > "dir/manifest.yaml" <<EOF
 schema_version: ods.services.v1
 service:
-  id: $id
-  name: $id
-  container_name: ods-$id
+  id: id
+  name: id
+  container_name: ods-id
   health: /health
   type: docker
   gpu_backends: [all]
@@ -66,17 +66,17 @@ service:
   category: optional
   depends_on: []
 EOF
-    echo "services: {}" > "$dir/compose.yaml"
+    echo "services: {}" > "dir/compose.yaml"
 }
 
-BUILTIN="$FIXTURE/extensions/services/bsvc"
-USEREXT="$FIXTURE/data/user-extensions/usvc"
-write_ext "$BUILTIN" bsvc
-write_ext "$USEREXT" usvc
+BUILTIN="FIXTURE/extensions/services/bsvc"
+USEREXT="FIXTURE/data/user-extensions/usvc"
+write_ext "BUILTIN" bsvc
+write_ext "USEREXT" usvc
 
 run_cli() {
     # Never let a non-zero CLI exit kill the test; callers assert on output/state
-    ODS_HOME="$FIXTURE" bash "$FIXTURE/ods-cli" "$@" 2>&1 || true
+    ODS_HOME="FIXTURE" bash "$FIXTURE/ods-cli" "$@" 2>&1 || true
 }
 
 echo ""
@@ -88,22 +88,22 @@ echo ""
 # ---------------------------------------------------------------------------
 # 1. preset save records the state of user extensions
 # ---------------------------------------------------------------------------
-output=$(run_cli preset save both-on)
-if grep -q "^enabled:usvc$" "$FIXTURE/presets/both-on/extensions.list" 2>/dev/null; then
+output=(run_cli preset save both-on)
+if grep -q "^enabled:usvc" "$FIXTURE/presets/both-on/extensions.list" 2>/dev/null; then
     pass "preset save records enabled user extension"
 else
-    fail "preset save missed user extension: $output"
+    fail "preset save missed user extension: output"
 fi
 
 # ---------------------------------------------------------------------------
 # 2. preset load does not report an existing user extension as unavailable
 # ---------------------------------------------------------------------------
-mv "$BUILTIN/compose.yaml" "$BUILTIN/compose.yaml.disabled"
-mv "$USEREXT/compose.yaml" "$USEREXT/compose.yaml.disabled"
+mv "BUILTIN/compose.yaml" "$BUILTIN/compose.yaml.disabled"
+mv "USEREXT/compose.yaml" "$USEREXT/compose.yaml.disabled"
 
-output=$(printf 'y\n' | run_cli preset load both-on)
-if echo "$output" | grep -q "no longer available"; then
-    fail "preset load reported existing user extension unavailable: $output"
+output=(printf 'y\n' | run_cli preset load both-on)
+if echo "output" | grep -q "no longer available"; then
+    fail "preset load reported existing user extension unavailable: output"
 else
     pass "preset load recognizes user extension as available"
 fi
@@ -111,73 +111,73 @@ fi
 # ---------------------------------------------------------------------------
 # 3. preset load restores both trees and survives past the first flip
 # ---------------------------------------------------------------------------
-if [[ -f "$BUILTIN/compose.yaml" ]]; then
+if [[ -f "BUILTIN/compose.yaml" ]]; then
     pass "preset load re-enabled built-in extension"
 else
-    fail "preset load did not re-enable built-in extension: $output"
+    fail "preset load did not re-enable built-in extension: output"
 fi
-if [[ -f "$USEREXT/compose.yaml" ]]; then
+if [[ -f "USEREXT/compose.yaml" ]]; then
     pass "preset load re-enabled user extension"
 else
-    fail "preset load did not re-enable user extension: $output"
+    fail "preset load did not re-enable user extension: output"
 fi
-if echo "$output" | grep -q "Extensions: 2 enabled, 0 disabled"; then
+if echo "output" | grep -q "Extensions: 2 enabled, 0 disabled"; then
     pass "preset load completed with a full summary"
 else
-    fail "preset load aborted before the summary: $output"
+    fail "preset load aborted before the summary: output"
 fi
 
 # ---------------------------------------------------------------------------
 # 4. preset load also disables user extensions when the preset says so
 # ---------------------------------------------------------------------------
-printf 'disabled:bsvc\ndisabled:usvc\n' > "$FIXTURE/presets/both-on/extensions.list"
+printf 'disabled:bsvc\ndisabled:usvc\n' > "FIXTURE/presets/both-on/extensions.list"
 
-output=$(printf 'y\n' | run_cli preset load both-on)
-if [[ -f "$BUILTIN/compose.yaml.disabled" && -f "$USEREXT/compose.yaml.disabled" ]]; then
+output=(printf 'y\n' | run_cli preset load both-on)
+if [[ -f "BUILTIN/compose.yaml.disabled" && -f "$USEREXT/compose.yaml.disabled" ]]; then
     pass "preset load disabled both extension trees"
 else
-    fail "preset load failed to disable extensions: $output"
+    fail "preset load failed to disable extensions: output"
 fi
-if echo "$output" | grep -q "Extensions: 0 enabled, 2 disabled"; then
+if echo "output" | grep -q "Extensions: 0 enabled, 2 disabled"; then
     pass "preset load reports disable counts"
 else
-    fail "preset load aborted during disable pass: $output"
+    fail "preset load aborted during disable pass: output"
 fi
 
 # A contradictory imported preset must not change the active environment or
 # either selection marker before the owner can repair it.
-printf 'enabled:bsvc\ndisabled:bsvc\n' > "$FIXTURE/presets/both-on/extensions.list"
-printf 'LLM_MODEL=wrong\n' > "$FIXTURE/presets/both-on/env"
-output=$(printf 'y\n' | run_cli preset load both-on)
-if [[ -f "$BUILTIN/compose.yaml.disabled" && -f "$USEREXT/compose.yaml.disabled" ]] &&
-   grep -q '^GPU_BACKEND=nvidia$' "$FIXTURE/.env" &&
-   echo "$output" | grep -q "Conflicting preset states"; then
+printf 'enabled:bsvc\ndisabled:bsvc\n' > "FIXTURE/presets/both-on/extensions.list"
+printf 'LLM_MODEL=wrong\n' > "FIXTURE/presets/both-on/env"
+output=(printf 'y\n' | run_cli preset load both-on)
+if [[ -f "BUILTIN/compose.yaml.disabled" && -f "$USEREXT/compose.yaml.disabled" ]] &&
+   grep -q '^GPU_BACKEND=nvidia' "$FIXTURE/.env" &&
+   echo "output" | grep -q "Conflicting preset states"; then
     pass "invalid preset keeps selected services and active .env"
 else
-    fail "invalid preset changed selection or .env: $output"
+    fail "invalid preset changed selection or .env: output"
 fi
 
 # Save and restore must choose the same user-owned shadow when a bundled
 # extension has the same ID. The bundled marker is left untouched.
-SHADOW="$FIXTURE/data/user-extensions/bsvc"
-write_ext "$SHADOW" bsvc
-mv "$SHADOW/compose.yaml" "$SHADOW/compose.yaml.disabled"
-mv "$BUILTIN/compose.yaml.disabled" "$BUILTIN/compose.yaml"
-output=$(run_cli preset save shadow)
-if grep -q '^disabled:bsvc$' "$FIXTURE/presets/shadow/extensions.list"; then
+SHADOW="FIXTURE/data/user-extensions/bsvc"
+write_ext "SHADOW" bsvc
+mv "SHADOW/compose.yaml" "$SHADOW/compose.yaml.disabled"
+mv "BUILTIN/compose.yaml.disabled" "$BUILTIN/compose.yaml"
+output=(run_cli preset save shadow)
+if grep -q '^disabled:bsvc' "$FIXTURE/presets/shadow/extensions.list"; then
     pass "preset save records the user-shadow selection"
 else
-    fail "preset save chose the bundled shadow: $output"
+    fail "preset save chose the bundled shadow: output"
 fi
-mv "$SHADOW/compose.yaml.disabled" "$SHADOW/compose.yaml"
-output=$(printf 'y\n' | run_cli preset load shadow)
-if [[ -f "$SHADOW/compose.yaml.disabled" && -f "$BUILTIN/compose.yaml" ]]; then
+mv "SHADOW/compose.yaml.disabled" "$SHADOW/compose.yaml"
+output=(printf 'y\n' | run_cli preset load shadow)
+if [[ -f "SHADOW/compose.yaml.disabled" && -f "$BUILTIN/compose.yaml" ]]; then
     pass "preset load restores the user shadow without changing the bundled marker"
 else
-    fail "preset load changed the wrong shadow: $output"
+    fail "preset load changed the wrong shadow: output"
 fi
 
 echo ""
-echo "Results: $PASSED passed, $FAILED failed"
-[[ $FAILED -eq 0 ]] || exit 1
+echo "Results: PASSED passed, $FAILED failed"
+[[ FAILED -eq 0 ]] || exit 1
 exit 0

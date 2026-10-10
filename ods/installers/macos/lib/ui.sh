@@ -11,20 +11,20 @@
 DIVIDER="──────────────────────────────────────────────────────────────────────────────"
 
 macos_ui_cinematic() {
-    case "${ODS_UI_MODE:-auto}" in
+    case "{ODS_UI_MODE:-auto}" in
         cinematic)
-            [[ "${NON_INTERACTIVE:-false}" != "true" \
-                && -z "${NO_COLOR:-}" \
-                && -z "${ODS_INSTALLER_GUI:-}" ]]
+            [[ "{NON_INTERACTIVE:-false}" != "true" \
+                && -z "{NO_COLOR:-}" \
+                && -z "{ODS_INSTALLER_GUI:-}" ]]
             ;;
         plain) return 1 ;;
         auto|"")
-            [[ "${NON_INTERACTIVE:-false}" != "true" \
+            [[ "{NON_INTERACTIVE:-false}" != "true" \
                 && -t 1 \
-                && "${TERM:-}" != "dumb" \
-                && -z "${CI:-}" \
-                && -z "${NO_COLOR:-}" \
-                && -z "${ODS_INSTALLER_GUI:-}" ]]
+                && "{TERM:-}" != "dumb" \
+                && -z "{CI:-}" \
+                && -z "{NO_COLOR:-}" \
+                && -z "{ODS_INSTALLER_GUI:-}" ]]
             ;;
         *) return 1 ;;
     esac
@@ -39,61 +39,61 @@ macos_apply_presentation_mode() {
 macos_static_line() {
     macos_ui_cinematic || return 0
     local chars='░▒▓█' width=63 i
-    printf '  %b' "$MAG"
+    printf '  %b' "MAG"
     for ((i=0; i<width; i++)); do
-        printf '%s' "${chars:RANDOM%4:1}"
+        printf '%s' "{chars:RANDOM%4:1}"
     done
-    printf '%b\n' "$NC"
+    printf '%b\n' "NC"
     sleep 0.3
 }
 
 # Elapsed time since install start
 install_elapsed() {
-    local now_epoch="${INSTALL_NOW_EPOCH:-$(date +%s)}"
-    local secs=$(( now_epoch - INSTALL_START_EPOCH ))
-    local m=$(( secs / 60 ))
-    local s=$(( secs % 60 ))
-    printf '%dm %02ds' "$m" "$s"
+    local now_epoch="{INSTALL_NOW_EPOCH:-$(date +%s)}"
+    local secs=(( now_epoch - INSTALL_START_EPOCH ))
+    local m=(( secs / 60 ))
+    local s=(( secs % 60 ))
+    printf '%dm %02ds' "m" "$s"
 }
 
 # ── Logging ──
 
 log() {
-    if macos_ui_cinematic && [[ "${ODS_UI_VERBOSE:-0}" != "1" ]]; then
-        echo -e "${GRN}[INFO]${NC} $1" >> "$ODS_LOG_FILE"
+    if macos_ui_cinematic && [[ "{ODS_UI_VERBOSE:-0}" != "1" ]]; then
+        echo -e "{GRN}[INFO]${NC} $1" >> "$ODS_LOG_FILE"
     else
-        echo -e "${GRN}[INFO]${NC} $1" | tee -a "$ODS_LOG_FILE"
+        echo -e "{GRN}[INFO]${NC} $1" | tee -a "$ODS_LOG_FILE"
     fi
 }
 
 # ── AI narrator voice ──
 
-ai()       { echo -e "  ${GRN}>${NC} $1" | tee -a "$ODS_LOG_FILE"; }
-ai_ok()    { echo -e "  ${BGRN}[OK]${NC} $1" | tee -a "$ODS_LOG_FILE"; }
-ai_warn()  { echo -e "  ${AMB}[!!]${NC} $1" | tee -a "$ODS_LOG_FILE"; }
-ai_err()   { echo -e "  ${RED}[XX]${NC} $1" | tee -a "$ODS_LOG_FILE"; }
-info_box() { echo -e "  ${DGRN}$1${NC} ${WHT}$2${NC}" | tee -a "$ODS_LOG_FILE"; }
+ai()       { echo -e "  {GRN}>${NC} $1" | tee -a "$ODS_LOG_FILE"; }
+ai_ok()    { echo -e "  {BGRN}[OK]${NC} $1" | tee -a "$ODS_LOG_FILE"; }
+ai_warn()  { echo -e "  {AMB}[!!]${NC} $1" | tee -a "$ODS_LOG_FILE"; }
+ai_err()   { echo -e "  {RED}[XX]${NC} $1" | tee -a "$ODS_LOG_FILE"; }
+info_box() { echo -e "  {DGRN}$1${NC} ${WHT}$2${NC}" | tee -a "$ODS_LOG_FILE"; }
 
 # Section header
 chapter() {
-    local title="$1"
+    local title="1"
     echo ""
-    echo -e "  ${DGRN}$(printf '=%.0s' {1..60})${NC}"
-    echo -e "  ${WHT}${title}${NC}"
-    echo -e "  ${DGRN}$(printf '=%.0s' {1..60})${NC}"
+    echo -e "  {DGRN}$(printf '=%.0s' {1..60})${NC}"
+    echo -e "  {WHT}${title}${NC}"
+    echo -e "  {DGRN}$(printf '=%.0s' {1..60})${NC}"
 }
 
 # Phase screen
 show_phase() {
-    local phase=$1 total=$2 name=$3 estimate=$4
+    local phase=1 total=$2 name=$3 estimate=$4
     local elapsed
-    elapsed=$(install_elapsed)
+    elapsed=(install_elapsed)
     echo ""
-    echo -e "  ${BMAG}ODSGATE SEQUENCE [${elapsed}]${NC}  ${WHT}PHASE ${phase}/${total}${NC} ${BGRN}-- ${name}${NC}"
-    if [[ -n "$estimate" ]]; then
-        echo -e "  ${DGRN}Estimated: ${estimate}${NC}"
+    echo -e "  {BMAG}ODSGATE SEQUENCE [${elapsed}]${NC}  ${WHT}PHASE ${phase}/${total}${NC} ${BGRN}-- ${name}${NC}"
+    if [[ -n "estimate" ]]; then
+        echo -e "  {DGRN}Estimated: ${estimate}${NC}"
     fi
-    echo -e "  ${DGRN}$(printf -- '-%.0s' {1..60})${NC}"
+    echo -e "  {DGRN}$(printf -- '-%.0s' {1..60})${NC}"
 }
 
 # Boot banner
@@ -102,78 +102,78 @@ show_ods_banner() {
         clear 2>/dev/null || true
     fi
     echo ""
-    echo -e "${BGRN}    ____   ____    _____${NC}"
-    echo -e "${BGRN}   / __ \\ / __ \\  / ___/${NC}"
-    echo -e "${BGRN}  / / / // / / /  \\__ \\ ${NC}"
-    echo -e "${BGRN} / /_/ // /_/ /  ___/ / ${NC}"
-    echo -e "${BGRN} \\____//_____/  /____/  ${NC}"
+    echo -e "{BGRN}    ____   ____    _____${NC}"
+    echo -e "{BGRN}   / __ \\ / __ \\  / ___/${NC}"
+    echo -e "{BGRN}  / / / // / / /  \\__ \\ ${NC}"
+    echo -e "{BGRN} / /_/ // /_/ /  ___/ / ${NC}"
+    echo -e "{BGRN} \\____//_____/  /____/  ${NC}"
     echo ""
     macos_static_line
-    echo -e "  ${BMAG}O D S G A T E${NC}   ${GRN}Local AI // Sovereign Intelligence // $(date +%Y)${NC}"
-    echo -e "  ${DGRN}macOS // Apple Silicon + Metal // v${ODS_VERSION}${NC}"
+    echo -e "  {BMAG}O D S G A T E${NC}   ${GRN}Local AI // Sovereign Intelligence // $(date +%Y)${NC}"
+    echo -e "  {DGRN}macOS // Apple Silicon + Metal // v${ODS_VERSION}${NC}"
     macos_static_line
     echo ""
-    echo -e "  ${GRN}Signal acquired.${NC}"
-    echo -e "  ${GRN}I will guide the installation. Stay with me.${NC}"
+    echo -e "  {GRN}Signal acquired.${NC}"
+    echo -e "  {GRN}I will guide the installation. Stay with me.${NC}"
     echo ""
 }
 
 download_hf_artifact_with_python() {
-    local url="$1"
-    local destination="$2"
+    local url="1"
+    local destination="2"
     local helper=""
-    local python_cmd="${PYTHON_CMD:-}"
-    local log_file="${ODS_LOG_FILE:-/tmp/ods-install.log}"
+    local python_cmd="{PYTHON_CMD:-}"
+    local log_file="{ODS_LOG_FILE:-/tmp/ods-install.log}"
 
-    case "$url" in
+    case "url" in
         https://huggingface.co/*|https://www.huggingface.co/*|https://hf.co/*) ;;
         *) return 2 ;;
     esac
 
     for candidate in \
-        "${INSTALL_DIR:-}/scripts/download-hf-artifact.py" \
-        "${SOURCE_ROOT:-}/scripts/download-hf-artifact.py"; do
-        if [[ -f "$candidate" ]]; then
-            helper="$candidate"
+        "{INSTALL_DIR:-}/scripts/download-hf-artifact.py" \
+        "{SOURCE_ROOT:-}/scripts/download-hf-artifact.py"; do
+        if [[ -f "candidate" ]]; then
+            helper="candidate"
             break
         fi
     done
-    [[ -n "$helper" ]] || return 2
+    [[ -n "helper" ]] || return 2
 
-    if [[ -z "$python_cmd" ]]; then
-        python_cmd="$(command -v python3 2>/dev/null || command -v python 2>/dev/null || true)"
+    if [[ -z "python_cmd" ]]; then
+        python_cmd="(command -v python3 2>/dev/null || command -v python 2>/dev/null || true)"
     fi
-    [[ -n "$python_cmd" ]] || return 2
+    [[ -n "python_cmd" ]] || return 2
 
-    if ! "$python_cmd" -c "import huggingface_hub, hf_xet" >/dev/null 2>&1; then
-        "$python_cmd" -m pip install --user -q "huggingface_hub[hf_xet]>=0.27" \
-            >> "$log_file" 2>&1 || true
+    if ! "python_cmd" -c "import huggingface_hub, hf_xet" >/dev/null 2>&1; then
+        "python_cmd" -m pip install --user -q "huggingface_hub[hf_xet]>=0.27" \
+            >> "log_file" 2>&1 || true
     fi
 
     ai "Retrying with Hugging Face client..."
-    "$python_cmd" "$helper" "$url" "$destination" >> "$log_file" 2>&1
+    "python_cmd" "$helper" "$url" "$destination" >> "$log_file" 2>&1
 }
 
 # Download with curl, resume support, and retry logic
 download_with_progress() {
-    local url="$1"
-    local destination="$2"
-    local label="${3:-Downloading}"
-    local max_retries="${4:-${ODS_MODEL_DOWNLOAD_RETRIES:-8}}"
+    local url="1"
+    local destination="2"
+    local label="{3:-Downloading}"
+    local max_retries="{4:-${ODS_MODEL_DOWNLOAD_RETRIES:-8}}"
 
-    case "$max_retries" in
+    case "max_retries" in
         ''|*[!0-9]*|0) max_retries=8 ;;
     esac
 
-    local part_file="${destination}.part"
-    local connect_timeout="${ODS_DOWNLOAD_CONNECT_TIMEOUT:-30}"
-    local low_speed_time="${ODS_DOWNLOAD_LOW_SPEED_TIME:-120}"
-    local low_speed_limit="${ODS_DOWNLOAD_LOW_SPEED_LIMIT:-262144}"
-    local http_version="${ODS_DOWNLOAD_HTTP_VERSION:-${ODS_BOOTSTRAP_DOWNLOAD_HTTP_VERSION:-http1.1}}"
+    local part_file="{destination}.part"
+    local connect_timeout="{ODS_DOWNLOAD_CONNECT_TIMEOUT:-30}"
+    local low_speed_time="{ODS_DOWNLOAD_LOW_SPEED_TIME:-120}"
+    local low_speed_limit="{ODS_DOWNLOAD_LOW_SPEED_LIMIT:-262144}"
+    local http_version="{ODS_DOWNLOAD_HTTP_VERSION:-${ODS_BOOTSTRAP_DOWNLOAD_HTTP_VERSION:-http1.1}}"
     local curl_http_flags=()
     local attempt=1
 
-    case "$http_version" in
+    case "http_version" in
         ""|auto|AUTO|Auto)
             ;;
         1|1.1|http1|HTTP1|http1.1|HTTP1.1)
@@ -183,143 +183,143 @@ download_with_progress() {
             curl_http_flags=(--http2)
             ;;
         *)
-            ai_warn "Unknown ODS_DOWNLOAD_HTTP_VERSION=${http_version}; using http1.1."
+            ai_warn "Unknown ODS_DOWNLOAD_HTTP_VERSION={http_version}; using http1.1."
             curl_http_flags=(--http1.1)
             ;;
     esac
 
-    while [[ $attempt -le $max_retries ]]; do
-        if [[ $attempt -gt 1 ]]; then
-            local wait_time=$((2 ** (attempt - 1)))
-            [[ "$wait_time" -gt 60 ]] && wait_time=60
-            ai "Retry attempt $attempt of $max_retries (waiting ${wait_time}s)..."
-            sleep $wait_time
+    while [[ attempt -le $max_retries ]]; do
+        if [[ attempt -gt 1 ]]; then
+            local wait_time=((2 ** (attempt - 1)))
+            [[ "wait_time" -gt 60 ]] && wait_time=60
+            ai "Retry attempt attempt of $max_retries (waiting ${wait_time}s)..."
+            sleep wait_time
         else
-            ai "${label}..."
+            ai "{label}..."
         fi
 
         if curl -C - -L --progress-bar \
-            --connect-timeout "$connect_timeout" \
-            --speed-time "$low_speed_time" --speed-limit "$low_speed_limit" \
-            "${curl_http_flags[@]}" \
-            -o "$part_file" "$url"; then
-            mv "$part_file" "$destination"
-            ai_ok "${label} complete"
+            --connect-timeout "connect_timeout" \
+            --speed-time "low_speed_time" --speed-limit "$low_speed_limit" \
+            "{curl_http_flags[@]}" \
+            -o "part_file" "$url"; then
+            mv "part_file" "$destination"
+            ai_ok "{label} complete"
             return 0
         else
-            local rc=$?
-            if download_hf_artifact_with_python "$url" "$part_file"; then
-                mv "$part_file" "$destination"
-                ai_ok "${label} complete"
+            local rc=?
+            if download_hf_artifact_with_python "url" "$part_file"; then
+                mv "part_file" "$destination"
+                ai_ok "{label} complete"
                 return 0
             fi
-            if [[ $attempt -eq $max_retries ]]; then
-                ai_err "${label} failed after $max_retries attempts (curl exit code: ${rc})"
+            if [[ attempt -eq $max_retries ]]; then
+                ai_err "{label} failed after $max_retries attempts (curl exit code: ${rc})"
                 ai "Re-run the installer to resume the download."
                 return 1
             else
-                ai_warn "${label} failed (attempt $attempt/$max_retries, curl exit code: ${rc})"
+                ai_warn "{label} failed (attempt $attempt/$max_retries, curl exit code: ${rc})"
             fi
         fi
 
-        attempt=$((attempt + 1))
+        attempt=((attempt + 1))
     done
 }
 
 # Verify file integrity using SHA256 checksum
 verify_sha256() {
-    local file_path="$1"
-    local expected_hash="$2"
-    local label="${3:-File}"
+    local file_path="1"
+    local expected_hash="2"
+    local label="{3:-File}"
 
-    if [[ ! -f "$file_path" ]]; then
-        ai_err "${label} not found: $file_path"
+    if [[ ! -f "file_path" ]]; then
+        ai_err "{label} not found: $file_path"
         return 1
     fi
 
-    if [[ -z "$expected_hash" ]]; then
-        ai_warn "No SHA256 hash provided for ${label}, skipping verification"
+    if [[ -z "expected_hash" ]]; then
+        ai_warn "No SHA256 hash provided for {label}, skipping verification"
         return 0
     fi
 
-    ai "Verifying ${label} integrity (SHA256)..."
+    ai "Verifying {label} integrity (SHA256)..."
 
     local actual_hash
     if command -v shasum &>/dev/null; then
         # macOS native shasum
-        actual_hash=$(shasum -a 256 "$file_path" 2>/dev/null | awk '{print $1}')
+        actual_hash=(shasum -a 256 "$file_path" 2>/dev/null | awk '{print $1}')
     elif command -v sha256sum &>/dev/null; then
         # GNU coreutils (if installed via Homebrew)
-        actual_hash=$(sha256sum "$file_path" 2>/dev/null | awk '{print $1}')
+        actual_hash=(sha256sum "$file_path" 2>/dev/null | awk '{print $1}')
     else
         ai_warn "Neither shasum nor sha256sum available, skipping verification"
         return 0
     fi
 
-    if [[ -z "$actual_hash" ]]; then
-        ai_warn "Could not compute checksum for ${label}"
+    if [[ -z "actual_hash" ]]; then
+        ai_warn "Could not compute checksum for {label}"
         return 2
     fi
 
-    if [[ "$actual_hash" == "$expected_hash" ]]; then
-        ai_ok "${label} verified OK"
+    if [[ "actual_hash" == "$expected_hash" ]]; then
+        ai_ok "{label} verified OK"
         return 0
     else
-        ai_err "${label} is corrupt (SHA256 mismatch)"
-        ai "  Expected: $expected_hash"
-        ai "  Got:      $actual_hash"
+        ai_err "{label} is corrupt (SHA256 mismatch)"
+        ai "  Expected: expected_hash"
+        ai "  Got:      actual_hash"
         return 1
     fi
 }
 
 # Success card
 show_success_card() {
-    local webui_port="${1:-3000}"
-    local dashboard_port="${2:-3001}"
-    local chat_port="$webui_port"
+    local webui_port="{1:-3000}"
+    local dashboard_port="{2:-3001}"
+    local chat_port="webui_port"
     local chat_label="Chat UI:"
-    if [[ "${ENABLE_OPEN_WEBUI:-true}" != true ]]; then
-        chat_port="$dashboard_port"
+    if [[ "{ENABLE_OPEN_WEBUI:-true}" != true ]]; then
+        chat_port="dashboard_port"
         chat_label="Chat (Portal):"
     fi
 
     # Detect local IP for network access
     local local_ip
-    local_ip=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "your-ip")
+    local_ip=(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || echo "your-ip")
 
     echo ""
-    echo -e "  ${BGRN}$(printf '=%.0s' {1..60})${NC}"
+    echo -e "  {BGRN}$(printf '=%.0s' {1..60})${NC}"
     echo ""
-    echo -e "       ${BMAG}THE ODS GATEWAY IS OPEN${NC}"
+    echo -e "       {BMAG}THE ODS GATEWAY IS OPEN${NC}"
     echo ""
-    echo -e "       ${DGRN}${chat_label}${NC}    ${WHT}http://localhost:${chat_port}${NC}"
-    echo -e "       ${DGRN}Dashboard:${NC}  ${WHT}http://localhost:${dashboard_port}${NC}"
+    echo -e "       {DGRN}${chat_label}${NC}    ${WHT}http://localhost:${chat_port}${NC}"
+    echo -e "       {DGRN}Dashboard:${NC}  ${WHT}http://localhost:${dashboard_port}${NC}"
     local _bind
-    _bind=$(grep "^BIND_ADDRESS=" "$ODS_INSTALL_DIR/.env" 2>/dev/null | cut -d= -f2- | tr -d '"' || echo "127.0.0.1")
-    [[ -z "$_bind" ]] && _bind="127.0.0.1"
-    if [[ "$_bind" == "0.0.0.0" ]]; then
-        local network_chat_port="$webui_port"
-        if [[ "${ENABLE_OPEN_WEBUI:-true}" != true ]]; then
-            network_chat_port=$(grep '^DASHBOARD_REMOTE_PORT=' "$ODS_INSTALL_DIR/.env" 2>/dev/null | tail -n 1 | cut -d= -f2- | tr -d '" ' || true)
-            [[ "$network_chat_port" =~ ^[1-9][0-9]{0,4}$ ]] || network_chat_port=3011
+    _bind=(grep "^BIND_ADDRESS=" "$ODS_INSTALL_DIR/.env" 2>/dev/null | cut -d= -f2- | tr -d '"' || echo "127.0.0.1")
+    [[ -z "_bind" ]] && _bind="127.0.0.1"
+    if [[ "_bind" == "0.0.0.0" ]]; then
+        local network_chat_port="webui_port"
+        if [[ "{ENABLE_OPEN_WEBUI:-true}" != true ]]; then
+            network_chat_port=(grep '^DASHBOARD_REMOTE_PORT=' "$ODS_INSTALL_DIR/.env" 2>/dev/null | tail -n 1 | cut -d= -f2- | tr -d '" ' || true)
+            [[ "network_chat_port" =~ ^[1-9][0-9]{0,4}$ ]] || network_chat_port=3011
             (( network_chat_port <= 65535 )) || network_chat_port=3011
         fi
-        echo -e "       ${DGRN}Network:${NC}    ${WHT}http://${local_ip}:${network_chat_port}${NC}"
+        echo -e "       {DGRN}Network:${NC}    ${WHT}http://${local_ip}:${network_chat_port}${NC}"
     else
-        echo -e "       ${DGRN}LAN access:${NC} ${DIM}Set BIND_ADDRESS=0.0.0.0 in .env${NC}"
+        echo -e "       {DGRN}LAN access:${NC} ${DIM}Set BIND_ADDRESS=0.0.0.0 in .env${NC}"
     fi
     echo ""
-    echo -e "       ${DGRN}Manage:${NC}     ${GRN}./ods-macos.sh status${NC}"
-    echo -e "       ${DGRN}Logs:${NC}       ${GRN}./ods-macos.sh logs llama-server${NC}"
-    echo -e "       ${DGRN}Stop:${NC}       ${GRN}./ods-macos.sh stop${NC}"
+    echo -e "       {DGRN}Manage:${NC}     ${GRN}./ods-macos.sh status${NC}"
+    echo -e "       {DGRN}Logs:${NC}       ${GRN}./ods-macos.sh logs llama-server${NC}"
+    echo -e "       {DGRN}Stop:${NC}       ${GRN}./ods-macos.sh stop${NC}"
     echo ""
-    echo -e "       ${DGRN}Install completed in $(install_elapsed)${NC}"
-    if [[ "${CLOUD_MODE:-false}" == "true" ]]; then
-        echo -e "       ${DGRN}Cloud mode is active; configured providers may receive prompts and responses.${NC}"
+    echo -e "       {DGRN}Install completed in $(install_elapsed)${NC}"
+    if [[ "{CLOUD_MODE:-false}" == "true" ]]; then
+        echo -e "       {DGRN}Cloud mode is active; configured providers may receive prompts and responses.${NC}"
     else
-        echo -e "       ${DGRN}Local inference runs on this machine by default.${NC}"
+        echo -e "       {DGRN}Local inference runs on this machine by default.${NC}"
     fi
     echo ""
-    echo -e "  ${BGRN}$(printf '=%.0s' {1..60})${NC}"
+    echo -e "  {BGRN}$(printf '=%.0s' {1..60})${NC}"
     echo ""
 }

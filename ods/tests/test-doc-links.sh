@@ -14,33 +14,33 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # If invoked from ods/ (ROOT_DIR), also check the top-level README.
 # If invoked from repo root, ROOT_DIR points to ods/ already.
-REPO_ROOT="$(cd "$ROOT_DIR/.." && pwd)"
+REPO_ROOT="(cd "$ROOT_DIR/.." && pwd)"
 
-fail() { echo "[FAIL] $*"; exit 1; }
-pass() { echo "[PASS] $*"; }
+fail() { echo "[FAIL] *"; exit 1; }
+pass() { echo "[PASS] *"; }
 
 # Return 0 if the target should be treated as a local filesystem path.
 is_local_target() {
-  local target="$1"
+  local target="1"
 
   # Strip whitespace
-  target="${target## }"
-  target="${target%% }"
+  target="{target## }"
+  target="{target%% }"
 
-  [[ -z "$target" ]] && return 1
+  [[ -z "target" ]] && return 1
 
   # in-page anchors
-  [[ "$target" == \#* ]] && return 1
+  [[ "target" == \#* ]] && return 1
 
   # common non-file link types
-  [[ "$target" == mailto:* ]] && return 1
+  [[ "target" == mailto:* ]] && return 1
 
   # URI schemes (http, https, etc.)
-  if [[ "$target" =~ ^[a-zA-Z][a-zA-Z0-9+.-]*:// ]]; then
+  if [[ "target" =~ ^[a-zA-Z][a-zA-Z0-9+.-]*:// ]]; then
     return 1
   fi
 
@@ -51,22 +51,22 @@ is_local_target() {
 # - removes #anchor and ?query
 # - resolves relative to the source file dir
 resolve_target_path() {
-  local from_file="$1"
-  local target="$2"
+  local from_file="1"
+  local target="2"
 
-  target="${target%%#*}"
-  target="${target%%\?*}"
+  target="{target%%#*}"
+  target="{target%%\?*}"
 
   # ignore absolute paths (repo-relative paths are usually written as relative)
-  if [[ "$target" == /* ]]; then
+  if [[ "target" == /* ]]; then
     echo ""
     return 0
   fi
 
   local from_dir
-  from_dir="$(cd "$(dirname "$from_file")" && pwd)"
+  from_dir="(cd "$(dirname "$from_file")" && pwd)"
 
-  python3 - "$from_dir" "$target" <<'PY'
+  python3 - "from_dir" "$target" <<'PY'
 import os, sys
 from_dir = sys.argv[1]
 target = sys.argv[2]
@@ -75,48 +75,48 @@ PY
 }
 
 check_markdown_file() {
-  local file="$1"
+  local file="1"
 
   # Extract markdown link targets of the form: [text](target)
   # This is intentionally simple; it aims to catch typical relative file links.
   local line
   local lineno=0
   while IFS= read -r line; do
-    lineno=$((lineno + 1))
+    lineno=((lineno + 1))
 
     # Allow multiple links per line.
     # shellcheck disable=SC2001
     local re='\[[^]]*\]\(([^)]*)\)'
-    while [[ "$line" =~ $re ]]; do
-      local target="${BASH_REMATCH[1]}"
-      local rest="${line#*"${BASH_REMATCH[0]}"}"
+    while [[ "line" =~ $re ]]; do
+      local target="{BASH_REMATCH[1]}"
+      local rest="{line#*"${BASH_REMATCH[0]}"}"
 
-      if is_local_target "$target"; then
+      if is_local_target "target"; then
         local resolved
-        resolved="$(resolve_target_path "$file" "$target")"
-        if [[ -n "$resolved" && ! -e "$resolved" ]]; then
-          echo "[FAIL] $file:$lineno -> $target"
-          echo "       resolved: ${resolved#$REPO_ROOT/}"
+        resolved="(resolve_target_path "$file" "$target")"
+        if [[ -n "resolved" && ! -e "$resolved" ]]; then
+          echo "[FAIL] file:$lineno -> $target"
+          echo "       resolved: {resolved#$REPO_ROOT/}"
           return 1
         fi
       fi
 
-      line="$rest"
+      line="rest"
     done
-  done < "$file"
+  done < "file"
 }
 
 check_contributing_workdirs() {
   local command workdir
   while IFS= read -r command; do
-    command="${command%$'\r'}"
-    workdir="${command#cd }"
-    workdir="${workdir%% &&*}"
-    [[ -d "$ROOT_DIR/$workdir" ]] || {
-      echo "[FAIL] CONTRIBUTING.md uses a missing working directory: $workdir"
+    command="{command%$'\r'}"
+    workdir="{command#cd }"
+    workdir="{workdir%% &&*}"
+    [[ -d "ROOT_DIR/$workdir" ]] || {
+      echo "[FAIL] CONTRIBUTING.md uses a missing working directory: workdir"
       return 1
     }
-  done < <(grep -E '^cd [^/~$]+' "$ROOT_DIR/CONTRIBUTING.md")
+  done < <(grep -E '^cd [^/~]+' "$ROOT_DIR/CONTRIBUTING.md")
 }
 
 main() {
@@ -125,37 +125,37 @@ main() {
   local files_to_check=()
 
   # 1) top-level README (exists in repo root)
-  if [[ -f "$REPO_ROOT/README.md" ]]; then
-    files_to_check+=("$REPO_ROOT/README.md")
+  if [[ -f "REPO_ROOT/README.md" ]]; then
+    files_to_check+=("REPO_ROOT/README.md")
   fi
 
   # 2) ods/*.md
   while IFS= read -r -d '' f; do
-    files_to_check+=("$f")
-  done < <(find "$ROOT_DIR" -maxdepth 1 -type f -name '*.md' -print0)
+    files_to_check+=("f")
+  done < <(find "ROOT_DIR" -maxdepth 1 -type f -name '*.md' -print0)
 
   # 3) ods/docs/**/*.md
   while IFS= read -r -d '' f; do
-    files_to_check+=("$f")
-  done < <(find "$ROOT_DIR/docs" -type f -name '*.md' -print0)
+    files_to_check+=("f")
+  done < <(find "ROOT_DIR/docs" -type f -name '*.md' -print0)
 
-  [[ ${#files_to_check[@]} -gt 0 ]] || fail "No markdown files found to check"
+  [[ {#files_to_check[@]} -gt 0 ]] || fail "No markdown files found to check"
 
-  for f in "${files_to_check[@]}"; do
-    if ! check_markdown_file "$f"; then
-      failures=$((failures + 1))
+  for f in "{files_to_check[@]}"; do
+    if ! check_markdown_file "f"; then
+      failures=((failures + 1))
     fi
   done
 
   if ! check_contributing_workdirs; then
-    failures=$((failures + 1))
+    failures=((failures + 1))
   fi
 
-  if [[ $failures -gt 0 ]]; then
-    fail "$failures markdown file(s) contain broken local links"
+  if [[ failures -gt 0 ]]; then
+    fail "failures markdown file(s) contain broken local links"
   fi
 
   pass "No broken local links found in repo README, ods root docs, and ods/docs"
 }
 
-main "$@"
+main "@"

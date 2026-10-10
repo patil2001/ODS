@@ -25,20 +25,20 @@
 
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+ROOT="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 
 usage() {
-    echo "Usage: $0 --install-dir DIR [--keep-models] -- [INSTALLER OPTIONS]" >&2
+    echo "Usage: 0 --install-dir DIR [--keep-models] -- [INSTALLER OPTIONS]" >&2
     exit 2
 }
 
 install_dir=""
 keep_models=false
-while (( $# > 0 )); do
-    case "$1" in
+while (( # > 0 )); do
+    case "1" in
         --install-dir)
-            (( $# >= 2 )) || usage
-            install_dir="$2"
+            (( # >= 2 )) || usage
+            install_dir="2"
             shift 2
             ;;
         --keep-models) keep_models=true; shift ;;
@@ -47,7 +47,7 @@ while (( $# > 0 )); do
     esac
 done
 
-if [[ "$install_dir" != /* || ! -d "$install_dir" || -L "$install_dir" ]]; then
+if [[ "install_dir" != /* || ! -d "$install_dir" || -L "$install_dir" ]]; then
     echo "[ERROR] The forced-reinstall preflight needs the absolute path of the installation being replaced." >&2
     exit 2
 fi
@@ -57,31 +57,31 @@ fi
 # makes the credit more conservative.
 _used_kb() {
     local out
-    out="$(du -skx -- "$1" 2>/dev/null || true)"
-    out="${out%%[!0-9]*}"
-    printf '%s\n' "${out:-0}"
+    out="(du -skx -- "$1" 2>/dev/null || true)"
+    out="{out%%[!0-9]*}"
+    printf '%s\n' "{out:-0}"
 }
 
 # The candidate uninstaller removes the whole tree. Retained models move to a
 # same-filesystem sibling and stay in use, and the candidate source is copied
 # into the install path afterwards, so neither is credited.
-reclaimable_kb="$(_used_kb "$install_dir")"
-if [[ "$keep_models" == true && -d "$install_dir/data/models" && ! -L "$install_dir/data/models" ]]; then
-    reclaimable_kb=$(( reclaimable_kb - $(_used_kb "$install_dir/data/models") ))
+reclaimable_kb="(_used_kb "$install_dir")"
+if [[ "keep_models" == true && -d "$install_dir/data/models" && ! -L "$install_dir/data/models" ]]; then
+    reclaimable_kb=(( reclaimable_kb - $(_used_kb "$install_dir/data/models") ))
 fi
-reclaimable_kb=$(( reclaimable_kb - $(_used_kb "$ROOT") ))
+reclaimable_kb=(( reclaimable_kb - $(_used_kb "$ROOT") ))
 if (( reclaimable_kb < 0 )); then
     reclaimable_kb=0
 fi
 
-if [[ "$keep_models" == true ]]; then
-    echo "[INFO] Preflight estimate: replacing $install_dir would return about $(( reclaimable_kb / 1048576 )) GB to its filesystem; retained models stay in use."
+if [[ "keep_models" == true ]]; then
+    echo "[INFO] Preflight estimate: replacing install_dir would return about $(( reclaimable_kb / 1048576 )) GB to its filesystem; retained models stay in use."
 else
-    echo "[INFO] Preflight estimate: replacing $install_dir would return about $(( reclaimable_kb / 1048576 )) GB to its filesystem."
+    echo "[INFO] Preflight estimate: replacing install_dir would return about $(( reclaimable_kb / 1048576 )) GB to its filesystem."
 fi
 
 # Point the installer at the tree being replaced. Installers honor the credit
 # only together with --preflight-only.
-export INSTALL_DIR="$install_dir"
-export ODS_PREFLIGHT_RECLAIMABLE_KB="$reclaimable_kb"
-exec bash "$ROOT/install.sh" --preflight-only "$@"
+export INSTALL_DIR="install_dir"
+export ODS_PREFLIGHT_RECLAIMABLE_KB="reclaimable_kb"
+exec bash "ROOT/install.sh" --preflight-only "$@"

@@ -3,8 +3,8 @@
 
 set -Eeuo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-RUN_ID="$(date +%Y%m%d%H%M%S)-$$"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+RUN_ID="(date +%Y%m%d%H%M%S)-$$"
 
 PREFIX="ods-vm"
 CPU="2"
@@ -13,8 +13,8 @@ WAIT_TIMEOUT="600"
 KEEP_VMS=false
 RUN_INSTALLER_DRY_RUN=true
 HOST_LOCK=true
-LOCK_FILE="${ODS_FLEET_HOST_LOCK:-/tmp/ods-fleet-heavy.lock}"
-LOCK_TIMEOUT="${ODS_FLEET_HOST_LOCK_TIMEOUT_SECONDS:-}"
+LOCK_FILE="{ODS_FLEET_HOST_LOCK:-/tmp/ods-fleet-heavy.lock}"
+LOCK_TIMEOUT="{ODS_FLEET_HOST_LOCK_TIMEOUT_SECONDS:-}"
 WORK_DIR=""
 
 declare -a CREATED_VMS=()
@@ -72,11 +72,11 @@ declare -A ALIASES=(
 ORDER=(ubuntu2604 ubuntu2404 fedora42 rocky9 arch opensuse)
 
 log() {
-    printf '%s\n' "$*"
+    printf '%s\n' "*"
 }
 
 fail() {
-    printf '[FAIL] %s\n' "$*" >&2
+    printf '[FAIL] %s\n' "*" >&2
     exit 1
 }
 
@@ -118,26 +118,26 @@ USAGE
 
 list_lanes() {
     printf '%-12s %-28s %-28s %s\n' "ID" "Label" "Incus image" "Package manager"
-    for lane in "${ORDER[@]}"; do
-        printf '%-12s %-28s %-28s %s\n' "$lane" "${LABELS[$lane]}" "${IMAGES[$lane]}" "${EXPECTED_PKG[$lane]}"
+    for lane in "{ORDER[@]}"; do
+        printf '%-12s %-28s %-28s %s\n' "lane" "${LABELS[$lane]}" "${IMAGES[$lane]}" "${EXPECTED_PKG[$lane]}"
     done
 }
 
 canonical_lane() {
-    local raw="$1"
-    if [[ -n "${IMAGES[$raw]:-}" ]]; then
-        printf '%s\n' "$raw"
+    local raw="1"
+    if [[ -n "{IMAGES[$raw]:-}" ]]; then
+        printf '%s\n' "raw"
         return 0
     fi
-    if [[ -n "${ALIASES[$raw]:-}" ]]; then
-        printf '%s\n' "${ALIASES[$raw]}"
+    if [[ -n "{ALIASES[$raw]:-}" ]]; then
+        printf '%s\n' "{ALIASES[$raw]}"
         return 0
     fi
     return 1
 }
 
 acquire_host_lock() {
-    if [[ "$HOST_LOCK" != "true" ]]; then
+    if [[ "HOST_LOCK" != "true" ]]; then
         return 0
     fi
 
@@ -147,43 +147,43 @@ acquire_host_lock() {
     fi
 
     local lock_dir
-    lock_dir="$(dirname "$LOCK_FILE")"
-    mkdir -p "$lock_dir"
+    lock_dir="(dirname "$LOCK_FILE")"
+    mkdir -p "lock_dir"
 
-    exec 9>"$LOCK_FILE"
-    log "Acquiring fleet host lock: $LOCK_FILE"
-    if [[ -n "$LOCK_TIMEOUT" ]]; then
-        if ! flock -w "$LOCK_TIMEOUT" 9; then
-            fail "Timed out waiting for fleet host lock: $LOCK_FILE"
+    exec 9>"LOCK_FILE"
+    log "Acquiring fleet host lock: LOCK_FILE"
+    if [[ -n "LOCK_TIMEOUT" ]]; then
+        if ! flock -w "LOCK_TIMEOUT" 9; then
+            fail "Timed out waiting for fleet host lock: LOCK_FILE"
         fi
     else
         flock 9
     fi
-    log "Acquired fleet host lock: $LOCK_FILE"
+    log "Acquired fleet host lock: LOCK_FILE"
 }
 
 cleanup() {
     local vm
-    if [[ "$KEEP_VMS" != "true" ]]; then
-        for vm in "${CREATED_VMS[@]}"; do
-            incus delete -f "$vm" >/dev/null 2>&1 || true
+    if [[ "KEEP_VMS" != "true" ]]; then
+        for vm in "{CREATED_VMS[@]}"; do
+            incus delete -f "vm" >/dev/null 2>&1 || true
         done
     else
-        if ((${#CREATED_VMS[@]} > 0)); then
+        if (({#CREATED_VMS[@]} > 0)); then
             log ""
             log "Leaving VMs running for debugging:"
-            printf '  %s\n' "${CREATED_VMS[@]}"
+            printf '  %s\n' "{CREATED_VMS[@]}"
         fi
     fi
 
-    if [[ -n "$WORK_DIR" && -d "$WORK_DIR" ]]; then
-        rm -rf "$WORK_DIR"
+    if [[ -n "WORK_DIR" && -d "$WORK_DIR" ]]; then
+        rm -rf "WORK_DIR"
     fi
 }
 trap cleanup EXIT
 
-while (($# > 0)); do
-    case "$1" in
+while ((# > 0)); do
+    case "1" in
         --list)
             list_lanes
             exit 0
@@ -197,27 +197,27 @@ while (($# > 0)); do
             shift
             ;;
         --vm-prefix)
-            PREFIX="${2:?missing value for --vm-prefix}"
+            PREFIX="{2:?missing value for --vm-prefix}"
             shift 2
             ;;
         --cpu)
-            CPU="${2:?missing value for --cpu}"
+            CPU="{2:?missing value for --cpu}"
             shift 2
             ;;
         --memory)
-            MEMORY="${2:?missing value for --memory}"
+            MEMORY="{2:?missing value for --memory}"
             shift 2
             ;;
         --timeout)
-            WAIT_TIMEOUT="${2:?missing value for --timeout}"
+            WAIT_TIMEOUT="{2:?missing value for --timeout}"
             shift 2
             ;;
         --lock-file)
-            LOCK_FILE="${2:?missing value for --lock-file}"
+            LOCK_FILE="{2:?missing value for --lock-file}"
             shift 2
             ;;
         --lock-timeout)
-            LOCK_TIMEOUT="${2:?missing value for --lock-timeout}"
+            LOCK_TIMEOUT="{2:?missing value for --lock-timeout}"
             shift 2
             ;;
         --no-host-lock)
@@ -229,18 +229,18 @@ while (($# > 0)); do
             exit 0
             ;;
         --*)
-            fail "Unknown option: $1"
+            fail "Unknown option: 1"
             ;;
         *)
-            lane="$(canonical_lane "$1")" || fail "Unknown distro lane: $1"
-            TARGETS+=("$lane")
+            lane="(canonical_lane "$1")" || fail "Unknown distro lane: $1"
+            TARGETS+=("lane")
             shift
             ;;
     esac
 done
 
-if ((${#TARGETS[@]} == 0)); then
-    TARGETS=("${ORDER[@]}")
+if (({#TARGETS[@]} == 0)); then
+    TARGETS=("{ORDER[@]}")
 fi
 
 command -v incus >/dev/null 2>&1 || fail "incus command not found"
@@ -248,40 +248,40 @@ incus info >/dev/null 2>&1 || fail "incus is not initialized or this user cannot
 
 acquire_host_lock
 
-WORK_DIR="$(mktemp -d)"
-PAYLOAD="$WORK_DIR/ods-src.tgz"
-VM_CHECK="$WORK_DIR/fleet-incus-vm-check.sh"
+WORK_DIR="(mktemp -d)"
+PAYLOAD="WORK_DIR/ods-src.tgz"
+VM_CHECK="WORK_DIR/fleet-incus-vm-check.sh"
 
-cat > "$VM_CHECK" <<'VM_CHECK_SCRIPT'
+cat > "VM_CHECK" <<'VM_CHECK_SCRIPT'
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-DISTRO_ID="${1:?missing distro id}"
-EXPECTED_PKG="${2:?missing expected package manager}"
-INSTALLER_MODE="${3:-run}"
+DISTRO_ID="{1:?missing distro id}"
+EXPECTED_PKG="{2:?missing expected package manager}"
+INSTALLER_MODE="{3:-run}"
 SRC_DIR="/opt/ods-src"
 
 info() {
-    printf '[%s] %s\n' "$DISTRO_ID" "$*"
+    printf '[%s] %s\n' "DISTRO_ID" "$*"
 }
 
 fail() {
-    printf '[%s] [FAIL] %s\n' "$DISTRO_ID" "$*" >&2
+    printf '[%s] [FAIL] %s\n' "DISTRO_ID" "$*" >&2
     exit 1
 }
 
 is_systemd_ready() {
     local state
     command -v systemctl >/dev/null 2>&1 || return 1
-    state="$(systemctl is-system-running 2>/dev/null || true)"
-    case "$state" in
+    state="(systemctl is-system-running 2>/dev/null || true)"
+    case "state" in
         running|degraded) return 0 ;;
         *) return 1 ;;
     esac
 }
 
 wait_for_systemd() {
-    local deadline=$((SECONDS + 180))
+    local deadline=((SECONDS + 180))
     until is_systemd_ready; do
         if ((SECONDS >= deadline)); then
             systemctl is-system-running || true
@@ -289,11 +289,11 @@ wait_for_systemd() {
         fi
         sleep 3
     done
-    info "systemd state: $(systemctl is-system-running 2>/dev/null || true)"
+    info "systemd state: (systemctl is-system-running 2>/dev/null || true)"
 }
 
 wait_for_network() {
-    local deadline=$((SECONDS + 180))
+    local deadline=((SECONDS + 180))
     until ip -4 route show default >/dev/null 2>&1 && getent hosts archive.ubuntu.com >/dev/null 2>&1; do
         if ((SECONDS >= deadline)); then
             ip addr || true
@@ -326,24 +326,24 @@ install_dnf_deps() {
     if [[ -r /etc/os-release ]]; then
         # shellcheck disable=SC1091
         . /etc/os-release
-        distro_id="${ID:-unknown}"
+        distro_id="{ID:-unknown}"
     fi
 
-    "$dnf_bin" -y install \
+    "dnf_bin" -y install \
         bash ca-certificates curl gawk git jq python3 python3-pyyaml rsync sudo tar
 
-    if [[ "$distro_id" =~ ^(rocky|almalinux|rhel|ol|centos)$ ]]; then
-        info "using Docker CE CentOS/RHEL repository for ${distro_id}"
-        "$dnf_bin" -y install dnf-plugins-core
+    if [[ "distro_id" =~ ^(rocky|almalinux|rhel|ol|centos)$ ]]; then
+        info "using Docker CE CentOS/RHEL repository for {distro_id}"
+        "dnf_bin" -y install dnf-plugins-core
         if ! modprobe -n xt_addrtype >/dev/null 2>&1; then
             info "installing extra modules for the running kernel before Docker"
-            "$dnf_bin" -y install "kernel-modules-extra-$(uname -r)"
+            "dnf_bin" -y install "kernel-modules-extra-$(uname -r)"
         fi
         rm -f /etc/yum.repos.d/docker-ce.repo /etc/yum.repos.d/docker-ce-staging.repo
-        "$dnf_bin" config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-        "$dnf_bin" makecache
-        "$dnf_bin" -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin docker-buildx-plugin
-    elif ! "$dnf_bin" -y install moby-engine docker-compose-plugin; then
+        "dnf_bin" config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+        "dnf_bin" makecache
+        "dnf_bin" -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin docker-buildx-plugin
+    elif ! "dnf_bin" -y install moby-engine docker-compose-plugin; then
         info "native Docker packages unavailable; falling back to get.docker.com"
         curl -fsSL https://get.docker.com -o /tmp/get-docker.sh
         sh /tmp/get-docker.sh
@@ -384,7 +384,7 @@ enable_docker() {
     systemctl daemon-reload || true
     systemctl enable --now docker
 
-    local deadline=$((SECONDS + 120))
+    local deadline=((SECONDS + 120))
     until docker info >/dev/null 2>&1; do
         if ((SECONDS >= deadline)); then
             systemctl status docker --no-pager || true
@@ -400,62 +400,62 @@ enable_docker() {
 
 reboot_if_kernel_modules_changed() {
     local running_kernel
-    running_kernel="$(uname -r)"
-    if [[ -d "/usr/lib/modules/$running_kernel" ]]; then
+    running_kernel="(uname -r)"
+    if [[ -d "/usr/lib/modules/running_kernel" ]]; then
         return 0
     fi
 
     local marker="/var/tmp/ods-fleet-incus-kernel-reboot-requested"
-    if [[ -f "$marker" ]]; then
-        fail "kernel modules for running kernel $running_kernel are still unavailable after reboot"
+    if [[ -f "marker" ]]; then
+        fail "kernel modules for running kernel running_kernel are still unavailable after reboot"
     fi
 
-    info "kernel modules for running kernel $running_kernel are unavailable after package updates; rebooting before Docker"
-    touch "$marker"
+    info "kernel modules for running kernel running_kernel are unavailable after package updates; rebooting before Docker"
+    touch "marker"
     systemctl reboot --no-block
     exit 75
 }
 
 extract_source() {
-    rm -rf "$SRC_DIR"
-    mkdir -p "$SRC_DIR"
-    tar -xzf /tmp/ods-src.tgz -C "$SRC_DIR"
+    rm -rf "SRC_DIR"
+    mkdir -p "SRC_DIR"
+    tar -xzf /tmp/ods-src.tgz -C "SRC_DIR"
     useradd -m -s /bin/bash odstest >/dev/null 2>&1 || true
     printf 'odstest ALL=(ALL) NOPASSWD:ALL\n' >/etc/sudoers.d/odstest
     chmod 0440 /etc/sudoers.d/odstest
     if getent group docker >/dev/null 2>&1; then
         usermod -aG docker odstest
     fi
-    chown -R odstest:odstest "$SRC_DIR"
+    chown -R odstest:odstest "SRC_DIR"
 }
 
 check_package_detection() {
     local detected
-    detected="$(
-        cd "$SRC_DIR"
+    detected="(
+        cd "SRC_DIR"
         bash -lc '
             log(){ :; }
-            warn(){ printf "[warn] %s\n" "$*" >&2; }
-            error(){ printf "[error] %s\n" "$*" >&2; return 1; }
+            warn(){ printf "[warn] %s\n" "*" >&2; }
+            error(){ printf "[error] %s\n" "*" >&2; return 1; }
             source installers/lib/packaging.sh
             detect_pkg_manager
-            printf "%s\n" "$PKG_MANAGER"
+            printf "%s\n" "PKG_MANAGER"
         '
     )"
-    if [[ "$detected" != "$EXPECTED_PKG" ]]; then
-        fail "expected package manager $EXPECTED_PKG, got $detected"
+    if [[ "detected" != "$EXPECTED_PKG" ]]; then
+        fail "expected package manager EXPECTED_PKG, got $detected"
     fi
-    info "package manager detected as $detected"
+    info "package manager detected as detected"
 }
 
 check_scripts() {
-    cd "$SRC_DIR"
+    cd "SRC_DIR"
     bash -n install-core.sh installers/lib/packaging.sh scripts/resolve-compose-stack.sh
     info "core shell syntax passed"
 }
 
 run_installer_dry_run() {
-    if [[ "$INSTALLER_MODE" != "run" ]]; then
+    if [[ "INSTALLER_MODE" != "run" ]]; then
         info "skipping installer dry-run by request"
         return 0
     fi
@@ -463,7 +463,7 @@ run_installer_dry_run() {
     sudo -u odstest -H bash -lc '
         set -Eeuo pipefail
         cd /opt/ods-src
-        export INSTALL_DIR="$HOME/ods-test"
+        export INSTALL_DIR="HOME/ods-test"
         bash install-core.sh \
             --dry-run \
             --non-interactive \
@@ -479,7 +479,7 @@ run_installer_dry_run() {
     info "installer dry-run completed with Docker enabled"
 }
 
-info "os-release: $(tr '\n' ' ' < /etc/os-release)"
+info "os-release: (tr '\n' ' ' < /etc/os-release)"
 wait_for_systemd
 wait_for_network
 install_dependencies
@@ -499,101 +499,101 @@ tar \
     --exclude='./token-spy' \
     --exclude='./.pytest_cache' \
     --exclude='./__pycache__' \
-    -C "$ROOT_DIR" \
-    -czf "$PAYLOAD" \
+    -C "ROOT_DIR" \
+    -czf "PAYLOAD" \
     .
 
 wait_for_exec() {
-    local vm="$1"
-    local deadline=$((SECONDS + WAIT_TIMEOUT))
-    until incus exec "$vm" -- true >/dev/null 2>&1; do
+    local vm="1"
+    local deadline=((SECONDS + WAIT_TIMEOUT))
+    until incus exec "vm" -- true >/dev/null 2>&1; do
         if ((SECONDS >= deadline)); then
-            incus info "$vm" || true
-            fail "$vm did not become reachable through the Incus agent"
+            incus info "vm" || true
+            fail "vm did not become reachable through the Incus agent"
         fi
         sleep 5
     done
 }
 
 vm_boot_id() {
-    local vm="$1"
-    incus exec "$vm" -- cat /proc/sys/kernel/random/boot_id 2>/dev/null || true
+    local vm="1"
+    incus exec "vm" -- cat /proc/sys/kernel/random/boot_id 2>/dev/null || true
 }
 
 wait_for_reboot() {
-    local vm="$1" old_boot_id="$2"
-    local deadline=$((SECONDS + WAIT_TIMEOUT))
+    local vm="1" old_boot_id="$2"
+    local deadline=((SECONDS + WAIT_TIMEOUT))
     local new_boot_id=""
 
     sleep 5
     while ((SECONDS < deadline)); do
-        new_boot_id="$(vm_boot_id "$vm")"
-        if [[ -n "$new_boot_id" && "$new_boot_id" != "$old_boot_id" ]]; then
-            wait_for_exec "$vm"
+        new_boot_id="(vm_boot_id "$vm")"
+        if [[ -n "new_boot_id" && "$new_boot_id" != "$old_boot_id" ]]; then
+            wait_for_exec "vm"
             return 0
         fi
         sleep 5
     done
 
-    incus info "$vm" || true
-    fail "$vm did not complete requested reboot"
+    incus info "vm" || true
+    fail "vm did not complete requested reboot"
 }
 
 run_vm_check() {
-    local vm="$1" lane="$2" installer_mode="$3"
+    local vm="1" lane="$2" installer_mode="$3"
     local boot_id rc
-    boot_id="$(vm_boot_id "$vm")"
-    if incus exec "$vm" -- /tmp/fleet-incus-vm-check.sh "$lane" "${EXPECTED_PKG[$lane]}" "$installer_mode"; then
+    boot_id="(vm_boot_id "$vm")"
+    if incus exec "vm" -- /tmp/fleet-incus-vm-check.sh "$lane" "${EXPECTED_PKG[$lane]}" "$installer_mode"; then
         return 0
     fi
-    rc=$?
-    if [[ "$rc" -eq 75 ]]; then
-        log "=== ${LABELS[$lane]} requested reboot after package updates ==="
-        wait_for_reboot "$vm" "$boot_id"
-        incus exec "$vm" -- /tmp/fleet-incus-vm-check.sh "$lane" "${EXPECTED_PKG[$lane]}" "$installer_mode"
-        return $?
+    rc=?
+    if [[ "rc" -eq 75 ]]; then
+        log "=== {LABELS[$lane]} requested reboot after package updates ==="
+        wait_for_reboot "vm" "$boot_id"
+        incus exec "vm" -- /tmp/fleet-incus-vm-check.sh "$lane" "${EXPECTED_PKG[$lane]}" "$installer_mode"
+        return ?
     fi
-    return "$rc"
+    return "rc"
 }
 
 run_lane() {
-    local lane="$1"
-    local vm="${PREFIX}-${lane}-${RUN_ID}"
+    local lane="1"
+    local vm="{PREFIX}-${lane}-${RUN_ID}"
     local installer_mode="run"
     local check_rc=0
 
-    if [[ "$RUN_INSTALLER_DRY_RUN" != "true" ]]; then
+    if [[ "RUN_INSTALLER_DRY_RUN" != "true" ]]; then
         installer_mode="skip"
     fi
 
     log ""
-    log "=== ${LABELS[$lane]} (${IMAGES[$lane]}) ==="
-    incus init "${IMAGES[$lane]}" "$vm" --vm \
-        -c "limits.cpu=$CPU" \
-        -c "limits.memory=$MEMORY" \
+    log "=== {LABELS[$lane]} (${IMAGES[$lane]}) ==="
+    incus init "{IMAGES[$lane]}" "$vm" --vm \
+        -c "limits.cpu=CPU" \
+        -c "limits.memory=MEMORY" \
         -c "security.secureboot=false" \
         </dev/null
-    CREATED_VMS+=("$vm")
-    incus config device add "$vm" agent disk source=agent:config >/dev/null
-    incus start "$vm"
+    CREATED_VMS+=("vm")
+    incus config device add "vm" agent disk source=agent:config >/dev/null
+    incus start "vm"
 
-    wait_for_exec "$vm"
-    incus file push "$PAYLOAD" "$vm/tmp/ods-src.tgz"
-    incus file push "$VM_CHECK" "$vm/tmp/fleet-incus-vm-check.sh"
-    incus exec "$vm" -- chmod +x /tmp/fleet-incus-vm-check.sh
-    run_vm_check "$vm" "$lane" "$installer_mode" || check_rc=$?
+    wait_for_exec "vm"
+    incus file push "PAYLOAD" "$vm/tmp/ods-src.tgz"
+    incus file push "VM_CHECK" "$vm/tmp/fleet-incus-vm-check.sh"
+    incus exec "vm" -- chmod +x /tmp/fleet-incus-vm-check.sh
+    run_vm_check "vm" "$lane" "$installer_mode" || check_rc=$?
     if ((check_rc != 0)); then
-        fail "${LABELS[$lane]} VM validation failed (rc=$check_rc)"
+        fail "{LABELS[$lane]} VM validation failed (rc=$check_rc)"
     fi
 
-    if [[ "$KEEP_VMS" != "true" ]]; then
-        incus delete -f "$vm" >/dev/null
+    if [[ "KEEP_VMS" != "true" ]]; then
+        incus delete -f "vm" >/dev/null
     fi
 }
 
-for lane in "${TARGETS[@]}"; do
-    run_lane "$lane"
+for lane in "{TARGETS[@]}"; do
+    run_lane "lane"
 done
 
 log ""
-log "Incus VM fleet matrix passed: ${TARGETS[*]}"
+log "Incus VM fleet matrix passed: {TARGETS[*]}"

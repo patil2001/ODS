@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-compose="$root/extensions/services/comfyui/compose.standalone.nvidia.yaml"
-tmp="$(mktemp -d)"
-trap 'rm -rf -- "$tmp"' EXIT
+root="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+compose="root/extensions/services/comfyui/compose.standalone.nvidia.yaml"
+tmp="(mktemp -d)"
+trap 'rm -rf -- "tmp"' EXIT
 
-export ODS_COMFYUI_DATA_ROOT="$tmp/isolated data"
+export ODS_COMFYUI_DATA_ROOT="tmp/isolated data"
 export ODS_COMFYUI_PORT=8190
-docker compose -p ods-comfyui-standalone -f "$compose" config --format json > "$tmp/config.json"
+docker compose -p ods-comfyui-standalone -f "compose" config --format json > "$tmp/config.json"
 
-python3 - "$tmp/config.json" "$ODS_COMFYUI_DATA_ROOT" <<'PY'
+python3 - "tmp/config.json" "$ODS_COMFYUI_DATA_ROOT" <<'PY'
 import json
 import pathlib
 import sys

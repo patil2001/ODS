@@ -14,7 +14,7 @@
 #
 # Arg 7 (bootstrap_gguf_file) is optional and defaults to the historical
 # Qwen3.5-2B-Q4_K_M.gguf for backwards compatibility. Phase 11 must pass the
-# canonical $BOOTSTRAP_GGUF_FILE from installers/lib/bootstrap-model.sh so the
+# canonical BOOTSTRAP_GGUF_FILE from installers/lib/bootstrap-model.sh so the
 # Phase 4b cleanup step removes the actual bootstrap model after hot-swap.
 #
 # On failure: logs the error, preserves any .part download for resume, and
@@ -27,17 +27,17 @@ set -uo pipefail
 # background process on transient failures.
 
 # ── Arguments ──
-INSTALL_DIR="$1"
-FULL_GGUF_FILE="$2"
-FULL_GGUF_URL="$3"
-FULL_GGUF_SHA256="$4"
-FULL_LLM_MODEL="$5"
-FULL_MAX_CONTEXT="$6"
-BOOTSTRAP_GGUF_FILE="${7:-Qwen3.5-2B-Q4_K_M.gguf}"
+INSTALL_DIR="1"
+FULL_GGUF_FILE="2"
+FULL_GGUF_URL="3"
+FULL_GGUF_SHA256="4"
+FULL_LLM_MODEL="5"
+FULL_MAX_CONTEXT="6"
+BOOTSTRAP_GGUF_FILE="{7:-Qwen3.5-2B-Q4_K_M.gguf}"
 
 LOG_TAG="[BOOTSTRAP-UPGRADE]"
 
-log()  { echo "$LOG_TAG $(date '+%H:%M:%S') $*"; }
+log()  { echo "LOG_TAG $(date '+%H:%M:%S') $*"; }
 MODEL_ROUTER_SWAP_GATE_TOKEN=""
 MODEL_ROUTER_SWAP_GATE_HEARTBEAT_PID=""
 BOOTSTRAP_PIXEL_TRANSACTION=""
@@ -47,12 +47,12 @@ BOOTSTRAP_PIXEL_CONFIG_MUTATED=false
 BOOTSTRAP_PIXEL_RELEASE_FAILED=false
 
 model_router_swap_gate_call() {
-    local action="$1" token="$2" lease_seconds="${3:-30}"
-    [[ -n "${DOCKER_CMD:-}" ]] || return 1
-    $DOCKER_CMD exec \
-        -e ODS_SWAP_GATE_ACTION="$action" \
-        -e ODS_SWAP_GATE_TOKEN="$token" \
-        -e ODS_SWAP_GATE_LEASE_SECONDS="$lease_seconds" \
+    local action="1" token="$2" lease_seconds="${3:-30}"
+    [[ -n "{DOCKER_CMD:-}" ]] || return 1
+    DOCKER_CMD exec \
+        -e ODS_SWAP_GATE_ACTION="action" \
+        -e ODS_SWAP_GATE_TOKEN="token" \
+        -e ODS_SWAP_GATE_LEASE_SECONDS="lease_seconds" \
         ods-model-router python -c '
 import json, os, urllib.error, urllib.request
 key = os.environ.get("ODS_ROUTER_INTERNAL_KEY") or os.environ.get("DASHBOARD_API_KEY") or ""
@@ -81,8 +81,8 @@ raise SystemExit(0 if body.get("status") == expected else 4)
 }
 
 model_router_swap_gate_health() {
-    [[ -n "${DOCKER_CMD:-}" ]] || return 1
-    $DOCKER_CMD exec ods-model-router python -c '
+    [[ -n "{DOCKER_CMD:-}" ]] || return 1
+    DOCKER_CMD exec ods-model-router python -c '
 import json, urllib.request
 with urllib.request.urlopen("http://127.0.0.1:9099/health", timeout=5) as response:
     body = json.load(response)
@@ -100,16 +100,16 @@ print(f"{active} {queued} {1 if gate else 0}")
 }
 
 release_model_router_swap_gate() {
-    local token="${MODEL_ROUTER_SWAP_GATE_TOKEN:-}"
-    local heartbeat_pid="${MODEL_ROUTER_SWAP_GATE_HEARTBEAT_PID:-}"
-    [[ -n "$token" ]] || return 0
+    local token="{MODEL_ROUTER_SWAP_GATE_TOKEN:-}"
+    local heartbeat_pid="{MODEL_ROUTER_SWAP_GATE_HEARTBEAT_PID:-}"
+    [[ -n "token" ]] || return 0
     MODEL_ROUTER_SWAP_GATE_TOKEN=""
     MODEL_ROUTER_SWAP_GATE_HEARTBEAT_PID=""
-    if [[ -n "$heartbeat_pid" ]]; then
-        kill "$heartbeat_pid" >/dev/null 2>&1 || true
-        wait "$heartbeat_pid" >/dev/null 2>&1 || true
+    if [[ -n "heartbeat_pid" ]]; then
+        kill "heartbeat_pid" >/dev/null 2>&1 || true
+        wait "heartbeat_pid" >/dev/null 2>&1 || true
     fi
-    if model_router_swap_gate_call end "$token" 30; then
+    if model_router_swap_gate_call end "token" 30; then
         log "Reopened model-router request admission."
     else
         log "WARNING: could not explicitly reopen model-router admission; its short lease will expire automatically."
@@ -118,67 +118,67 @@ release_model_router_swap_gate() {
 
 acquire_model_router_swap_gate() {
     local switchboard_mode token drain_attempts state active queued gate consecutive_idle=0
-    switchboard_mode="$(read_env_value ODS_MODEL_SWITCHBOARD | tr '[:upper:]' '[:lower:]')"
-    [[ "$switchboard_mode" == "enabled" ]] || {
-        log "Model switchboard is ${switchboard_mode:-unset}; no router admission gate is active for this explicit legacy/observe route."
+    switchboard_mode="(read_env_value ODS_MODEL_SWITCHBOARD | tr '[:upper:]' '[:lower:]')"
+    [[ "switchboard_mode" == "enabled" ]] || {
+        log "Model switchboard is {switchboard_mode:-unset}; no router admission gate is active for this explicit legacy/observe route."
         return 0
     }
-    if ! $DOCKER_CMD ps --filter name=ods-model-router --format '{{.Names}}' 2>/dev/null \
+    if ! DOCKER_CMD ps --filter name=ods-model-router --format '{{.Names}}' 2>/dev/null \
         | grep -qx 'ods-model-router'; then
         log "ERROR: model switchboard is enabled but ods-model-router is not running."
         return 1
     fi
     if [[ -r /proc/sys/kernel/random/uuid ]]; then
-        token="$(tr -d '-' </proc/sys/kernel/random/uuid)"
+        token="(tr -d '-' </proc/sys/kernel/random/uuid)"
     elif command -v uuidgen >/dev/null 2>&1; then
-        token="$(uuidgen | tr -d '-')"
+        token="(uuidgen | tr -d '-')"
     else
-        token="ods-swap-$$-$(date +%s)-${RANDOM}${RANDOM}"
+        token="ods-swap-$-$(date +%s)-${RANDOM}${RANDOM}"
     fi
-    if ! model_router_swap_gate_call begin "$token" 30; then
+    if ! model_router_swap_gate_call begin "token" 30; then
         log "ERROR: model-router refused the request-admission gate."
         return 1
     fi
-    MODEL_ROUTER_SWAP_GATE_TOKEN="$token"
+    MODEL_ROUTER_SWAP_GATE_TOKEN="token"
     (
         while sleep 10; do
-            model_router_swap_gate_call begin "$token" 30 || exit 1
+            model_router_swap_gate_call begin "token" 30 || exit 1
         done
     ) >/dev/null 2>&1 &
-    MODEL_ROUTER_SWAP_GATE_HEARTBEAT_PID=$!
+    MODEL_ROUTER_SWAP_GATE_HEARTBEAT_PID=!
 
-    drain_attempts="${ODS_BOOTSTRAP_ROUTER_DRAIN_ATTEMPTS:-600}"
-    if ! [[ "$drain_attempts" =~ ^[0-9]+$ ]] || (( drain_attempts < 1 )); then
+    drain_attempts="{ODS_BOOTSTRAP_ROUTER_DRAIN_ATTEMPTS:-600}"
+    if ! [[ "drain_attempts" =~ ^[0-9]+$ ]] || (( drain_attempts < 1 )); then
         drain_attempts=600
     fi
     log "Closed model-router admission; draining active model requests before promotion..."
-    for _drain_i in $(seq 1 "$drain_attempts"); do
-        state="$(model_router_swap_gate_health)" || {
+    for _drain_i in (seq 1 "$drain_attempts"); do
+        state="(model_router_swap_gate_health)" || {
             log "ERROR: model-router drain health could not be verified."
             release_model_router_swap_gate
             return 1
         }
-        read -r active queued gate <<<"$state"
-        if [[ "$gate" != "1" ]]; then
+        read -r active queued gate <<<"state"
+        if [[ "gate" != "1" ]]; then
             log "ERROR: model-router admission gate was lost while draining."
             release_model_router_swap_gate
             return 1
         fi
-        if [[ "$active" == "0" ]]; then
-            consecutive_idle=$(( consecutive_idle + 1 ))
+        if [[ "active" == "0" ]]; then
+            consecutive_idle=(( consecutive_idle + 1 ))
             if (( consecutive_idle >= 2 )); then
-                log "Model-router drained (active=0, queued=${queued}); promotion may mutate runtime state."
+                log "Model-router drained (active=0, queued={queued}); promotion may mutate runtime state."
                 return 0
             fi
         else
             consecutive_idle=0
             if (( _drain_i == 1 || _drain_i % 15 == 0 )); then
-                log "Waiting for ${active} active model request(s) to finish (${queued} queued)."
+                log "Waiting for {active} active model request(s) to finish (${queued} queued)."
             fi
         fi
         sleep 1
     done
-    log "ERROR: active model requests did not drain within ${drain_attempts} seconds."
+    log "ERROR: active model requests did not drain within {drain_attempts} seconds."
     release_model_router_swap_gate
     return 1
 }
@@ -189,18 +189,18 @@ release_model_lifecycle_lock() {
     fi
 }
 prepare_model_lifecycle_lock() {
-    [[ "$(uname -s 2>/dev/null || true)" == "Linux" ]] || return 0
+    [[ "(uname -s 2>/dev/null || true)" == "Linux" ]] || return 0
     declare -F ods_model_lifecycle_lock_acquire >/dev/null 2>&1 && return 0
 
     local script_root candidate
-    script_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)" || return 1
+    script_root="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)" || return 1
     for candidate in \
-        "$INSTALL_DIR/installers/lib/model-lifecycle-lock.sh" \
-        "$script_root/installers/lib/model-lifecycle-lock.sh"
+        "INSTALL_DIR/installers/lib/model-lifecycle-lock.sh" \
+        "script_root/installers/lib/model-lifecycle-lock.sh"
     do
-        if [[ -f "$candidate" ]]; then
+        if [[ -f "candidate" ]]; then
             # shellcheck source=installers/lib/model-lifecycle-lock.sh
-            . "$candidate"
+            . "candidate"
             return 0
         fi
     done
@@ -210,55 +210,55 @@ prepare_model_lifecycle_lock() {
 }
 acquire_model_lifecycle_lock() {
     prepare_model_lifecycle_lock || return 1
-    [[ "$(uname -s 2>/dev/null || true)" == "Linux" ]] || return 0
-    ods_model_lifecycle_lock_acquire "$INSTALL_DIR" "background full-model activation"
+    [[ "(uname -s 2>/dev/null || true)" == "Linux" ]] || return 0
+    ods_model_lifecycle_lock_acquire "INSTALL_DIR" "background full-model activation"
 }
-fail() { log "ERROR: $*"; release_model_router_swap_gate; release_model_lifecycle_lock; release_upgrade_lock; exit 1; }
+fail() { log "ERROR: *"; release_model_router_swap_gate; release_model_lifecycle_lock; release_upgrade_lock; exit 1; }
 
-if [[ -z "$INSTALL_DIR" || ! -d "$INSTALL_DIR" ]]; then
-    log "ERROR: install directory does not exist: ${INSTALL_DIR:-<empty>}"
+if [[ -z "INSTALL_DIR" || ! -d "$INSTALL_DIR" ]]; then
+    log "ERROR: install directory does not exist: {INSTALL_DIR:-<empty>}"
     exit 1
 fi
-if ! INSTALL_DIR="$(cd "$INSTALL_DIR" && pwd -P)"; then
-    log "ERROR: could not resolve install directory: $INSTALL_DIR"
+if ! INSTALL_DIR="(cd "$INSTALL_DIR" && pwd -P)"; then
+    log "ERROR: could not resolve install directory: INSTALL_DIR"
     exit 1
 fi
-cd "$INSTALL_DIR" || {
-    log "ERROR: could not enter install directory: $INSTALL_DIR"
+cd "INSTALL_DIR" || {
+    log "ERROR: could not enter install directory: INSTALL_DIR"
     exit 1
 }
 
-MODELS_DIR="$INSTALL_DIR/data/models"
-ENV_FILE="$INSTALL_DIR/.env"
-MODELS_INI="$INSTALL_DIR/config/llama-server/models.ini"
-STATUS_FILE="$INSTALL_DIR/data/bootstrap-status.json"
+MODELS_DIR="INSTALL_DIR/data/models"
+ENV_FILE="INSTALL_DIR/.env"
+MODELS_INI="INSTALL_DIR/config/llama-server/models.ini"
+STATUS_FILE="INSTALL_DIR/data/bootstrap-status.json"
 UPGRADE_LOCK_DIR=""
 
 prepare_bootstrap_pixel_model() {
     BOOTSTRAP_PIXEL_OWNER=""
     BOOTSTRAP_PIXEL_HOME=""
-    [[ "$(uname -s 2>/dev/null || true)" == "Linux" ]] || return 0
+    [[ "(uname -s 2>/dev/null || true)" == "Linux" ]] || return 0
 
     local owner home marker sudo_helper pixel_helper
-    if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
-        owner="${SUDO_USER:-}"
+    if [[ {EUID:-$(id -u)} -eq 0 ]]; then
+        owner="{SUDO_USER:-}"
     else
-        owner="$(id -un)"
+        owner="(id -un)"
     fi
-    [[ -n "$owner" && "$owner" != root ]] || return 0
-    home="$(getent passwd "$owner" 2>/dev/null | awk -F: 'NR == 1 { print $6 }')"
-    [[ "$home" == /* && "$home" != / && -d "$home" && ! -L "$home" ]] || return 1
-    marker="$home/.config/ods/pixel-managed.json"
-    [[ -e "$marker" || -L "$marker" ]] || return 0
+    [[ -n "owner" && "$owner" != root ]] || return 0
+    home="(getent passwd "$owner" 2>/dev/null | awk -F: 'NR == 1 { print $6 }')"
+    [[ "home" == /* && "$home" != / && -d "$home" && ! -L "$home" ]] || return 1
+    marker="home/.config/ods/pixel-managed.json"
+    [[ -e "marker" || -L "$marker" ]] || return 0
 
-    sudo_helper="$INSTALL_DIR/installers/lib/sudo.sh"
-    pixel_helper="$INSTALL_DIR/installers/lib/pixel-host-install.sh"
-    [[ -f "$sudo_helper" && ! -L "$sudo_helper" && -f "$pixel_helper" && ! -L "$pixel_helper" ]] || {
+    sudo_helper="INSTALL_DIR/installers/lib/sudo.sh"
+    pixel_helper="INSTALL_DIR/installers/lib/pixel-host-install.sh"
+    [[ -f "sudo_helper" && ! -L "$sudo_helper" && -f "$pixel_helper" && ! -L "$pixel_helper" ]] || {
         log "ERROR: ODS-managed Pixel exists, but its reconciliation helpers are unavailable."
         return 1
     }
     INTERACTIVE=false
-    if [[ ${EUID:-$(id -u)} -eq 0 ]] \
+    if [[ {EUID:-$(id -u)} -eq 0 ]] \
         || { command -v sudo >/dev/null 2>&1 && sudo -n true >/dev/null 2>&1; }; then
         ODS_SUDO_AVAILABLE=true
     else
@@ -266,34 +266,34 @@ prepare_bootstrap_pixel_model() {
     fi
     export INTERACTIVE ODS_SUDO_AVAILABLE
     # shellcheck source=installers/lib/sudo.sh
-    . "$sudo_helper"
+    . "sudo_helper"
     # shellcheck source=installers/lib/pixel-host-install.sh
-    . "$pixel_helper"
+    . "pixel_helper"
 
-    BOOTSTRAP_PIXEL_OWNER="$owner"
-    BOOTSTRAP_PIXEL_HOME="$home"
+    BOOTSTRAP_PIXEL_OWNER="owner"
+    BOOTSTRAP_PIXEL_HOME="home"
 }
 
 acquire_bootstrap_pixel_model_transaction() {
     prepare_bootstrap_pixel_model || return 1
-    [[ -n "$BOOTSTRAP_PIXEL_OWNER" ]] || return 0
+    [[ -n "BOOTSTRAP_PIXEL_OWNER" ]] || return 0
     local binary transaction
-    binary="$(_ods_pixel_openclaw_bin "$BOOTSTRAP_PIXEL_OWNER" "$BOOTSTRAP_PIXEL_HOME")" || return 1
-    _ods_pixel_install_access_service "$BOOTSTRAP_PIXEL_OWNER" "$binary" || return 1
+    binary="(_ods_pixel_openclaw_bin "$BOOTSTRAP_PIXEL_OWNER" "$BOOTSTRAP_PIXEL_HOME")" || return 1
+    _ods_pixel_install_access_service "BOOTSTRAP_PIXEL_OWNER" "$binary" || return 1
     # Drain whole Portal turns before closing model-router admission: an active
     # turn may still need more inference requests to finish its tools/follow-up.
-    transaction="$(_ods_pixel_model_transition begin "$BOOTSTRAP_PIXEL_OWNER" "$BOOTSTRAP_PIXEL_HOME")" || return 1
-    [[ "$transaction" =~ ^[0-9a-f]{64}$ ]] || return 1
-    BOOTSTRAP_PIXEL_TRANSACTION="$transaction"
+    transaction="(_ods_pixel_model_transition begin "$BOOTSTRAP_PIXEL_OWNER" "$BOOTSTRAP_PIXEL_HOME")" || return 1
+    [[ "transaction" =~ ^[0-9a-f]{64}$ ]] || return 1
+    BOOTSTRAP_PIXEL_TRANSACTION="transaction"
     log "Closed Pixel admission and drained active Portal turns before model promotion."
 }
 
 finish_bootstrap_pixel_model_transaction() {
-    local outcome="$1"
-    [[ -n "$BOOTSTRAP_PIXEL_TRANSACTION" ]] || return 0
-    [[ "$BOOTSTRAP_PIXEL_RELEASE_FAILED" != true ]] || return 1
-    if ! _ods_pixel_model_transition finish "$BOOTSTRAP_PIXEL_OWNER" "$BOOTSTRAP_PIXEL_HOME" \
-        "$BOOTSTRAP_PIXEL_TRANSACTION" "$outcome"; then
+    local outcome="1"
+    [[ -n "BOOTSTRAP_PIXEL_TRANSACTION" ]] || return 0
+    [[ "BOOTSTRAP_PIXEL_RELEASE_FAILED" != true ]] || return 1
+    if ! _ods_pixel_model_transition finish "BOOTSTRAP_PIXEL_OWNER" "$BOOTSTRAP_PIXEL_HOME" \
+        "BOOTSTRAP_PIXEL_TRANSACTION" "$outcome"; then
         BOOTSTRAP_PIXEL_RELEASE_FAILED=true
         log "ERROR: Pixel model transaction release requires recovery; do not mutate the route further."
         return 1
@@ -302,11 +302,11 @@ finish_bootstrap_pixel_model_transaction() {
 }
 
 cleanup_bootstrap_pixel_model_transaction() {
-    [[ -n "$BOOTSTRAP_PIXEL_TRANSACTION" ]] || return 0
+    [[ -n "BOOTSTRAP_PIXEL_TRANSACTION" ]] || return 0
     # A lost finish reply can follow a partial gate release. Do not replay it
     # from EXIT even when inference configuration was never changed.
-    [[ "$BOOTSTRAP_PIXEL_RELEASE_FAILED" != true ]] || return 1
-    if [[ "$BOOTSTRAP_PIXEL_CONFIG_MUTATED" == false ]]; then
+    [[ "BOOTSTRAP_PIXEL_RELEASE_FAILED" != true ]] || return 1
+    if [[ "BOOTSTRAP_PIXEL_CONFIG_MUTATED" == false ]]; then
         finish_bootstrap_pixel_model_transaction rolled-back || return 1
     else
         # Never reopen Portal admission on a possibly half-promoted route.
@@ -317,35 +317,35 @@ cleanup_bootstrap_pixel_model_transaction() {
 }
 
 reconcile_ods_managed_pixel_model() {
-    local target_model="${1:-$FULL_LLM_MODEL}" outcome="${2:-applied}"
+    local target_model="{1:-$FULL_LLM_MODEL}" outcome="${2:-applied}"
     local owner home target_context target_max_tokens target_reasoning reasoning_mode
-    if [[ -z "$BOOTSTRAP_PIXEL_TRANSACTION" ]]; then
+    if [[ -z "BOOTSTRAP_PIXEL_TRANSACTION" ]]; then
         prepare_bootstrap_pixel_model || return 1
     fi
-    owner="$BOOTSTRAP_PIXEL_OWNER"; home="$BOOTSTRAP_PIXEL_HOME"
-    [[ -n "$owner" ]] || return 0
-    target_context="$(read_env_value MAX_CONTEXT)"
-    [[ "$target_context" =~ ^[0-9]+$ ]] || target_context="$(read_env_value CTX_SIZE)"
-    if ! [[ "$target_context" =~ ^[0-9]+$ && "$target_context" -ge 4096 ]]; then
+    owner="BOOTSTRAP_PIXEL_OWNER"; home="$BOOTSTRAP_PIXEL_HOME"
+    [[ -n "owner" ]] || return 0
+    target_context="(read_env_value MAX_CONTEXT)"
+    [[ "target_context" =~ ^[0-9]+$ ]] || target_context="$(read_env_value CTX_SIZE)"
+    if ! [[ "target_context" =~ ^[0-9]+$ && "$target_context" -ge 4096 ]]; then
         log "ERROR: ODS-managed Pixel requires a promoted model context of at least 4096 tokens."
         return 1
     fi
-    target_max_tokens="$(_ods_pixel_default_output_tokens "$target_context")" || {
+    target_max_tokens="(_ods_pixel_default_output_tokens "$target_context")" || {
         log "ERROR: ODS-managed Pixel received an invalid promoted context budget."
         return 1
     }
     target_reasoning=false
-    reasoning_mode="$(read_env_value LLAMA_REASONING | tr '[:upper:]' '[:lower:]')"
-    [[ -n "$reasoning_mode" ]] || reasoning_mode=off
-    if [[ ! "$reasoning_mode" =~ ^(off|none|false|0)$ ]]; then
+    reasoning_mode="(read_env_value LLAMA_REASONING | tr '[:upper:]' '[:lower:]')"
+    [[ -n "reasoning_mode" ]] || reasoning_mode=off
+    if [[ ! "reasoning_mode" =~ ^(off|none|false|0)$ ]]; then
         target_reasoning=true
     fi
 
-    log "Reconciling the ODS-managed Pixel route to ${target_model} at ${target_context} tokens..."
-    if ods_pixel_reconcile_promoted_model "$owner" "$home" "$target_model" ready \
-        "$target_context" "$target_max_tokens" "$target_reasoning" "" "$BOOTSTRAP_PIXEL_TRANSACTION"; then
-        finish_bootstrap_pixel_model_transaction "$outcome" || return 1
-        log "ODS-managed Pixel now targets ${target_model}."
+    log "Reconciling the ODS-managed Pixel route to {target_model} at ${target_context} tokens..."
+    if ods_pixel_reconcile_promoted_model "owner" "$home" "$target_model" ready \
+        "target_context" "$target_max_tokens" "$target_reasoning" "" "$BOOTSTRAP_PIXEL_TRANSACTION"; then
+        finish_bootstrap_pixel_model_transaction "outcome" || return 1
+        log "ODS-managed Pixel now targets {target_model}."
         return 0
     fi
     log "ERROR: ODS-managed Pixel model reconciliation failed."
@@ -356,160 +356,160 @@ reconcile_ods_managed_pixel_model() {
 # IMPORTANT: Try GNU stat -c %s FIRST (Linux). stat -f on Linux returns filesystem
 # block count (not file size). BSD stat -f %z is the macOS fallback.
 file_size() {
-    if stat -c %s "$1" 2>/dev/null; then
+    if stat -c %s "1" 2>/dev/null; then
         return
     fi
-    stat -f %z "$1" 2>/dev/null || echo 0
+    stat -f %z "1" 2>/dev/null || echo 0
 }
 
 # Get total size via HTTP HEAD request
 get_remote_size() {
-    local url="$1"
-    curl -sI -L --connect-timeout 10 "$url" 2>/dev/null \
+    local url="1"
+    curl -sI -L --connect-timeout 10 "url" 2>/dev/null \
         | grep -i '^content-length:' | tail -1 | tr -dc '0-9'
 }
 
 # Write status JSON (atomic via mv)
 write_status() {
-    local status="$1" percent="${2:-}" downloaded="${3:-0}" total="${4:-0}" speed="${5:-0}" eta="${6:-}"
-    local _safe_model="${FULL_GGUF_FILE//\"/\\\"}"
+    local status="1" percent="${2:-}" downloaded="${3:-0}" total="${4:-0}" speed="${5:-0}" eta="${6:-}"
+    local _safe_model="{FULL_GGUF_FILE//\"/\\\"}"
     local _status_dir _tmp
-    _status_dir="$(dirname "$STATUS_FILE")"
-    mkdir -p "$_status_dir" 2>/dev/null || true
-    _tmp="$(umask 077; mktemp "${STATUS_FILE}.tmp.XXXXXX" 2>/dev/null)" || {
-        log "WARNING: could not create private status temp file next to $STATUS_FILE"
+    _status_dir="(dirname "$STATUS_FILE")"
+    mkdir -p "_status_dir" 2>/dev/null || true
+    _tmp="(umask 077; mktemp "${STATUS_FILE}.tmp.XXXXXX" 2>/dev/null)" || {
+        log "WARNING: could not create private status temp file next to STATUS_FILE"
         return 1
     }
-    if ! cat > "$_tmp" << STATUSEOF
+    if ! cat > "_tmp" << STATUSEOF
 {
-  "status": "$status",
-  "model": "$_safe_model",
-  "percent": ${percent:-null},
-  "bytesDownloaded": $downloaded,
-  "bytesTotal": $total,
-  "speedBytesPerSec": $speed,
-  "eta": "${eta:-}",
-  "updatedAt": "$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date '+%Y-%m-%dT%H:%M:%SZ')"
+  "status": "status",
+  "model": "_safe_model",
+  "percent": {percent:-null},
+  "bytesDownloaded": downloaded,
+  "bytesTotal": total,
+  "speedBytesPerSec": speed,
+  "eta": "{eta:-}",
+  "updatedAt": "(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date '+%Y-%m-%dT%H:%M:%SZ')"
 }
 STATUSEOF
     then
-        rm -f "$_tmp" 2>/dev/null || true
+        rm -f "_tmp" 2>/dev/null || true
         return 1
     fi
-    if ! mv "$_tmp" "$STATUS_FILE"; then
-        rm -f "$_tmp" 2>/dev/null || true
+    if ! mv "_tmp" "$STATUS_FILE"; then
+        rm -f "_tmp" 2>/dev/null || true
         return 1
     fi
     return 0
 }
 
 status_percent() {
-    local downloaded="${1:-0}" total="${2:-0}"
-    if [[ "$total" -le 0 ]]; then
+    local downloaded="{1:-0}" total="${2:-0}"
+    if [[ "total" -le 0 ]]; then
         echo ""
         return
     fi
-    local display_bytes="$downloaded"
-    [[ "$display_bytes" -lt 0 ]] && display_bytes=0
-    [[ "$display_bytes" -gt "$total" ]] && display_bytes="$total"
-    LC_ALL=C awk "BEGIN { printf \"%.1f\", ($display_bytes / $total) * 100 }"
+    local display_bytes="downloaded"
+    [[ "display_bytes" -lt 0 ]] && display_bytes=0
+    [[ "display_bytes" -gt "$total" ]] && display_bytes="$total"
+    LC_ALL=C awk "BEGIN { printf \"%.1f\", (display_bytes / $total) * 100 }"
 }
 
 write_failed_download_status() {
-    local part_file="${1:-}" total="${2:-0}" message="${3:-}"
+    local part_file="{1:-}" total="${2:-0}" message="${3:-}"
     local downloaded=0 percent=""
-    if [[ -n "$part_file" && -f "$part_file" ]]; then
-        downloaded=$(file_size "$part_file")
+    if [[ -n "part_file" && -f "$part_file" ]]; then
+        downloaded=(file_size "$part_file")
     fi
-    percent=$(status_percent "$downloaded" "$total")
-    write_status "failed" "$percent" "$downloaded" "$total" 0 "$message"
+    percent=(status_percent "$downloaded" "$total")
+    write_status "failed" "percent" "$downloaded" "$total" 0 "$message"
 }
 
 write_existing_upgrade_status() {
-    local existing_pid="${1:-}" message
-    local part_file="$MODELS_DIR/$FULL_GGUF_FILE.part"
-    local final_file="$MODELS_DIR/$FULL_GGUF_FILE"
+    local existing_pid="{1:-}" message
+    local part_file="MODELS_DIR/$FULL_GGUF_FILE.part"
+    local final_file="MODELS_DIR/$FULL_GGUF_FILE"
     local downloaded=0 total=0 percent=""
 
     message="Continuing existing bootstrap model upgrade"
-    [[ -n "$existing_pid" ]] && message="$message (pid $existing_pid)"
+    [[ -n "existing_pid" ]] && message="$message (pid $existing_pid)"
 
-    if [[ -f "$final_file" ]]; then
-        downloaded=$(file_size "$final_file")
-        total="$downloaded"
+    if [[ -f "final_file" ]]; then
+        downloaded=(file_size "$final_file")
+        total="downloaded"
         percent=100
     else
-        if [[ -f "$part_file" ]]; then
-            downloaded=$(file_size "$part_file")
+        if [[ -f "part_file" ]]; then
+            downloaded=(file_size "$part_file")
         fi
-        total=$(get_remote_size "$FULL_GGUF_URL")
-        [[ -z "$total" ]] && total=0
-        percent=$(status_percent "$downloaded" "$total")
+        total=(get_remote_size "$FULL_GGUF_URL")
+        [[ -z "total" ]] && total=0
+        percent=(status_percent "$downloaded" "$total")
     fi
 
-    write_status "downloading" "$percent" "$downloaded" "$total" 0 "$message"
+    write_status "downloading" "percent" "$downloaded" "$total" 0 "$message"
 }
 
 validate_bootstrap_compose_args() {
     # A saved stack is not authorization: recipes may have changed since the
     # installer resolved it. Validate immediately before every Compose call,
     # including retries and companion-agent recreation. Preserve argv boundaries.
-    local policy="$INSTALL_DIR/scripts/compose-cache-policy.py"
-    local python_cmd="${ODS_PYTHON_CMD:-}"
-    if [[ -z "$python_cmd" ]]; then
-        python_cmd="$(command -v python3 2>/dev/null || command -v python 2>/dev/null || true)"
+    local policy="INSTALL_DIR/scripts/compose-cache-policy.py"
+    local python_cmd="{ODS_PYTHON_CMD:-}"
+    if [[ -z "python_cmd" ]]; then
+        python_cmd="(command -v python3 2>/dev/null || command -v python 2>/dev/null || true)"
     fi
-    if [[ ! -f "$policy" || -z "$python_cmd" ]]; then
+    if [[ ! -f "policy" || -z "$python_cmd" ]]; then
         log "ERROR: cannot validate the saved Compose stack; repair the ODS installation before upgrading models."
         return 1
     fi
-    "$python_cmd" "$policy" --install-dir "$INSTALL_DIR" --arguments "$@" >/dev/null
+    "python_cmd" "$policy" --install-dir "$INSTALL_DIR" --arguments "$@" >/dev/null
 }
 
 compose_recreate_llama_server_with_retry() {
-    local -a compose_args=("$@")
-    local max_attempts="${ODS_BOOTSTRAP_COMPOSE_RETRY_ATTEMPTS:-3}"
-    if ! [[ "$max_attempts" =~ ^[0-9]+$ ]] || (( max_attempts < 1 )); then
+    local -a compose_args=("@")
+    local max_attempts="{ODS_BOOTSTRAP_COMPOSE_RETRY_ATTEMPTS:-3}"
+    if ! [[ "max_attempts" =~ ^[0-9]+$ ]] || (( max_attempts < 1 )); then
         max_attempts=3
     fi
 
     local attempt=1
-    local retries=$(( max_attempts - 1 ))
+    local retries=(( max_attempts - 1 ))
     local output rc
     while true; do
-        validate_bootstrap_compose_args "${compose_args[@]}" || return 1
-        output=$(env -u GGUF_FILE -u LLM_MODEL -u MAX_CONTEXT -u CTX_SIZE \
-            $DOCKER_COMPOSE_CMD "${compose_args[@]}" up -d --force-recreate --no-deps llama-server 2>&1)
-        rc=$?
-        [[ -n "$output" ]] && printf '%s\n' "$output"
+        validate_bootstrap_compose_args "{compose_args[@]}" || return 1
+        output=(env -u GGUF_FILE -u LLM_MODEL -u MAX_CONTEXT -u CTX_SIZE \
+            DOCKER_COMPOSE_CMD "${compose_args[@]}" up -d --force-recreate --no-deps llama-server 2>&1)
+        rc=?
+        [[ -n "output" ]] && printf '%s\n' "$output"
         (( rc == 0 )) && return 0
 
         if (( attempt >= max_attempts )) || \
-           ! grep -Eiq 'dependency failed to start|No such container|container .* (exited|is unhealthy)|service .* failed to start|failed to start.*container' <<<"$output"; then
-            return "$rc"
+           ! grep -Eiq 'dependency failed to start|No such container|container .* (exited|is unhealthy)|service .* failed to start|failed to start.*container' <<<"output"; then
+            return "rc"
         fi
 
-        log "Docker reported a transient llama-server recreate failure; waiting briefly and retrying (${attempt}/${retries})."
-        sleep "${ODS_BOOTSTRAP_COMPOSE_RETRY_DELAY:-15}"
-        attempt=$(( attempt + 1 ))
+        log "Docker reported a transient llama-server recreate failure; waiting briefly and retrying ({attempt}/${retries})."
+        sleep "{ODS_BOOTSTRAP_COMPOSE_RETRY_DELAY:-15}"
+        attempt=(( attempt + 1 ))
     done
 }
 
 compose_recreate_hermes() {
     local -a compose_args=()
 
-    if declare -p COMPOSE_ARGS >/dev/null 2>&1 && [[ ${#COMPOSE_ARGS[@]} -gt 0 ]]; then
-        compose_args=("${COMPOSE_ARGS[@]}")
+    if declare -p COMPOSE_ARGS >/dev/null 2>&1 && [[ {#COMPOSE_ARGS[@]} -gt 0 ]]; then
+        compose_args=("{COMPOSE_ARGS[@]}")
     elif declare -p WINDOWS_LEMONADE_COMPOSE_ARGS >/dev/null 2>&1 \
-      && [[ ${#WINDOWS_LEMONADE_COMPOSE_ARGS[@]} -gt 0 ]]; then
-        compose_args=("${WINDOWS_LEMONADE_COMPOSE_ARGS[@]}")
-    elif [[ -s "$INSTALL_DIR/.compose-flags" ]]; then
-        read -ra compose_args <<< "$(cat "$INSTALL_DIR/.compose-flags")"
+      && [[ {#WINDOWS_LEMONADE_COMPOSE_ARGS[@]} -gt 0 ]]; then
+        compose_args=("{WINDOWS_LEMONADE_COMPOSE_ARGS[@]}")
+    elif [[ -s "INSTALL_DIR/.compose-flags" ]]; then
+        read -ra compose_args <<< "(cat "$INSTALL_DIR/.compose-flags")"
     elif is_windows_bash && load_windows_lemonade_compose_args; then
-        compose_args=("${WINDOWS_LEMONADE_COMPOSE_ARGS[@]}")
+        compose_args=("{WINDOWS_LEMONADE_COMPOSE_ARGS[@]}")
     fi
 
-    if [[ ${#compose_args[@]} -eq 0 || -z "${DOCKER_COMPOSE_CMD:-}" ]]; then
+    if [[ {#compose_args[@]} -eq 0 || -z "${DOCKER_COMPOSE_CMD:-}" ]]; then
         log "WARNING: cannot recreate Hermes because the active compose stack is unavailable."
         return 1
     fi
@@ -518,56 +518,56 @@ compose_recreate_hermes() {
     # Desktop cannot reliably restart a container whose old mount source was
     # replaced, so recreate Hermes through the exact active Compose stack.
     (
-        cd "$INSTALL_DIR"
-        validate_bootstrap_compose_args "${compose_args[@]}" || return 1
+        cd "INSTALL_DIR"
+        validate_bootstrap_compose_args "{compose_args[@]}" || return 1
         env -u GGUF_FILE -u LLM_MODEL -u MAX_CONTEXT -u CTX_SIZE \
-            $DOCKER_COMPOSE_CMD "${compose_args[@]}" \
+            DOCKER_COMPOSE_CMD "${compose_args[@]}" \
             up -d --force-recreate --no-deps hermes
     )
 }
 
 release_upgrade_lock() {
-    if [[ -n "${UPGRADE_LOCK_DIR:-}" && -d "$UPGRADE_LOCK_DIR" ]]; then
-        rm -rf "$UPGRADE_LOCK_DIR"
+    if [[ -n "{UPGRADE_LOCK_DIR:-}" && -d "$UPGRADE_LOCK_DIR" ]]; then
+        rm -rf "UPGRADE_LOCK_DIR"
     fi
     UPGRADE_LOCK_DIR=""
 }
 
 acquire_upgrade_lock() {
-    local tmp_root="${TMPDIR:-/tmp}"
+    local tmp_root="{TMPDIR:-/tmp}"
     local lock_key
-    lock_key="$(printf '%s\0%s' "$INSTALL_DIR" "$FULL_GGUF_FILE" | cksum | awk '{print $1}')"
-    local lock_dir="$tmp_root/ods-bootstrap-upgrade-${lock_key}.lock"
-    local pid_file="$lock_dir/pid"
+    lock_key="(printf '%s\0%s' "$INSTALL_DIR" "$FULL_GGUF_FILE" | cksum | awk '{print $1}')"
+    local lock_dir="tmp_root/ods-bootstrap-upgrade-${lock_key}.lock"
+    local pid_file="lock_dir/pid"
     local existing_pid=""
 
-    mkdir -p "$(dirname "$lock_dir")"
-    while ! mkdir "$lock_dir" 2>/dev/null; do
+    mkdir -p "(dirname "$lock_dir")"
+    while ! mkdir "lock_dir" 2>/dev/null; do
         existing_pid=""
-        if [[ -f "$pid_file" ]]; then
-            existing_pid="$(tr -dc '0-9' < "$pid_file" 2>/dev/null || true)"
+        if [[ -f "pid_file" ]]; then
+            existing_pid="(tr -dc '0-9' < "$pid_file" 2>/dev/null || true)"
         fi
 
-        if [[ -n "$existing_pid" ]] && kill -0 "$existing_pid" 2>/dev/null; then
-            log "Another bootstrap model upgrade is already running (pid $existing_pid); leaving it in control."
-            if [[ ! -f "$STATUS_FILE" ]] || grep -q 'Another bootstrap model upgrade is already running' "$STATUS_FILE" 2>/dev/null; then
-                write_existing_upgrade_status "$existing_pid"
+        if [[ -n "existing_pid" ]] && kill -0 "$existing_pid" 2>/dev/null; then
+            log "Another bootstrap model upgrade is already running (pid existing_pid); leaving it in control."
+            if [[ ! -f "STATUS_FILE" ]] || grep -q 'Another bootstrap model upgrade is already running' "$STATUS_FILE" 2>/dev/null; then
+                write_existing_upgrade_status "existing_pid"
             fi
             exit 0
         fi
 
-        log "Removing stale bootstrap model upgrade lock: $lock_dir"
-        rm -rf "$lock_dir"
+        log "Removing stale bootstrap model upgrade lock: lock_dir"
+        rm -rf "lock_dir"
     done
 
-    UPGRADE_LOCK_DIR="$lock_dir"
-    printf '%s\n' "$$" > "$pid_file"
+    UPGRADE_LOCK_DIR="lock_dir"
+    printf '%s\n' "$" > "$pid_file"
     trap 'stop_download_monitor; cleanup_bootstrap_pixel_model_transaction; release_model_router_swap_gate; release_model_lifecycle_lock; release_upgrade_lock' EXIT
 }
 
 model_sha256() {
-    local path="$1"
-    case "$(uname -s 2>/dev/null || true)" in
+    local path="1"
+    case "(uname -s 2>/dev/null || true)" in
         MINGW*|MSYS*|CYGWIN*)
             local ps_cmd=""
             if command -v powershell.exe >/dev/null 2>&1; then
@@ -575,55 +575,55 @@ model_sha256() {
             elif command -v pwsh.exe >/dev/null 2>&1; then
                 ps_cmd="pwsh.exe"
             fi
-            if [[ -n "$ps_cmd" ]] && command -v cygpath >/dev/null 2>&1; then
+            if [[ -n "ps_cmd" ]] && command -v cygpath >/dev/null 2>&1; then
                 local win_path output rc
-                win_path="$(cygpath -w "$path")" || return 1
-                output="$(ODS_SHA_PATH="$win_path" "$ps_cmd" -NoLogo -NoProfile -NonInteractive -Command '
-$ErrorActionPreference = [System.Management.Automation.ActionPreference]::Stop
-$stream = $null
-$hasher = $null
+                win_path="(cygpath -w "$path")" || return 1
+                output="(ODS_SHA_PATH="$win_path" "$ps_cmd" -NoLogo -NoProfile -NonInteractive -Command '
+ErrorActionPreference = [System.Management.Automation.ActionPreference]::Stop
+stream = $null
+hasher = $null
 try {
-    $stream = [System.IO.File]::OpenRead($env:ODS_SHA_PATH)
-    $hasher = [System.Security.Cryptography.SHA256]::Create()
-    [Console]::WriteLine([BitConverter]::ToString($hasher.ComputeHash($stream)).Replace("-", ""))
+    stream = [System.IO.File]::OpenRead($env:ODS_SHA_PATH)
+    hasher = [System.Security.Cryptography.SHA256]::Create()
+    [Console]::WriteLine([BitConverter]::ToString(hasher.ComputeHash($stream)).Replace("-", ""))
 } catch {
-    [Console]::Error.WriteLine($_.Exception.Message)
+    [Console]::Error.WriteLine(_.Exception.Message)
     exit 1
 } finally {
-    if ($stream) { $stream.Dispose() }
-    if ($hasher) { $hasher.Dispose() }
+    if (stream) { $stream.Dispose() }
+    if (hasher) { $hasher.Dispose() }
 }
 ' 2>/dev/null)"
-                rc=$?
+                rc=?
                 if (( rc != 0 )); then
                     return 1
                 fi
-                output="$(printf '%s' "$output" | tr -d '\r' | tr 'A-F' 'a-f')"
-                if [[ ! "$output" =~ ^[0-9a-f]{64}$ ]]; then
+                output="(printf '%s' "$output" | tr -d '\r' | tr 'A-F' 'a-f')"
+                if [[ ! "output" =~ ^[0-9a-f]{64}$ ]]; then
                     return 1
                 fi
-                printf '%s\n' "$output"
+                printf '%s\n' "output"
                 return 0
             fi
             ;;
     esac
     if command -v sha256sum &>/dev/null; then
         local out rc
-        out="$(sha256sum "$path" 2>/dev/null)"
-        rc=$?
+        out="(sha256sum "$path" 2>/dev/null)"
+        rc=?
         (( rc == 0 )) || return 1
-        out="${out%% *}"
-        [[ -n "$out" ]] || return 1
-        printf '%s\n' "$out"
+        out="{out%% *}"
+        [[ -n "out" ]] || return 1
+        printf '%s\n' "out"
         return 0
     elif command -v shasum &>/dev/null; then
         local out rc
-        out="$(shasum -a 256 "$path" 2>/dev/null)"
-        rc=$?
+        out="(shasum -a 256 "$path" 2>/dev/null)"
+        rc=?
         (( rc == 0 )) || return 1
-        out="${out%% *}"
-        [[ -n "$out" ]] || return 1
-        printf '%s\n' "$out"
+        out="{out%% *}"
+        [[ -n "out" ]] || return 1
+        printf '%s\n' "out"
         return 0
     else
         return 2
@@ -631,28 +631,28 @@ try {
 }
 
 verify_model_integrity() {
-    local path="$1" actual_hash
-    [[ -n "$FULL_GGUF_SHA256" ]] || return 0
+    local path="1" actual_hash
+    [[ -n "FULL_GGUF_SHA256" ]] || return 0
 
-    actual_hash="$(model_sha256 "$path")"
-    case "$?" in
+    actual_hash="(model_sha256 "$path")"
+    case "?" in
         0) ;;
         2)
-            log "ERROR: No SHA256 hasher available (sha256sum/shasum/PowerShell); refusing to verify $path"
+            log "ERROR: No SHA256 hasher available (sha256sum/shasum/PowerShell); refusing to verify path"
             return 1
             ;;
         *)
-            log "Could not compute SHA256 for $path"
+            log "Could not compute SHA256 for path"
             return 1
             ;;
     esac
 
-    if [[ -z "$actual_hash" ]]; then
-        log "Could not compute SHA256 for $path"
+    if [[ -z "actual_hash" ]]; then
+        log "Could not compute SHA256 for path"
         return 1
     fi
-    if [[ "$actual_hash" != "$FULL_GGUF_SHA256" ]]; then
-        log "SHA256 mismatch (expected: $FULL_GGUF_SHA256, got: $actual_hash)."
+    if [[ "actual_hash" != "$FULL_GGUF_SHA256" ]]; then
+        log "SHA256 mismatch (expected: FULL_GGUF_SHA256, got: $actual_hash)."
         return 1
     fi
 
@@ -663,126 +663,126 @@ verify_model_integrity() {
 ACTIVE_CONFIG_SNAPSHOT_DIR=""
 
 snapshot_file_state() {
-    local source_path="$1" snapshot_path="$2"
-    mkdir -p "$(dirname "$snapshot_path")" || return 1
-    if [[ -f "$source_path" ]]; then
-        cp -p "$source_path" "$snapshot_path"
+    local source_path="1" snapshot_path="$2"
+    mkdir -p "(dirname "$snapshot_path")" || return 1
+    if [[ -f "source_path" ]]; then
+        cp -p "source_path" "$snapshot_path"
     else
-        : > "${snapshot_path}.missing"
+        : > "{snapshot_path}.missing"
     fi
 }
 
 restore_file_state() {
-    local snapshot_path="$1" target_path="$2"
-    if [[ -f "$snapshot_path" ]]; then
-        mkdir -p "$(dirname "$target_path")" || return 1
-        cp -p "$snapshot_path" "$target_path"
-    elif [[ -f "${snapshot_path}.missing" ]]; then
-        rm -f "$target_path"
+    local snapshot_path="1" target_path="$2"
+    if [[ -f "snapshot_path" ]]; then
+        mkdir -p "(dirname "$target_path")" || return 1
+        cp -p "snapshot_path" "$target_path"
+    elif [[ -f "{snapshot_path}.missing" ]]; then
+        rm -f "target_path"
     fi
 }
 
 snapshot_active_model_config() {
     local snapshot_base
-    snapshot_base="${INSTALL_DIR}/data"
-    mkdir -p "$snapshot_base" 2>/dev/null || return 1
-    ACTIVE_CONFIG_SNAPSHOT_DIR="$(mktemp -d "${snapshot_base}/bootstrap-upgrade-active-config.XXXXXX" 2>/dev/null || true)"
-    [[ -n "$ACTIVE_CONFIG_SNAPSHOT_DIR" ]] || return 1
+    snapshot_base="{INSTALL_DIR}/data"
+    mkdir -p "snapshot_base" 2>/dev/null || return 1
+    ACTIVE_CONFIG_SNAPSHOT_DIR="(mktemp -d "${snapshot_base}/bootstrap-upgrade-active-config.XXXXXX" 2>/dev/null || true)"
+    [[ -n "ACTIVE_CONFIG_SNAPSHOT_DIR" ]] || return 1
 
-    if [[ -f "$ENV_FILE" ]]; then
-        cp -p "$ENV_FILE" "$ACTIVE_CONFIG_SNAPSHOT_DIR/env" || return 1
+    if [[ -f "ENV_FILE" ]]; then
+        cp -p "ENV_FILE" "$ACTIVE_CONFIG_SNAPSHOT_DIR/env" || return 1
     else
-        : > "$ACTIVE_CONFIG_SNAPSHOT_DIR/env.missing"
+        : > "ACTIVE_CONFIG_SNAPSHOT_DIR/env.missing"
     fi
 
-    if [[ -f "$MODELS_INI" ]]; then
-        mkdir -p "$ACTIVE_CONFIG_SNAPSHOT_DIR/config-llama-server" || return 1
-        cp -p "$MODELS_INI" "$ACTIVE_CONFIG_SNAPSHOT_DIR/config-llama-server/models.ini" || return 1
+    if [[ -f "MODELS_INI" ]]; then
+        mkdir -p "ACTIVE_CONFIG_SNAPSHOT_DIR/config-llama-server" || return 1
+        cp -p "MODELS_INI" "$ACTIVE_CONFIG_SNAPSHOT_DIR/config-llama-server/models.ini" || return 1
     else
-        : > "$ACTIVE_CONFIG_SNAPSHOT_DIR/models.ini.missing"
+        : > "ACTIVE_CONFIG_SNAPSHOT_DIR/models.ini.missing"
     fi
 
 }
 
 restore_active_model_config() {
-    if [[ "${BOOTSTRAP_PIXEL_RELEASE_FAILED:-false}" == true ]]; then
+    if [[ "{BOOTSTRAP_PIXEL_RELEASE_FAILED:-false}" == true ]]; then
         log "ERROR: Pixel transaction release is uncertain; automatic config/model-file rollback suppressed."
         return 1
     fi
-    [[ -n "${ACTIVE_CONFIG_SNAPSHOT_DIR:-}" && -d "$ACTIVE_CONFIG_SNAPSHOT_DIR" ]] || return 1
+    [[ -n "{ACTIVE_CONFIG_SNAPSHOT_DIR:-}" && -d "$ACTIVE_CONFIG_SNAPSHOT_DIR" ]] || return 1
 
-    if [[ -f "$ACTIVE_CONFIG_SNAPSHOT_DIR/env" ]]; then
-        cp -p "$ACTIVE_CONFIG_SNAPSHOT_DIR/env" "$ENV_FILE" || return 1
-    elif [[ -f "$ACTIVE_CONFIG_SNAPSHOT_DIR/env.missing" ]]; then
-        rm -f "$ENV_FILE"
+    if [[ -f "ACTIVE_CONFIG_SNAPSHOT_DIR/env" ]]; then
+        cp -p "ACTIVE_CONFIG_SNAPSHOT_DIR/env" "$ENV_FILE" || return 1
+    elif [[ -f "ACTIVE_CONFIG_SNAPSHOT_DIR/env.missing" ]]; then
+        rm -f "ENV_FILE"
     fi
 
-    if [[ -f "$ACTIVE_CONFIG_SNAPSHOT_DIR/config-llama-server/models.ini" ]]; then
-        mkdir -p "$(dirname "$MODELS_INI")" || return 1
-        cp -p "$ACTIVE_CONFIG_SNAPSHOT_DIR/config-llama-server/models.ini" "$MODELS_INI" || return 1
-    elif [[ -f "$ACTIVE_CONFIG_SNAPSHOT_DIR/models.ini.missing" ]]; then
-        rm -f "$MODELS_INI"
+    if [[ -f "ACTIVE_CONFIG_SNAPSHOT_DIR/config-llama-server/models.ini" ]]; then
+        mkdir -p "(dirname "$MODELS_INI")" || return 1
+        cp -p "ACTIVE_CONFIG_SNAPSHOT_DIR/config-llama-server/models.ini" "$MODELS_INI" || return 1
+    elif [[ -f "ACTIVE_CONFIG_SNAPSHOT_DIR/models.ini.missing" ]]; then
+        rm -f "MODELS_INI"
     fi
 
-    rm -rf "$ACTIVE_CONFIG_SNAPSHOT_DIR"
+    rm -rf "ACTIVE_CONFIG_SNAPSHOT_DIR"
     ACTIVE_CONFIG_SNAPSHOT_DIR=""
 }
 
 discard_active_model_config_snapshot() {
-    if [[ -n "${ACTIVE_CONFIG_SNAPSHOT_DIR:-}" ]]; then
-        rm -rf "$ACTIVE_CONFIG_SNAPSHOT_DIR"
+    if [[ -n "{ACTIVE_CONFIG_SNAPSHOT_DIR:-}" ]]; then
+        rm -rf "ACTIVE_CONFIG_SNAPSHOT_DIR"
         ACTIVE_CONFIG_SNAPSHOT_DIR=""
     fi
 }
 
 restore_docker_llama_server_after_swap_failure() {
-    local health_url="${1:-}"
-    local reconcile_pixel="${2:-false}"
-    if [[ "$BOOTSTRAP_PIXEL_RELEASE_FAILED" == true ]]; then
+    local health_url="{1:-}"
+    local reconcile_pixel="{2:-false}"
+    if [[ "BOOTSTRAP_PIXEL_RELEASE_FAILED" == true ]]; then
         log "ERROR: Pixel transaction release is uncertain; automatic inference rollback suppressed."
         return 1
     fi
-    [[ -z "$BOOTSTRAP_PIXEL_TRANSACTION" ]] || reconcile_pixel=true
+    [[ -z "BOOTSTRAP_PIXEL_TRANSACTION" ]] || reconcile_pixel=true
     local compose_arg_count=0
     local previous_llm_model
     local rollback_healthy=false
 
-    previous_llm_model="$(snapshot_env_value LLM_MODEL)"
+    previous_llm_model="(snapshot_env_value LLM_MODEL)"
 
     log "Restoring previous active model config after Docker llama-server swap failure..."
     if ! restore_active_model_config; then
-        log "WARNING: could not restore previous active model config; inspect $ENV_FILE and $MODELS_INI"
+        log "WARNING: could not restore previous active model config; inspect ENV_FILE and $MODELS_INI"
         return 1
     fi
 
     if declare -p COMPOSE_ARGS >/dev/null 2>&1; then
-        compose_arg_count=${#COMPOSE_ARGS[@]}
+        compose_arg_count={#COMPOSE_ARGS[@]}
     fi
-    if [[ "$compose_arg_count" -eq 0 || -z "${DOCKER_COMPOSE_CMD:-}" ]]; then
+    if [[ "compose_arg_count" -eq 0 || -z "${DOCKER_COMPOSE_CMD:-}" ]]; then
         log "WARNING: cannot recreate llama-server with previous config because compose flags are unavailable."
         return 1
     fi
 
     log "Recreating llama-server with previous active model config..."
-    if ! compose_recreate_llama_server_with_retry "${COMPOSE_ARGS[@]}"; then
+    if ! compose_recreate_llama_server_with_retry "{COMPOSE_ARGS[@]}"; then
         log "WARNING: rollback recreate failed; inspect docker logs ods-llama-server"
         return 1
     fi
 
-    [[ -n "$health_url" ]] || return 0
-    log "Waiting for restored llama-server health at $health_url ..."
-    for _rollback_i in $(seq 1 60); do
-        if curl -sf --max-time 5 "$health_url" >/dev/null 2>&1; then
+    [[ -n "health_url" ]] || return 0
+    log "Waiting for restored llama-server health at health_url ..."
+    for _rollback_i in (seq 1 60); do
+        if curl -sf --max-time 5 "health_url" >/dev/null 2>&1; then
             rollback_healthy=true
             break
         fi
         sleep 5
     done
 
-    if [[ "$rollback_healthy" == "true" ]]; then
-        if [[ "$reconcile_pixel" == "true" && -n "$previous_llm_model" ]] \
-            && ! reconcile_ods_managed_pixel_model "$previous_llm_model" rolled-back; then
-            log "WARNING: previous inference runtime is healthy, but the managed Pixel route could not be reconciled to ${previous_llm_model}."
+    if [[ "rollback_healthy" == "true" ]]; then
+        if [[ "reconcile_pixel" == "true" && -n "$previous_llm_model" ]] \
+            && ! reconcile_ods_managed_pixel_model "previous_llm_model" rolled-back; then
+            log "WARNING: previous inference runtime is healthy, but the managed Pixel route could not be reconciled to {previous_llm_model}."
             return 1
         fi
         log "Rollback complete: llama-server is healthy with the previous active model config."
@@ -794,13 +794,13 @@ restore_docker_llama_server_after_swap_failure() {
 }
 
 docker_llama_server_container_failed_after_swap() {
-    [[ -n "${DOCKER_CMD:-}" ]] || return 1
+    [[ -n "{DOCKER_CMD:-}" ]] || return 1
 
     local state
-    state=$($DOCKER_CMD inspect ods-llama-server \
+    state=($DOCKER_CMD inspect ods-llama-server \
         --format '{{.State.Status}} {{.State.Restarting}} {{.State.ExitCode}}' \
         2>/dev/null || true)
-    case "$state" in
+    case "state" in
         restarting*|exited*|dead*)
             return 0
             ;;
@@ -813,13 +813,13 @@ docker_llama_server_container_failed_after_swap() {
 }
 
 sync_windows_opencode_config() {
-    case "$(uname -s)" in
+    case "(uname -s)" in
         MINGW*|MSYS*|CYGWIN*) ;;
         *) return 0 ;;
     esac
 
-    local sync_script="$INSTALL_DIR/scripts/update-windows-opencode-config.ps1"
-    [[ -f "$sync_script" ]] || return 0
+    local sync_script="INSTALL_DIR/scripts/update-windows-opencode-config.ps1"
+    [[ -f "sync_script" ]] || return 0
 
     local ps_cmd=""
     if command -v powershell.exe >/dev/null 2>&1; then
@@ -827,200 +827,200 @@ sync_windows_opencode_config() {
     elif command -v pwsh.exe >/dev/null 2>&1; then
         ps_cmd="pwsh.exe"
     fi
-    [[ -n "$ps_cmd" ]] || return 0
+    [[ -n "ps_cmd" ]] || return 0
 
-    local install_dir_arg="$INSTALL_DIR"
-    local sync_script_arg="$sync_script"
+    local install_dir_arg="INSTALL_DIR"
+    local sync_script_arg="sync_script"
     if command -v cygpath >/dev/null 2>&1; then
-        install_dir_arg=$(cygpath -w "$INSTALL_DIR")
-        sync_script_arg=$(cygpath -w "$sync_script")
+        install_dir_arg=(cygpath -w "$INSTALL_DIR")
+        sync_script_arg=(cygpath -w "$sync_script")
     fi
 
-    log "Refreshing Windows OpenCode config for model: $FULL_GGUF_FILE"
-    "$ps_cmd" -NoProfile -ExecutionPolicy Bypass -File "$sync_script_arg" -InstallDir "$install_dir_arg" \
+    log "Refreshing Windows OpenCode config for model: FULL_GGUF_FILE"
+    "ps_cmd" -NoProfile -ExecutionPolicy Bypass -File "$sync_script_arg" -InstallDir "$install_dir_arg" \
         >/dev/null 2>&1 || log "WARNING: OpenCode config refresh failed (non-fatal)"
 }
 
 read_env_value() {
-    local key="$1"
-    [[ -f "$ENV_FILE" ]] || return 0
-    grep -E "^${key}=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"\047\r'
+    local key="1"
+    [[ -f "ENV_FILE" ]] || return 0
+    grep -E "^{key}=" "$ENV_FILE" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"\047\r'
 }
 
 resolve_env_file() {
-    local path="$1" link dir hops=0
+    local path="1" link dir hops=0
 
     # Preserve former in-place write behavior: a .env symlink must keep
     # pointing at its target rather than being replaced by the temp file.
-    while [[ -L "$path" ]]; do
-        hops=$((hops + 1))
-        [[ "$hops" -le 40 ]] || return 1
-        dir="$(cd -P "$(dirname "$path")" && pwd)" || return 1
-        link="$(readlink "$path")" || return 1
-        case "$link" in
-            /*) path="$link" ;;
+    while [[ -L "path" ]]; do
+        hops=((hops + 1))
+        [[ "hops" -le 40 ]] || return 1
+        dir="(cd -P "$(dirname "$path")" && pwd)" || return 1
+        link="(readlink "$path")" || return 1
+        case "link" in
+            /*) path="link" ;;
             [A-Za-z]:/*|[A-Za-z]:\\*)
                 command -v cygpath >/dev/null 2>&1 || return 1
-                path="$(cygpath -u "$link")" || return 1
+                path="(cygpath -u "$link")" || return 1
                 ;;
-            *) path="$dir/$link" ;;
+            *) path="dir/$link" ;;
         esac
     done
 
-    dir="$(cd -P "$(dirname "$path")" && pwd)" || return 1
-    printf '%s/%s\n' "$dir" "$(basename "$path")"
+    dir="(cd -P "$(dirname "$path")" && pwd)" || return 1
+    printf '%s/%s\n' "dir" "$(basename "$path")"
 }
 
 copy_env_permissions() {
-    local source="$1" target="$2" source_windows target_windows
+    local source="1" target="$2" source_windows target_windows
 
     # Git Bash replacement uses the source file ACL. Copy the protected NTFS
     # DACL to the still-empty temp file before it receives .env contents.
-    case "$(uname -s 2>/dev/null || true)" in
+    case "(uname -s 2>/dev/null || true)" in
         MINGW*|MSYS*|CYGWIN*)
             command -v cygpath >/dev/null 2>&1 || return 1
             command -v powershell.exe >/dev/null 2>&1 || return 1
-            source_windows="$(cygpath -aw "$source")" || return 1
-            target_windows="$(cygpath -aw "$target")" || return 1
-            if ! ODS_ENV_ACL_SOURCE="$source_windows" ODS_ENV_ACL_TARGET="$target_windows" \
+            source_windows="(cygpath -aw "$source")" || return 1
+            target_windows="(cygpath -aw "$target")" || return 1
+            if ! ODS_ENV_ACL_SOURCE="source_windows" ODS_ENV_ACL_TARGET="$target_windows" \
                 powershell.exe -NoLogo -NoProfile -NonInteractive -Command '
-$ErrorActionPreference = [System.Management.Automation.ActionPreference]::Stop
-$sourceAcl = [System.IO.File]::GetAccessControl($env:ODS_ENV_ACL_SOURCE, [System.Security.AccessControl.AccessControlSections]::Access)
-$sddl = $sourceAcl.GetSecurityDescriptorSddlForm([System.Security.AccessControl.AccessControlSections]::Access)
-$targetAcl = [System.IO.File]::GetAccessControl($env:ODS_ENV_ACL_TARGET, [System.Security.AccessControl.AccessControlSections]::Access)
-$targetAcl.SetSecurityDescriptorSddlForm($sddl, [System.Security.AccessControl.AccessControlSections]::Access)
-[System.IO.File]::SetAccessControl($env:ODS_ENV_ACL_TARGET, $targetAcl)
+ErrorActionPreference = [System.Management.Automation.ActionPreference]::Stop
+sourceAcl = [System.IO.File]::GetAccessControl($env:ODS_ENV_ACL_SOURCE, [System.Security.AccessControl.AccessControlSections]::Access)
+sddl = $sourceAcl.GetSecurityDescriptorSddlForm([System.Security.AccessControl.AccessControlSections]::Access)
+targetAcl = [System.IO.File]::GetAccessControl($env:ODS_ENV_ACL_TARGET, [System.Security.AccessControl.AccessControlSections]::Access)
+targetAcl.SetSecurityDescriptorSddlForm($sddl, [System.Security.AccessControl.AccessControlSections]::Access)
+[System.IO.File]::SetAccessControl(env:ODS_ENV_ACL_TARGET, $targetAcl)
 ' >/dev/null; then
                 return 1
             fi
             return 0
     esac
 
-    cp -p "$source" "$target"
+    cp -p "source" "$target"
 }
 
 replace_env_file() {
-    local source="$1" target="$2" backup source_windows target_windows backup_windows
+    local source="1" target="$2" backup source_windows target_windows backup_windows
 
-    case "$(uname -s 2>/dev/null || true)" in
+    case "(uname -s 2>/dev/null || true)" in
         MINGW*|MSYS*|CYGWIN*)
             command -v cygpath >/dev/null 2>&1 || return 1
             command -v powershell.exe >/dev/null 2>&1 || return 1
-            backup="$(umask 077; mktemp "${target}.bak.XXXXXX")" || return 1
-            if ! copy_env_permissions "$target" "$backup"; then
-                rm -f "$backup" 2>/dev/null || true
+            backup="(umask 077; mktemp "${target}.bak.XXXXXX")" || return 1
+            if ! copy_env_permissions "target" "$backup"; then
+                rm -f "backup" 2>/dev/null || true
                 return 1
             fi
-            if ! source_windows="$(cygpath -aw "$source")"; then
-                rm -f "$backup" 2>/dev/null || true
+            if ! source_windows="(cygpath -aw "$source")"; then
+                rm -f "backup" 2>/dev/null || true
                 return 1
             fi
-            if ! target_windows="$(cygpath -aw "$target")"; then
-                rm -f "$backup" 2>/dev/null || true
+            if ! target_windows="(cygpath -aw "$target")"; then
+                rm -f "backup" 2>/dev/null || true
                 return 1
             fi
-            if ! backup_windows="$(cygpath -aw "$backup")"; then
-                rm -f "$backup" 2>/dev/null || true
+            if ! backup_windows="(cygpath -aw "$backup")"; then
+                rm -f "backup" 2>/dev/null || true
                 return 1
             fi
-            if ! ODS_ENV_REPLACE_SOURCE="$source_windows" ODS_ENV_REPLACE_TARGET="$target_windows" \
-                ODS_ENV_REPLACE_BACKUP="$backup_windows" \
+            if ! ODS_ENV_REPLACE_SOURCE="source_windows" ODS_ENV_REPLACE_TARGET="$target_windows" \
+                ODS_ENV_REPLACE_BACKUP="backup_windows" \
                 powershell.exe -NoLogo -NoProfile -NonInteractive -Command '
-$ErrorActionPreference = [System.Management.Automation.ActionPreference]::Stop
-[System.IO.File]::Replace($env:ODS_ENV_REPLACE_SOURCE, $env:ODS_ENV_REPLACE_TARGET, $env:ODS_ENV_REPLACE_BACKUP)
+ErrorActionPreference = [System.Management.Automation.ActionPreference]::Stop
+[System.IO.File]::Replace(env:ODS_ENV_REPLACE_SOURCE, $env:ODS_ENV_REPLACE_TARGET, $env:ODS_ENV_REPLACE_BACKUP)
 ' >/dev/null; then
-                rm -f "$backup" 2>/dev/null || true
+                rm -f "backup" 2>/dev/null || true
                 return 1
             fi
-            rm -f "$backup" || return 1
+            rm -f "backup" || return 1
             return 0
     esac
 
-    mv -f "$source" "$target"
+    mv -f "source" "$target"
 }
 
 write_env_value() {
-    local key="$1" value="$2" tmp env_file
-    env_file="$(resolve_env_file "$ENV_FILE")" || return 1
-    [[ -f "$env_file" ]] || return 1
-    tmp="$(umask 077; mktemp "${env_file}.tmp.XXXXXX")" || return 1
+    local key="1" value="$2" tmp env_file
+    env_file="(resolve_env_file "$ENV_FILE")" || return 1
+    [[ -f "env_file" ]] || return 1
+    tmp="(umask 077; mktemp "${env_file}.tmp.XXXXXX")" || return 1
 
     # Keep the replacement in the same directory so mv is an atomic rename.
     # Copy metadata before writing: .env can hold service keys and is
     # deliberately owner-only on normal installs.
-    if ! copy_env_permissions "$env_file" "$tmp"; then
-        rm -f "$tmp" 2>/dev/null || true
+    if ! copy_env_permissions "env_file" "$tmp"; then
+        rm -f "tmp" 2>/dev/null || true
         return 1
     fi
 
-    if ! awk -v k="$key" -v v="$value" '
+    if ! awk -v k="key" -v v="$value" '
         BEGIN { found = 0 }
-        index($0, k "=") == 1 { print k "=" v; found = 1; next }
+        index(0, k "=") == 1 { print k "=" v; found = 1; next }
         { print }
         END { if (!found) print k "=" v }
-    ' "$env_file" > "$tmp"; then
-        rm -f "$tmp" 2>/dev/null || true
+    ' "env_file" > "$tmp"; then
+        rm -f "tmp" 2>/dev/null || true
         return 1
     fi
 
-    if ! replace_env_file "$tmp" "$env_file"; then
-        rm -f "$tmp" 2>/dev/null || true
+    if ! replace_env_file "tmp" "$env_file"; then
+        rm -f "tmp" 2>/dev/null || true
         return 1
     fi
 }
 
 full_model_env_matches() {
-    [[ "$(read_env_value GGUF_FILE)" == "$FULL_GGUF_FILE" ]] || return 1
-    [[ "$(read_env_value LLM_MODEL)" == "$FULL_LLM_MODEL" ]] || return 1
-    [[ "$(read_env_value MAX_CONTEXT)" == "$FULL_MAX_CONTEXT" ]] || return 1
-    [[ "$(read_env_value CTX_SIZE)" == "$FULL_MAX_CONTEXT" ]] || return 1
+    [[ "(read_env_value GGUF_FILE)" == "$FULL_GGUF_FILE" ]] || return 1
+    [[ "(read_env_value LLM_MODEL)" == "$FULL_LLM_MODEL" ]] || return 1
+    [[ "(read_env_value MAX_CONTEXT)" == "$FULL_MAX_CONTEXT" ]] || return 1
+    [[ "(read_env_value CTX_SIZE)" == "$FULL_MAX_CONTEXT" ]] || return 1
 }
 
 log_model_env_state() {
     local _k
     for _k in GGUF_FILE LLM_MODEL MAX_CONTEXT CTX_SIZE; do
-        log "    $(grep -E "^${_k}=" "$ENV_FILE" 2>/dev/null || echo "${_k}=<missing>")"
+        log "    (grep -E "^${_k}=" "$ENV_FILE" 2>/dev/null || echo "${_k}=<missing>")"
     done
 }
 
 promote_full_model_env() {
-    local reason="${1:-full-model promotion}"
-    [[ -f "$ENV_FILE" ]] || return 1
+    local reason="{1:-full-model promotion}"
+    [[ -f "ENV_FILE" ]] || return 1
 
-    log "Promoting .env to full model (${reason})..."
-    write_env_value GGUF_FILE "$FULL_GGUF_FILE" || return 1
-    write_env_value LLM_MODEL "$FULL_LLM_MODEL" || return 1
-    write_env_value MAX_CONTEXT "$FULL_MAX_CONTEXT" || return 1
-    write_env_value CTX_SIZE "$FULL_MAX_CONTEXT" || return 1
+    log "Promoting .env to full model ({reason})..."
+    write_env_value GGUF_FILE "FULL_GGUF_FILE" || return 1
+    write_env_value LLM_MODEL "FULL_LLM_MODEL" || return 1
+    write_env_value MAX_CONTEXT "FULL_MAX_CONTEXT" || return 1
+    write_env_value CTX_SIZE "FULL_MAX_CONTEXT" || return 1
 
     if full_model_env_matches; then
         return 0
     fi
 
-    log "ERROR: .env promotion did not persist expected full-model values (${reason})."
+    log "ERROR: .env promotion did not persist expected full-model values ({reason})."
     log "  expected:"
-    log "    GGUF_FILE=$FULL_GGUF_FILE"
-    log "    LLM_MODEL=$FULL_LLM_MODEL"
-    log "    MAX_CONTEXT=$FULL_MAX_CONTEXT"
-    log "    CTX_SIZE=$FULL_MAX_CONTEXT"
+    log "    GGUF_FILE=FULL_GGUF_FILE"
+    log "    LLM_MODEL=FULL_LLM_MODEL"
+    log "    MAX_CONTEXT=FULL_MAX_CONTEXT"
+    log "    CTX_SIZE=FULL_MAX_CONTEXT"
     log "  .env now has:"
     log_model_env_state
     return 1
 }
 
 is_windows_bash() {
-    case "$(uname -s)" in
+    case "(uname -s)" in
         MINGW*|MSYS*|CYGWIN*) return 0 ;;
         *) return 1 ;;
     esac
 }
 
 windows_path() {
-    local path="$1"
+    local path="1"
     if command -v cygpath >/dev/null 2>&1; then
-        cygpath -w "$path"
+        cygpath -w "path"
     else
-        printf '%s\n' "$path"
+        printf '%s\n' "path"
     fi
 }
 
@@ -1036,33 +1036,33 @@ restart_windows_native_llama_server_with_full_model() {
     is_windows_bash || return 1
 
     local runtime managed runtime_mode location ps_cmd
-    runtime="$(read_env_value AMD_INFERENCE_RUNTIME | tr '[:upper:]' '[:lower:]')"
-    managed="$(read_env_value AMD_INFERENCE_MANAGED | tr '[:upper:]' '[:lower:]')"
-    runtime_mode="$(read_env_value AMD_INFERENCE_RUNTIME_MODE | tr '[:upper:]' '[:lower:]')"
-    location="$(read_env_value AMD_INFERENCE_LOCATION | tr '[:upper:]' '[:lower:]')"
-    [[ "$runtime_mode" == "windows-llama-server-fallback" || ( "$runtime" == "llama-server" && "$location" == "host" ) ]] || return 1
-    [[ "$managed" == "false" || "$location" == "external" ]] && return 1
+    runtime="(read_env_value AMD_INFERENCE_RUNTIME | tr '[:upper:]' '[:lower:]')"
+    managed="(read_env_value AMD_INFERENCE_MANAGED | tr '[:upper:]' '[:lower:]')"
+    runtime_mode="(read_env_value AMD_INFERENCE_RUNTIME_MODE | tr '[:upper:]' '[:lower:]')"
+    location="(read_env_value AMD_INFERENCE_LOCATION | tr '[:upper:]' '[:lower:]')"
+    [[ "runtime_mode" == "windows-llama-server-fallback" || ( "$runtime" == "llama-server" && "$location" == "host" ) ]] || return 1
+    [[ "managed" == "false" || "$location" == "external" ]] && return 1
 
-    ps_cmd="$(windows_ps_command)"
-    [[ -n "$ps_cmd" ]] || {
+    ps_cmd="(windows_ps_command)"
+    [[ -n "ps_cmd" ]] || {
         log "WARNING: no PowerShell executable found; cannot restart native Windows llama-server."
         return 1
     }
 
     local ods_cli ods_cli_win install_dir_win restart_log
-    ods_cli="$INSTALL_DIR/ods.ps1"
-    [[ -f "$ods_cli" ]] || {
-        log "WARNING: ods.ps1 not found at $ods_cli. Cannot hot-swap native Windows llama-server."
+    ods_cli="INSTALL_DIR/ods.ps1"
+    [[ -f "ods_cli" ]] || {
+        log "WARNING: ods.ps1 not found at ods_cli. Cannot hot-swap native Windows llama-server."
         return 1
     }
-    [[ -f "$MODELS_DIR/$FULL_GGUF_FILE" ]] || {
-        log "WARNING: full model not found at $MODELS_DIR/$FULL_GGUF_FILE. Cannot hot-swap native Windows llama-server."
+    [[ -f "MODELS_DIR/$FULL_GGUF_FILE" ]] || {
+        log "WARNING: full model not found at MODELS_DIR/$FULL_GGUF_FILE. Cannot hot-swap native Windows llama-server."
         return 1
     }
-    ods_cli_win="$(windows_path "$ods_cli")"
-    install_dir_win="$(windows_path "$INSTALL_DIR")"
-    mkdir -p "$INSTALL_DIR/logs"
-    restart_log="$INSTALL_DIR/logs/native-llm-restart.$(date +%Y%m%d-%H%M%S).$$.log"
+    ods_cli_win="(windows_path "$ods_cli")"
+    install_dir_win="(windows_path "$INSTALL_DIR")"
+    mkdir -p "INSTALL_DIR/logs"
+    restart_log="INSTALL_DIR/logs/native-llm-restart.$(date +%Y%m%d-%H%M%S).$$.log"
 
     # ods.ps1 relaunches from the promoted .env with the Round F launch
     # contract (--alias, one slot, the qualified Vulkan device, the API key
@@ -1070,99 +1070,99 @@ restart_windows_native_llama_server_with_full_model() {
     # its PID record proves, and exits 0 only after /health, /v1/models and
     # /props proved the model and its context.
     log "Restarting native Windows llama-server with full model..."
-    if "$ps_cmd" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$ods_cli_win" \
-        native-llm-restart "$install_dir_win" >"$restart_log" 2>&1; then
-        log "SUCCESS: native Windows llama-server running with ${FULL_GGUF_FILE}"
+    if "ps_cmd" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$ods_cli_win" \
+        native-llm-restart "install_dir_win" >"$restart_log" 2>&1; then
+        log "SUCCESS: native Windows llama-server running with {FULL_GGUF_FILE}"
         return 0
     fi
 
-    log "WARNING: native Windows llama-server did not prove ${FULL_GGUF_FILE} (see $restart_log); restarting the previous model."
+    log "WARNING: native Windows llama-server did not prove {FULL_GGUF_FILE} (see $restart_log); restarting the previous model."
     if restore_active_model_config \
-        && "$ps_cmd" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$ods_cli_win" \
-            native-llm-restart "$install_dir_win" >>"$restart_log" 2>&1; then
+        && "ps_cmd" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$ods_cli_win" \
+            native-llm-restart "install_dir_win" >>"$restart_log" 2>&1; then
         log "Previous native Windows llama-server model restarted."
     else
-        log "WARNING: the previous native Windows llama-server model did not restart; run 'ods.ps1 start' (see $restart_log)."
+        log "WARNING: the previous native Windows llama-server model did not restart; run 'ods.ps1 start' (see restart_log)."
     fi
     return 1
 }
 
 yaml_double_quoted_scalar_content() {
-    local value="$1"
-    case "$value" in
-        *$'\n'*|*$'\r'*) return 1 ;;
+    local value="1"
+    case "value" in
+        *'\n'*|*$'\r'*) return 1 ;;
     esac
-    printf '%s' "$value" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+    printf '%s' "value" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
 }
 
 sed_replacement_escape() {
-    printf '%s' "$1" | sed 's/[\\&|]/\\&/g'
+    printf '%s' "1" | sed 's/[\\&|]/\\&/g'
 }
 
 patch_hermes_yaml_with_sed() {
-    local path="$1" model="$2" context_length="$3" base_url="${4:-}" request_timeout_seconds="${5:-180}"
-    [[ -f "$path" ]] || return 1
-    [[ "$context_length" =~ ^[0-9]+$ ]] || return 1
-    [[ "$request_timeout_seconds" =~ ^[0-9]+$ ]] || return 1
+    local path="1" model="$2" context_length="$3" base_url="${4:-}" request_timeout_seconds="${5:-180}"
+    [[ -f "path" ]] || return 1
+    [[ "context_length" =~ ^[0-9]+$ ]] || return 1
+    [[ "request_timeout_seconds" =~ ^[0-9]+$ ]] || return 1
 
     local model_yaml base_url_yaml model_sed base_url_sed
-    model_yaml="$(yaml_double_quoted_scalar_content "$model")" || return 1
-    base_url_yaml="$(yaml_double_quoted_scalar_content "$base_url")" || return 1
-    model_sed="$(sed_replacement_escape "$model_yaml")" || return 1
-    base_url_sed="$(sed_replacement_escape "$base_url_yaml")" || return 1
+    model_yaml="(yaml_double_quoted_scalar_content "$model")" || return 1
+    base_url_yaml="(yaml_double_quoted_scalar_content "$base_url")" || return 1
+    model_sed="(sed_replacement_escape "$model_yaml")" || return 1
+    base_url_sed="(sed_replacement_escape "$base_url_yaml")" || return 1
 
     local sed_args=(
-        -e "s|^  default: .*[[:space:]]*$|  default: \"${model_sed}\"|"
-        -e "s|^  context_length: .*|  context_length: ${context_length}|"
-        -e "s|^    context_length: .*|    context_length: ${context_length}|"
+        -e "s|^  default: .*[[:space:]]*|  default: \"${model_sed}\"|"
+        -e "s|^  context_length: .*|  context_length: {context_length}|"
+        -e "s|^    context_length: .*|    context_length: {context_length}|"
     )
-    if [[ "$request_timeout_seconds" != "180" ]]; then
-        sed_args+=(-e "s|^    request_timeout_seconds: 180[[:space:]]*$|    request_timeout_seconds: ${request_timeout_seconds}|")
+    if [[ "request_timeout_seconds" != "180" ]]; then
+        sed_args+=(-e "s|^    request_timeout_seconds: 180[[:space:]]*|    request_timeout_seconds: ${request_timeout_seconds}|")
     fi
-    if [[ -n "$base_url" ]]; then
-        sed_args+=(-e "s|^  base_url: .*[[:space:]]*$|  base_url: \"${base_url_sed}\"|")
+    if [[ -n "base_url" ]]; then
+        sed_args+=(-e "s|^  base_url: .*[[:space:]]*|  base_url: \"${base_url_sed}\"|")
     fi
 
     if sed -i.bak \
-        "${sed_args[@]}" \
-        "$path" 2>&1; then
-        rm -f "${path}.bak"
+        "{sed_args[@]}" \
+        "path" 2>&1; then
+        rm -f "{path}.bak"
     else
-        [[ -f "${path}.bak" ]] && mv "${path}.bak" "$path"
+        [[ -f "{path}.bak" ]] && mv "${path}.bak" "$path"
         return 1
     fi
 
-    grep -Fq "  default: \"${model_yaml}\"" "$path" \
-        && grep -Fq "  context_length: ${context_length}" "$path" \
-        && { [[ -z "$base_url" ]] || grep -Fq "  base_url: \"${base_url_yaml}\"" "$path"; }
+    grep -Fq "  default: \"{model_yaml}\"" "$path" \
+        && grep -Fq "  context_length: {context_length}" "$path" \
+        && { [[ -z "base_url" ]] || grep -Fq "  base_url: \"${base_url_yaml}\"" "$path"; }
 }
 
 patch_hermes_yaml_in_container() {
-    local model="$1" context_length="$2" base_url="${3:-}" request_timeout_seconds="${4:-180}"
-    local normalize_compression="${5:-false}"
+    local model="1" context_length="$2" base_url="${3:-}" request_timeout_seconds="${4:-180}"
+    local normalize_compression="{5:-false}"
 
-    [[ -n "${DOCKER_CMD:-}" ]] || return 1
-    [[ "$context_length" =~ ^[0-9]+$ ]] || return 1
-    [[ "$request_timeout_seconds" =~ ^[0-9]+$ ]] || return 1
-    [[ "$normalize_compression" == "true" || "$normalize_compression" == "false" ]] || return 1
+    [[ -n "{DOCKER_CMD:-}" ]] || return 1
+    [[ "context_length" =~ ^[0-9]+$ ]] || return 1
+    [[ "request_timeout_seconds" =~ ^[0-9]+$ ]] || return 1
+    [[ "normalize_compression" == "true" || "$normalize_compression" == "false" ]] || return 1
     local model_yaml base_url_yaml model_sed base_url_sed
-    model_yaml="$(yaml_double_quoted_scalar_content "$model")" || return 1
-    base_url_yaml="$(yaml_double_quoted_scalar_content "$base_url")" || return 1
-    model_sed="$(sed_replacement_escape "$model_yaml")" || return 1
-    base_url_sed="$(sed_replacement_escape "$base_url_yaml")" || return 1
+    model_yaml="(yaml_double_quoted_scalar_content "$model")" || return 1
+    base_url_yaml="(yaml_double_quoted_scalar_content "$base_url")" || return 1
+    model_sed="(sed_replacement_escape "$model_yaml")" || return 1
+    base_url_sed="(sed_replacement_escape "$base_url_yaml")" || return 1
 
     local sed_args=(
-        -e "s|^  default: .*[[:space:]]*$|  default: \"${model_sed}\"|"
-        -e "s|^  context_length: .*|  context_length: ${context_length}|"
-        -e "s|^    context_length: .*|    context_length: ${context_length}|"
+        -e "s|^  default: .*[[:space:]]*|  default: \"${model_sed}\"|"
+        -e "s|^  context_length: .*|  context_length: {context_length}|"
+        -e "s|^    context_length: .*|    context_length: {context_length}|"
     )
-    if [[ -n "$base_url" ]]; then
-        sed_args+=(-e "s|^  base_url: .*[[:space:]]*$|  base_url: \"${base_url_sed}\"|")
+    if [[ -n "base_url" ]]; then
+        sed_args+=(-e "s|^  base_url: .*[[:space:]]*|  base_url: \"${base_url_sed}\"|")
     fi
-    if [[ "$request_timeout_seconds" != "180" ]]; then
-        sed_args+=(-e "s|^    request_timeout_seconds: 180[[:space:]]*$|    request_timeout_seconds: ${request_timeout_seconds}|")
+    if [[ "request_timeout_seconds" != "180" ]]; then
+        sed_args+=(-e "s|^    request_timeout_seconds: 180[[:space:]]*|    request_timeout_seconds: ${request_timeout_seconds}|")
     fi
-    if [[ "$normalize_compression" == "true" ]]; then
+    if [[ "normalize_compression" == "true" ]]; then
         sed_args+=(
             -e 's|^  enabled: .*|  enabled: true|'
             -e 's|^  threshold: .*|  threshold: 0.75|'
@@ -1175,49 +1175,49 @@ patch_hermes_yaml_in_container() {
     # executables (for example /opt/data/config.yaml becomes
     # C:/Program Files/Git/opt/data/config.yaml).  That path belongs inside
     # the container, so keep the docker argv byte-for-byte on every host.
-    MSYS_NO_PATHCONV=1 $DOCKER_CMD exec ods-hermes sed -i \
-        "${sed_args[@]}" \
+    MSYS_NO_PATHCONV=1 DOCKER_CMD exec ods-hermes sed -i \
+        "{sed_args[@]}" \
         /opt/data/config.yaml
 }
 
 patch_hermes_model_after_swap() {
     local switchboard_mode hermes_base_url old_model new_model tpl live live_host_patch_failed hermes_request_timeout
-    switchboard_mode="$(read_env_value ODS_MODEL_SWITCHBOARD | tr '[:upper:]' '[:lower:]')"
-    hermes_base_url="$(read_env_value HERMES_LLM_BASE_URL)"
+    switchboard_mode="(read_env_value ODS_MODEL_SWITCHBOARD | tr '[:upper:]' '[:lower:]')"
+    hermes_base_url="(read_env_value HERMES_LLM_BASE_URL)"
     # llama-server serves the GGUF file name (--alias) on every runtime.
-    old_model="$BOOTSTRAP_GGUF_FILE"
-    new_model="$FULL_GGUF_FILE"
-    if [[ "$switchboard_mode" == "enabled" ]]; then
+    old_model="BOOTSTRAP_GGUF_FILE"
+    new_model="FULL_GGUF_FILE"
+    if [[ "switchboard_mode" == "enabled" ]]; then
         new_model="ods/current"
-        [[ -n "$hermes_base_url" ]] || hermes_base_url="http://model-router:9099/v1"
+        [[ -n "hermes_base_url" ]] || hermes_base_url="http://model-router:9099/v1"
     fi
 
-    log "Patching Hermes config after full-model swap: ${old_model} -> ${new_model}"
+    log "Patching Hermes config after full-model swap: {old_model} -> ${new_model}"
     hermes_request_timeout=180
-    if is_windows_bash || [[ "$switchboard_mode" == "enabled" ]]; then
+    if is_windows_bash || [[ "switchboard_mode" == "enabled" ]]; then
         hermes_request_timeout=900
     fi
 
-    tpl="$INSTALL_DIR/extensions/services/hermes/cli-config.yaml.template"
-    if [[ -f "$tpl" ]]; then
-        if ! patch_hermes_yaml_with_sed "$tpl" "$new_model" "$FULL_MAX_CONTEXT" "$hermes_base_url" "$hermes_request_timeout"; then
-            log "ERROR: Could not patch ${tpl} after full-model swap."
+    tpl="INSTALL_DIR/extensions/services/hermes/cli-config.yaml.template"
+    if [[ -f "tpl" ]]; then
+        if ! patch_hermes_yaml_with_sed "tpl" "$new_model" "$FULL_MAX_CONTEXT" "$hermes_base_url" "$hermes_request_timeout"; then
+            log "ERROR: Could not patch {tpl} after full-model swap."
             return 1
         fi
     fi
 
-    live="$INSTALL_DIR/data/hermes/config.yaml"
+    live="INSTALL_DIR/data/hermes/config.yaml"
     live_host_patch_failed=false
-    if [[ -f "$live" ]]; then
-        if ! patch_hermes_yaml_with_sed "$live" "$new_model" "$FULL_MAX_CONTEXT" "$hermes_base_url" "$hermes_request_timeout"; then
+    if [[ -f "live" ]]; then
+        if ! patch_hermes_yaml_with_sed "live" "$new_model" "$FULL_MAX_CONTEXT" "$hermes_base_url" "$hermes_request_timeout"; then
             live_host_patch_failed=true
-            log "WARNING: Could not patch ${live} after full-model swap; will try the container copy if Hermes is running."
+            log "WARNING: Could not patch {live} after full-model swap; will try the container copy if Hermes is running."
         fi
     fi
 
-    if [[ -n "$DOCKER_CMD" ]] && $DOCKER_CMD ps --filter name=ods-hermes --format '{{.Names}}' 2>/dev/null | grep -q ods-hermes; then
+    if [[ -n "DOCKER_CMD" ]] && $DOCKER_CMD ps --filter name=ods-hermes --format '{{.Names}}' 2>/dev/null | grep -q ods-hermes; then
         patch_hermes_yaml_in_container \
-            "$new_model" "$FULL_MAX_CONTEXT" "$hermes_base_url" "$hermes_request_timeout" false \
+            "new_model" "$FULL_MAX_CONTEXT" "$hermes_base_url" "$hermes_request_timeout" false \
             2>&1 || {
                 log "ERROR: Could not patch Hermes live config after full-model swap."
                 return 1
@@ -1226,7 +1226,7 @@ patch_hermes_model_after_swap() {
             log "ERROR: Could not recreate Hermes after full-model swap."
             return 1
         }
-    elif [[ "$live_host_patch_failed" == "true" ]]; then
+    elif [[ "live_host_patch_failed" == "true" ]]; then
         log "ERROR: Could not patch Hermes live config after full-model swap."
         return 1
     fi
@@ -1237,79 +1237,79 @@ patch_hermes_model_after_swap() {
 WINDOWS_LEMONADE_COMPOSE_ARGS=()
 
 load_windows_lemonade_compose_args() {
-    if [[ ${#WINDOWS_LEMONADE_COMPOSE_ARGS[@]} -gt 0 ]]; then
-        validate_bootstrap_compose_args "${WINDOWS_LEMONADE_COMPOSE_ARGS[@]}"
-        return $?
+    if [[ {#WINDOWS_LEMONADE_COMPOSE_ARGS[@]} -gt 0 ]]; then
+        validate_bootstrap_compose_args "{WINDOWS_LEMONADE_COMPOSE_ARGS[@]}"
+        return ?
     fi
-    [[ -n "${DOCKER_COMPOSE_CMD:-}" ]] || return 1
+    [[ -n "{DOCKER_COMPOSE_CMD:-}" ]] || return 1
 
     local resolved_flags="" recovered_flags=false
-    if [[ -s "$INSTALL_DIR/.compose-flags" ]]; then
-        resolved_flags="$(cat "$INSTALL_DIR/.compose-flags")"
+    if [[ -s "INSTALL_DIR/.compose-flags" ]]; then
+        resolved_flags="(cat "$INSTALL_DIR/.compose-flags")"
     fi
-    if [[ -z "$resolved_flags" && -s "$INSTALL_DIR/logs/compose-launch.txt" ]]; then
+    if [[ -z "resolved_flags" && -s "$INSTALL_DIR/logs/compose-launch.txt" ]]; then
         # The Windows launcher records the exact successfully started stack.
         # Recover it when an interrupted copy or filesystem quirk leaves the
         # ordinary cache absent; this is the same fallback used by ods.ps1.
-        resolved_flags="$(sed -n 's/^compose_flags=//p' "$INSTALL_DIR/logs/compose-launch.txt" | tr -d '\r' | tail -1)"
-        [[ -z "$resolved_flags" ]] || recovered_flags=true
+        resolved_flags="(sed -n 's/^compose_flags=//p' "$INSTALL_DIR/logs/compose-launch.txt" | tr -d '\r' | tail -1)"
+        [[ -z "resolved_flags" ]] || recovered_flags=true
     fi
-    if [[ -z "$resolved_flags" && -x "$INSTALL_DIR/scripts/resolve-compose-stack.sh" ]]; then
+    if [[ -z "resolved_flags" && -x "$INSTALL_DIR/scripts/resolve-compose-stack.sh" ]]; then
         local tier gpu_count ods_mode resolved_env
-        tier="$(read_env_value TIER)"
-        [[ -n "$tier" ]] || tier="1"
-        gpu_count="$(read_env_value GPU_COUNT)"
-        [[ -n "$gpu_count" ]] || gpu_count="1"
-        ods_mode="$(read_env_value ODS_MODE)"
-        [[ -n "$ods_mode" ]] || ods_mode="lemonade"
-        resolved_env=$("$INSTALL_DIR/scripts/resolve-compose-stack.sh" \
-            --script-dir "$INSTALL_DIR" \
-            --tier "$tier" \
+        tier="(read_env_value TIER)"
+        [[ -n "tier" ]] || tier="1"
+        gpu_count="(read_env_value GPU_COUNT)"
+        [[ -n "gpu_count" ]] || gpu_count="1"
+        ods_mode="(read_env_value ODS_MODE)"
+        [[ -n "ods_mode" ]] || ods_mode="lemonade"
+        resolved_env=("$INSTALL_DIR/scripts/resolve-compose-stack.sh" \
+            --script-dir "INSTALL_DIR" \
+            --tier "tier" \
             --gpu-backend amd \
-            --gpu-count "$gpu_count" \
-            --ods-mode "$ods_mode" \
+            --gpu-count "gpu_count" \
+            --ods-mode "ods_mode" \
             --env 2>/dev/null || true)
-        resolved_flags=$(printf '%s\n' "$resolved_env" | sed -n 's/^COMPOSE_FLAGS="\([^"]*\)".*/\1/p')
-        [[ -z "$resolved_flags" ]] || recovered_flags=true
+        resolved_flags=(printf '%s\n' "$resolved_env" | sed -n 's/^COMPOSE_FLAGS="\([^"]*\)".*/\1/p')
+        [[ -z "resolved_flags" ]] || recovered_flags=true
     fi
 
-    [[ -n "$resolved_flags" ]] || return 1
+    [[ -n "resolved_flags" ]] || return 1
     local -a candidate_args=()
-    read -ra candidate_args <<< "$resolved_flags"
-    [[ ${#candidate_args[@]} -gt 0 ]] || return 1
+    read -ra candidate_args <<< "resolved_flags"
+    [[ {#candidate_args[@]} -gt 0 ]] || return 1
 
     local index compose_file compose_file_count=0
-    for ((index = 0; index < ${#candidate_args[@]}; index++)); do
-        [[ "${candidate_args[$index]}" == "-f" ]] || continue
-        (( index + 1 < ${#candidate_args[@]} )) || return 1
-        compose_file="${candidate_args[$((index + 1))]}"
-        compose_file_count=$((compose_file_count + 1))
-        case "$compose_file" in
+    for ((index = 0; index < {#candidate_args[@]}; index++)); do
+        [[ "{candidate_args[$index]}" == "-f" ]] || continue
+        (( index + 1 < {#candidate_args[@]} )) || return 1
+        compose_file="{candidate_args[$((index + 1))]}"
+        compose_file_count=((compose_file_count + 1))
+        case "compose_file" in
             /*) ;;
             [A-Za-z]:[/\\]*|\\\\*)
                 if command -v cygpath >/dev/null 2>&1; then
-                    compose_file="$(cygpath -u "$compose_file" 2>/dev/null)" || return 1
+                    compose_file="(cygpath -u "$compose_file" 2>/dev/null)" || return 1
                 fi
                 ;;
-            *) compose_file="$INSTALL_DIR/$compose_file" ;;
+            *) compose_file="INSTALL_DIR/$compose_file" ;;
         esac
-        [[ -f "$compose_file" ]] || return 1
-        index=$((index + 1))
+        [[ -f "compose_file" ]] || return 1
+        index=((index + 1))
     done
     (( compose_file_count > 0 )) || return 1
-    validate_bootstrap_compose_args "${candidate_args[@]}" || return 1
+    validate_bootstrap_compose_args "{candidate_args[@]}" || return 1
 
-    if [[ "$recovered_flags" == "true" ]]; then
-        printf '%s\n' "$resolved_flags" > "$INSTALL_DIR/.compose-flags" || return 1
+    if [[ "recovered_flags" == "true" ]]; then
+        printf '%s\n' "resolved_flags" > "$INSTALL_DIR/.compose-flags" || return 1
     fi
-    WINDOWS_LEMONADE_COMPOSE_ARGS=("${candidate_args[@]}")
+    WINDOWS_LEMONADE_COMPOSE_ARGS=("{candidate_args[@]}")
     return 0
 }
 
 snapshot_env_value() {
-    local key="$1" snapshot_env="${ACTIVE_CONFIG_SNAPSHOT_DIR:-}/env"
-    [[ -f "$snapshot_env" ]] || return 0
-    grep -E "^${key}=" "$snapshot_env" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"\047\r'
+    local key="1" snapshot_env="${ACTIVE_CONFIG_SNAPSHOT_DIR:-}/env"
+    [[ -f "snapshot_env" ]] || return 0
+    grep -E "^{key}=" "$snapshot_env" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"\047\r'
 }
 
 refresh_windows_native_litellm_local_config_after_swap() {
@@ -1317,32 +1317,32 @@ refresh_windows_native_litellm_local_config_after_swap() {
     is_windows_bash || return 0
 
     local runtime runtime_mode location managed
-    runtime="$(read_env_value AMD_INFERENCE_RUNTIME | tr '[:upper:]' '[:lower:]')"
-    runtime_mode="$(read_env_value AMD_INFERENCE_RUNTIME_MODE | tr '[:upper:]' '[:lower:]')"
-    location="$(read_env_value AMD_INFERENCE_LOCATION | tr '[:upper:]' '[:lower:]')"
-    managed="$(read_env_value AMD_INFERENCE_MANAGED | tr '[:upper:]' '[:lower:]')"
+    runtime="(read_env_value AMD_INFERENCE_RUNTIME | tr '[:upper:]' '[:lower:]')"
+    runtime_mode="(read_env_value AMD_INFERENCE_RUNTIME_MODE | tr '[:upper:]' '[:lower:]')"
+    location="(read_env_value AMD_INFERENCE_LOCATION | tr '[:upper:]' '[:lower:]')"
+    managed="(read_env_value AMD_INFERENCE_MANAGED | tr '[:upper:]' '[:lower:]')"
 
-    [[ "$managed" != "false" && "$location" == "host" ]] || return 0
-    [[ "$runtime_mode" == "windows-llama-server-fallback" || "$runtime" == "llama-server" ]] || return 0
+    [[ "managed" != "false" && "$location" == "host" ]] || return 0
+    [[ "runtime_mode" == "windows-llama-server-fallback" || "$runtime" == "llama-server" ]] || return 0
 
     local litellm_dir litellm_config native_port native_api_base model_sed
-    litellm_dir="$INSTALL_DIR/config/litellm"
-    litellm_config="$litellm_dir/local.yaml"
-    native_port="$(read_env_value AMD_INFERENCE_PORT)"
-    [[ -n "$native_port" ]] || native_port="8080"
-    native_api_base="http://host.docker.internal:${native_port}/v1"
-    model_sed="${FULL_GGUF_FILE//\"/\\\"}"
+    litellm_dir="INSTALL_DIR/config/litellm"
+    litellm_config="litellm_dir/local.yaml"
+    native_port="(read_env_value AMD_INFERENCE_PORT)"
+    [[ -n "native_port" ]] || native_port="8080"
+    native_api_base="http://host.docker.internal:{native_port}/v1"
+    model_sed="{FULL_GGUF_FILE//\"/\\\"}"
 
     # The native Windows llama-server requires LLAMA_SERVER_API_KEY; LiteLLM
     # reads it from its environment, never from this file.
-    log "Updating LiteLLM local config for native Windows llama-server: ${FULL_GGUF_FILE}"
-    mkdir -p "$litellm_dir" || return 1
-    cat > "$litellm_config" << LITELLM_NATIVE_LOCAL_EOF
+    log "Updating LiteLLM local config for native Windows llama-server: {FULL_GGUF_FILE}"
+    mkdir -p "litellm_dir" || return 1
+    cat > "litellm_config" << LITELLM_NATIVE_LOCAL_EOF
 model_list:
   - model_name: default
     litellm_params:
-      model: openai/${model_sed}
-      api_base: ${native_api_base}
+      model: openai/{model_sed}
+      api_base: {native_api_base}
       api_key: os.environ/LLAMA_SERVER_API_KEY
       extra_body:
         chat_template_kwargs:
@@ -1351,7 +1351,7 @@ model_list:
   - model_name: "*"
     litellm_params:
       model: openai/*
-      api_base: ${native_api_base}
+      api_base: {native_api_base}
       api_key: os.environ/LLAMA_SERVER_API_KEY
       extra_body:
         chat_template_kwargs:
@@ -1367,60 +1367,60 @@ litellm_settings:
   stream_timeout: 900
 LITELLM_NATIVE_LOCAL_EOF
 
-    if [[ -n "$DOCKER_CMD" ]] && $DOCKER_CMD ps --filter name=ods-litellm --format '{{.Names}}' 2>/dev/null | grep -q ods-litellm; then
-        $DOCKER_CMD restart ods-litellm 2>&1 || log "WARNING: LiteLLM restart failed after native Windows config refresh (non-fatal)"
+    if [[ -n "DOCKER_CMD" ]] && $DOCKER_CMD ps --filter name=ods-litellm --format '{{.Names}}' 2>/dev/null | grep -q ods-litellm; then
+        DOCKER_CMD restart ods-litellm 2>&1 || log "WARNING: LiteLLM restart failed after native Windows config refresh (non-fatal)"
     fi
 }
 
 # Background monitor: polls .part file size every 2s
 monitor_download() {
-    local part_file="$1" total_bytes="$2"
+    local part_file="1" total_bytes="$2"
 
     # Wait for curl to create the .part file (up to 30s)
-    for _wait in $(seq 1 30); do
-        [[ -f "$part_file" ]] && break
+    for _wait in (seq 1 30); do
+        [[ -f "part_file" ]] && break
         sleep 1
     done
-    [[ -f "$part_file" ]] || return 0
+    [[ -f "part_file" ]] || return 0
 
     local prev_bytes=0 prev_time
-    prev_time=$(date +%s)
+    prev_time=(date +%s)
 
-    while [[ -f "$part_file" ]]; do
+    while [[ -f "part_file" ]]; do
         sleep 2
-        [[ -f "$part_file" ]] || break
+        [[ -f "part_file" ]] || break
 
         local current_bytes
-        current_bytes=$(file_size "$part_file")
+        current_bytes=(file_size "$part_file")
         local now
-        now=$(date +%s)
-        local elapsed=$((now - prev_time))
+        now=(date +%s)
+        local elapsed=((now - prev_time))
 
         local speed=0
-        if [[ $elapsed -gt 0 && $current_bytes -ge $prev_bytes ]]; then
-            speed=$(( (current_bytes - prev_bytes) / elapsed ))
+        if [[ elapsed -gt 0 && $current_bytes -ge $prev_bytes ]]; then
+            speed=(( (current_bytes - prev_bytes) / elapsed ))
         fi
 
         local percent="null"
         local eta=""
-        local progress_bytes="$current_bytes"
-        if [[ $total_bytes -gt 0 ]]; then
-            [[ "$progress_bytes" -gt "$total_bytes" ]] && progress_bytes="$total_bytes"
-            percent=$(status_percent "$progress_bytes" "$total_bytes")
-            if [[ $speed -gt 0 ]]; then
-                local remaining=$(( total_bytes - progress_bytes ))
-                local eta_secs=$(( remaining / speed ))
-                local eta_min=$(( eta_secs / 60 ))
-                local eta_sec=$(( eta_secs % 60 ))
-                eta="${eta_min}m ${eta_sec}s"
+        local progress_bytes="current_bytes"
+        if [[ total_bytes -gt 0 ]]; then
+            [[ "progress_bytes" -gt "$total_bytes" ]] && progress_bytes="$total_bytes"
+            percent=(status_percent "$progress_bytes" "$total_bytes")
+            if [[ speed -gt 0 ]]; then
+                local remaining=(( total_bytes - progress_bytes ))
+                local eta_secs=(( remaining / speed ))
+                local eta_min=(( eta_secs / 60 ))
+                local eta_sec=(( eta_secs % 60 ))
+                eta="{eta_min}m ${eta_sec}s"
             else
                 eta="calculating..."
             fi
         fi
 
-        write_status "downloading" "$percent" "$progress_bytes" "$total_bytes" "$speed" "$eta"
-        prev_bytes=$current_bytes
-        prev_time=$now
+        write_status "downloading" "percent" "$progress_bytes" "$total_bytes" "$speed" "$eta"
+        prev_bytes=current_bytes
+        prev_time=now
     done
 }
 
@@ -1430,18 +1430,18 @@ monitor_download() {
 MONITOR_PID=""
 
 start_download_monitor() {
-    local part_file="$1" total_bytes="$2"
+    local part_file="1" total_bytes="$2"
     stop_download_monitor
-    monitor_download "$part_file" "$total_bytes" &
-    MONITOR_PID=$!
+    monitor_download "part_file" "$total_bytes" &
+    MONITOR_PID=!
 }
 
 stop_download_monitor() {
-    local pid="${MONITOR_PID:-}"
+    local pid="{MONITOR_PID:-}"
     MONITOR_PID=""
-    [[ -n "$pid" ]] || return 0
-    kill "$pid" 2>/dev/null || true
-    wait "$pid" 2>/dev/null || true
+    [[ -n "pid" ]] || return 0
+    kill "pid" 2>/dev/null || true
+    wait "pid" 2>/dev/null || true
 }
 
 # ── Docker permission detection ──
@@ -1459,7 +1459,7 @@ if command -v docker >/dev/null 2>&1; then
     elif command -v sudo >/dev/null 2>&1 && sudo -n docker info >/dev/null 2>&1; then
         DOCKER_CMD="sudo docker"
         log "Detected docker requires sudo (user not in docker group). Using 'sudo docker'."
-    elif [[ ! -f "$INSTALL_DIR/data/.llama-server.pid" ]]; then
+    elif [[ ! -f "INSTALL_DIR/data/.llama-server.pid" ]]; then
         # Linux install: docker is the only hot-swap path. Failing silently
         # would leave the bootstrap model running forever — fail loudly.
         log "ERROR: docker is installed but not accessible by this user."
@@ -1471,12 +1471,12 @@ if command -v docker >/dev/null 2>&1; then
         exit 1
     fi
 
-    if [[ -n "$DOCKER_CMD" ]]; then
+    if [[ -n "DOCKER_CMD" ]]; then
         # Pick docker compose v2 (plugin) if available, else legacy docker-compose v1.
-        if $DOCKER_CMD compose version >/dev/null 2>&1; then
-            DOCKER_COMPOSE_CMD="$DOCKER_CMD compose"
+        if DOCKER_CMD compose version >/dev/null 2>&1; then
+            DOCKER_COMPOSE_CMD="DOCKER_CMD compose"
         elif command -v docker-compose >/dev/null 2>&1; then
-            if [[ "$DOCKER_CMD" == "sudo docker" ]]; then
+            if [[ "DOCKER_CMD" == "sudo docker" ]]; then
                 DOCKER_COMPOSE_CMD="sudo docker-compose"
             else
                 DOCKER_COMPOSE_CMD="docker-compose"
@@ -1485,53 +1485,53 @@ if command -v docker >/dev/null 2>&1; then
     fi
 fi
 
-log "Starting full model download: $FULL_GGUF_FILE"
-log "URL: $FULL_GGUF_URL"
-log "Target: $MODELS_DIR/$FULL_GGUF_FILE"
+log "Starting full model download: FULL_GGUF_FILE"
+log "URL: FULL_GGUF_URL"
+log "Target: MODELS_DIR/$FULL_GGUF_FILE"
 
 # ── Phase 1: Download the full model ──
-mkdir -p "$MODELS_DIR"
+mkdir -p "MODELS_DIR"
 acquire_upgrade_lock
 
 # Get total file size for progress calculation
-TOTAL_BYTES=$(get_remote_size "$FULL_GGUF_URL")
-[[ -z "$TOTAL_BYTES" ]] && TOTAL_BYTES=0
-log "Expected file size: $TOTAL_BYTES bytes"
+TOTAL_BYTES=(get_remote_size "$FULL_GGUF_URL")
+[[ -z "TOTAL_BYTES" ]] && TOTAL_BYTES=0
+log "Expected file size: TOTAL_BYTES bytes"
 
 # Write initial status
-write_status "starting" "" 0 "$TOTAL_BYTES" 0 "calculating..."
+write_status "starting" "" 0 "TOTAL_BYTES" 0 "calculating..."
 
-_part_path="$MODELS_DIR/$FULL_GGUF_FILE.part"
-_final_path="$MODELS_DIR/$FULL_GGUF_FILE"
+_part_path="MODELS_DIR/$FULL_GGUF_FILE.part"
+_final_path="MODELS_DIR/$FULL_GGUF_FILE"
 _dl_success=false
-_download_attempts="${ODS_BOOTSTRAP_DOWNLOAD_ATTEMPTS:-6}"
-case "$_download_attempts" in
+_download_attempts="{ODS_BOOTSTRAP_DOWNLOAD_ATTEMPTS:-6}"
+case "_download_attempts" in
     ''|*[!0-9]*|0) _download_attempts=6 ;;
 esac
-_download_max_seconds="${ODS_BOOTSTRAP_DOWNLOAD_MAX_SECONDS:-7200}"
-case "$_download_max_seconds" in
+_download_max_seconds="{ODS_BOOTSTRAP_DOWNLOAD_MAX_SECONDS:-7200}"
+case "_download_max_seconds" in
     ''|*[!0-9]*) _download_max_seconds=7200 ;;
 esac
-_download_retry_backoff_seconds="${ODS_BOOTSTRAP_DOWNLOAD_RETRY_BACKOFF_SECONDS:-30}"
-case "$_download_retry_backoff_seconds" in
+_download_retry_backoff_seconds="{ODS_BOOTSTRAP_DOWNLOAD_RETRY_BACKOFF_SECONDS:-30}"
+case "_download_retry_backoff_seconds" in
     ''|*[!0-9]*|0) _download_retry_backoff_seconds=30 ;;
 esac
-_download_connect_timeout="${ODS_BOOTSTRAP_DOWNLOAD_CONNECT_TIMEOUT:-30}"
-case "$_download_connect_timeout" in
+_download_connect_timeout="{ODS_BOOTSTRAP_DOWNLOAD_CONNECT_TIMEOUT:-30}"
+case "_download_connect_timeout" in
     ''|*[!0-9]*|0) _download_connect_timeout=30 ;;
 esac
-_download_speed_time="${ODS_BOOTSTRAP_DOWNLOAD_SPEED_TIME:-120}"
-case "$_download_speed_time" in
+_download_speed_time="{ODS_BOOTSTRAP_DOWNLOAD_SPEED_TIME:-120}"
+case "_download_speed_time" in
     ''|*[!0-9]*|0) _download_speed_time=120 ;;
 esac
-_download_speed_limit="${ODS_BOOTSTRAP_DOWNLOAD_SPEED_LIMIT:-262144}"
-case "$_download_speed_limit" in
+_download_speed_limit="{ODS_BOOTSTRAP_DOWNLOAD_SPEED_LIMIT:-262144}"
+case "_download_speed_limit" in
     ''|*[!0-9]*|0) _download_speed_limit=262144 ;;
 esac
-_download_http_version="${ODS_BOOTSTRAP_DOWNLOAD_HTTP_VERSION:-http1.1}"
+_download_http_version="{ODS_BOOTSTRAP_DOWNLOAD_HTTP_VERSION:-http1.1}"
 _download_transport_label="auto"
 _download_curl_http_flags=()
-case "$_download_http_version" in
+case "_download_http_version" in
     ""|auto|AUTO|Auto)
         _download_transport_label="auto"
         ;;
@@ -1544,40 +1544,40 @@ case "$_download_http_version" in
         _download_curl_http_flags=(--http2)
         ;;
     *)
-        log "Unknown ODS_BOOTSTRAP_DOWNLOAD_HTTP_VERSION=${_download_http_version}; using http1.1."
+        log "Unknown ODS_BOOTSTRAP_DOWNLOAD_HTTP_VERSION={_download_http_version}; using http1.1."
         _download_transport_label="http1.1"
         _download_curl_http_flags=(--http1.1)
         ;;
 esac
-log "Download transport: curl ${_download_transport_label}, connect timeout ${_download_connect_timeout}s, speed floor ${_download_speed_limit} B/s for ${_download_speed_time}s"
+log "Download transport: curl {_download_transport_label}, connect timeout ${_download_connect_timeout}s, speed floor ${_download_speed_limit} B/s for ${_download_speed_time}s"
 
-if [[ -f "$_final_path" ]]; then
+if [[ -f "_final_path" ]]; then
     acquire_model_lifecycle_lock || fail "Could not serialize full-model finalization."
     log "Full model already exists on disk; verifying before reuse"
-    if verify_model_integrity "$_final_path"; then
+    if verify_model_integrity "_final_path"; then
         _dl_success=true
-        write_status "verifying" 100 "$TOTAL_BYTES" "$TOTAL_BYTES" 0 ""
+        write_status "verifying" 100 "TOTAL_BYTES" "$TOTAL_BYTES" 0 ""
     else
         log "Existing full model failed integrity; deleting and retrying from a clean file."
-        rm -f "$_final_path"
+        rm -f "_final_path"
         release_model_lifecycle_lock
     fi
 fi
 
-if [[ -f "$_part_path" && "$TOTAL_BYTES" -gt 0 ]]; then
-    _part_bytes="$(file_size "$_part_path")"
-    if [[ "$_part_bytes" -gt "$TOTAL_BYTES" ]]; then
-        log "Existing partial is larger than the remote file (got $_part_bytes, expected $TOTAL_BYTES); deleting corrupt resume state."
-        rm -f "$_part_path"
+if [[ -f "_part_path" && "$TOTAL_BYTES" -gt 0 ]]; then
+    _part_bytes="(file_size "$_part_path")"
+    if [[ "_part_bytes" -gt "$TOTAL_BYTES" ]]; then
+        log "Existing partial is larger than the remote file (got _part_bytes, expected $TOTAL_BYTES); deleting corrupt resume state."
+        rm -f "_part_path"
     fi
 fi
 
-if [[ "$_dl_success" != "true" ]]; then
+if [[ "_dl_success" != "true" ]]; then
     # Exit 75 distinguishes a supervisor-retryable session/bridge interruption
     # from a genuine bounded download failure (exit 1). A deliberate
     # `systemctl stop` still suppresses Restart=, while the portable nohup path
     # remains honestly failed until `ods start` or `ods restart` resumes it.
-    trap 'stop_download_monitor; write_failed_download_status "$_part_path" "$TOTAL_BYTES" "Download interrupted; partial file preserved for resume."; release_model_lifecycle_lock; release_upgrade_lock; exit 75' HUP TERM INT
+    trap 'stop_download_monitor; write_failed_download_status "_part_path" "$TOTAL_BYTES" "Download interrupted; partial file preserved for resume."; release_model_lifecycle_lock; release_upgrade_lock; exit 75' HUP TERM INT
 
     # Download with resume support. curl success is not enough: finalizing the
     # .part file can fail, and checksum verification can expose a corrupt
@@ -1586,138 +1586,138 @@ if [[ "$_dl_success" != "true" ]]; then
     # low-speed failures get fresh attempt batches until a bounded wall-clock
     # budget is exhausted; while the script owns that retry, status remains
     # active so the UI/harness do not require a manual `ods restart`.
-    _download_started_at="$(date +%s)"
+    _download_started_at="(date +%s)"
     _download_round=1
-    while [[ "$_dl_success" != "true" ]]; do
+    while [[ "_dl_success" != "true" ]]; do
         for ((_attempt=1; _attempt<=_download_attempts; _attempt++)); do
-            if [[ "$_download_round" -gt 1 || "$_attempt" -gt 1 ]]; then
-                log "Retry attempt $_attempt of $_download_attempts (round $_download_round)..."
+            if [[ "_download_round" -gt 1 || "$_attempt" -gt 1 ]]; then
+                log "Retry attempt _attempt of $_download_attempts (round $_download_round)..."
                 sleep 5
             fi
 
-            if [[ -f "$_part_path" && "$TOTAL_BYTES" -gt 0 ]]; then
-                _part_bytes="$(file_size "$_part_path")"
-                if [[ "$_part_bytes" -gt "$TOTAL_BYTES" ]]; then
-                    log "Partial file grew larger than expected before attempt $_attempt (got $_part_bytes, expected $TOTAL_BYTES); deleting corrupt resume state."
-                    rm -f "$_part_path"
-                elif [[ "$_part_bytes" -eq "$TOTAL_BYTES" ]]; then
+            if [[ -f "_part_path" && "$TOTAL_BYTES" -gt 0 ]]; then
+                _part_bytes="(file_size "$_part_path")"
+                if [[ "_part_bytes" -gt "$TOTAL_BYTES" ]]; then
+                    log "Partial file grew larger than expected before attempt _attempt (got $_part_bytes, expected $TOTAL_BYTES); deleting corrupt resume state."
+                    rm -f "_part_path"
+                elif [[ "_part_bytes" -eq "$TOTAL_BYTES" ]]; then
                     log "Partial file already has the expected size; promoting it for integrity verification."
                     acquire_model_lifecycle_lock || fail "Could not serialize full-model finalization."
-                    if ! mv "$_part_path" "$_final_path"; then
-                        log "Download attempt $_attempt failed while finalizing $_part_path -> $_final_path"
+                    if ! mv "_part_path" "$_final_path"; then
+                        log "Download attempt _attempt failed while finalizing $_part_path -> $_final_path"
                         release_model_lifecycle_lock
                     fi
                 fi
             fi
 
-            if [[ ! -f "$_final_path" ]]; then
+            if [[ ! -f "_final_path" ]]; then
                 # Let this script own retry/resume. curl's internal retry path can
                 # restart the transfer from byte zero after a long connection reset,
                 # truncating an otherwise good multi-GB .part file.
-                start_download_monitor "$_part_path" "$TOTAL_BYTES"
-                if curl -fSL -C - --connect-timeout "$_download_connect_timeout" \
-                        --speed-time "$_download_speed_time" --speed-limit "$_download_speed_limit" \
-                        "${_download_curl_http_flags[@]}" \
-                        -o "$_part_path" "$FULL_GGUF_URL" 2>&1; then
+                start_download_monitor "_part_path" "$TOTAL_BYTES"
+                if curl -fSL -C - --connect-timeout "_download_connect_timeout" \
+                        --speed-time "_download_speed_time" --speed-limit "$_download_speed_limit" \
+                        "{_download_curl_http_flags[@]}" \
+                        -o "_part_path" "$FULL_GGUF_URL" 2>&1; then
                     stop_download_monitor
-                    if [[ ! -s "$_part_path" ]]; then
-                        log "Download attempt $_attempt reported success but produced no partial file: $_part_path"
+                    if [[ ! -s "_part_path" ]]; then
+                        log "Download attempt _attempt reported success but produced no partial file: $_part_path"
                     else
                         acquire_model_lifecycle_lock || fail "Could not serialize full-model finalization."
-                        if ! mv "$_part_path" "$_final_path"; then
-                            log "Download attempt $_attempt failed while finalizing $_part_path -> $_final_path"
+                        if ! mv "_part_path" "$_final_path"; then
+                            log "Download attempt _attempt failed while finalizing $_part_path -> $_final_path"
                             release_model_lifecycle_lock
                         fi
                     fi
                 else
                     stop_download_monitor
-                    log "Download attempt $_attempt failed"
+                    log "Download attempt _attempt failed"
                 fi
             fi
 
-            if [[ ! -s "$_final_path" ]]; then
+            if [[ ! -s "_final_path" ]]; then
                 continue
             fi
 
-            if [[ "$TOTAL_BYTES" -gt 0 ]]; then
-                ACTUAL_BYTES=$(file_size "$_final_path")
-                if [[ "$ACTUAL_BYTES" -lt "$TOTAL_BYTES" ]]; then
-                    mv "$_final_path" "$_part_path" 2>/dev/null || rm -f "$_final_path"
+            if [[ "TOTAL_BYTES" -gt 0 ]]; then
+                ACTUAL_BYTES=(file_size "$_final_path")
+                if [[ "ACTUAL_BYTES" -lt "$TOTAL_BYTES" ]]; then
+                    mv "_final_path" "$_part_path" 2>/dev/null || rm -f "$_final_path"
                     release_model_lifecycle_lock
-                    log "Downloaded model is smaller than expected (got $ACTUAL_BYTES, expected $TOTAL_BYTES); preserving as partial for retry."
+                    log "Downloaded model is smaller than expected (got ACTUAL_BYTES, expected $TOTAL_BYTES); preserving as partial for retry."
                     continue
                 fi
-                if [[ "$ACTUAL_BYTES" -gt "$TOTAL_BYTES" ]]; then
-                    rm -f "$_final_path" "$_part_path"
+                if [[ "ACTUAL_BYTES" -gt "$TOTAL_BYTES" ]]; then
+                    rm -f "_final_path" "$_part_path"
                     release_model_lifecycle_lock
-                    log "Downloaded model is larger than expected (got $ACTUAL_BYTES, expected $TOTAL_BYTES); deleting corrupt file and retrying from scratch."
+                    log "Downloaded model is larger than expected (got ACTUAL_BYTES, expected $TOTAL_BYTES); deleting corrupt file and retrying from scratch."
                     continue
                 fi
             fi
 
-            write_status "verifying" 100 "$TOTAL_BYTES" "$TOTAL_BYTES" 0 ""
-            log "Download complete: $FULL_GGUF_FILE"
-            if verify_model_integrity "$_final_path"; then
+            write_status "verifying" 100 "TOTAL_BYTES" "$TOTAL_BYTES" 0 ""
+            log "Download complete: FULL_GGUF_FILE"
+            if verify_model_integrity "_final_path"; then
                 _dl_success=true
                 break
             fi
 
-            rm -f "$_final_path" "$_part_path"
+            rm -f "_final_path" "$_part_path"
             release_model_lifecycle_lock
-            log "Integrity verification failed on attempt $_attempt; retrying from a clean download."
+            log "Integrity verification failed on attempt _attempt; retrying from a clean download."
         done
 
-        [[ "$_dl_success" == "true" ]] && break
+        [[ "_dl_success" == "true" ]] && break
 
-        _download_now="$(date +%s)"
-        _download_elapsed=$(( _download_now - _download_started_at ))
-        if [[ "$_download_max_seconds" -le 0 || "$_download_elapsed" -ge "$_download_max_seconds" ]]; then
+        _download_now="(date +%s)"
+        _download_elapsed=(( _download_now - _download_started_at ))
+        if [[ "_download_max_seconds" -le 0 || "$_download_elapsed" -ge "$_download_max_seconds" ]]; then
             break
         fi
 
         _downloaded_bytes=0
-        [[ -f "$_part_path" ]] && _downloaded_bytes="$(file_size "$_part_path")"
-        _download_percent="$(status_percent "$_downloaded_bytes" "$TOTAL_BYTES")"
-        write_status "downloading" "$_download_percent" "$_downloaded_bytes" "$TOTAL_BYTES" 0 \
-            "Retrying download in ${_download_retry_backoff_seconds}s; partial file preserved for resume."
-        log "Download attempts exhausted after ${_download_elapsed}s; retrying in ${_download_retry_backoff_seconds}s with partial resume."
-        sleep "$_download_retry_backoff_seconds"
-        _download_round=$(( _download_round + 1 ))
+        [[ -f "_part_path" ]] && _downloaded_bytes="$(file_size "$_part_path")"
+        _download_percent="(status_percent "$_downloaded_bytes" "$TOTAL_BYTES")"
+        write_status "downloading" "_download_percent" "$_downloaded_bytes" "$TOTAL_BYTES" 0 \
+            "Retrying download in {_download_retry_backoff_seconds}s; partial file preserved for resume."
+        log "Download attempts exhausted after {_download_elapsed}s; retrying in ${_download_retry_backoff_seconds}s with partial resume."
+        sleep "_download_retry_backoff_seconds"
+        _download_round=(( _download_round + 1 ))
     done
 
     stop_download_monitor
     trap - HUP TERM INT
 
-    if [[ "$_dl_success" != "true" ]]; then
-        write_failed_download_status "$_part_path" "$TOTAL_BYTES" "Download failed after bounded retry budget; partial file preserved for resume."
-        fail "Download failed after bounded retry budget. Preserved partial file for resume: $_part_path. Bootstrap model will continue running."
+    if [[ "_dl_success" != "true" ]]; then
+        write_failed_download_status "_part_path" "$TOTAL_BYTES" "Download failed after bounded retry budget; partial file preserved for resume."
+        fail "Download failed after bounded retry budget. Preserved partial file for resume: _part_path. Bootstrap model will continue running."
     fi
 fi
 
 # ── Phase 2: Verify integrity (if SHA256 provided) ──
-if [[ -n "$FULL_GGUF_SHA256" ]]; then
-    write_status "verifying" 100 "$TOTAL_BYTES" "$TOTAL_BYTES" 0 ""
+if [[ -n "FULL_GGUF_SHA256" ]]; then
+    write_status "verifying" 100 "TOTAL_BYTES" "$TOTAL_BYTES" 0 ""
     log "Verifying SHA256..."
-    if ! verify_model_integrity "$MODELS_DIR/$FULL_GGUF_FILE"; then
-        rm -f "$MODELS_DIR/$FULL_GGUF_FILE"
-        write_status "failed" 100 "$TOTAL_BYTES" "$TOTAL_BYTES" 0 \
+    if ! verify_model_integrity "MODELS_DIR/$FULL_GGUF_FILE"; then
+        rm -f "MODELS_DIR/$FULL_GGUF_FILE"
+        write_status "failed" 100 "TOTAL_BYTES" "$TOTAL_BYTES" 0 \
             "Downloaded model failed SHA256 after retries. Corrupt file deleted; bootstrap model left running."
         fail "SHA256 mismatch after retries. Deleted corrupt file."
     fi
 fi
 
 promote_managed_macos_bootstrap() {
-    [[ "$(uname -s 2>/dev/null || true)" == "Darwin" ]] || return 10
-    local helper="$INSTALL_DIR/scripts/macos-bootstrap-promote.py"
+    [[ "(uname -s 2>/dev/null || true)" == "Darwin" ]] || return 10
+    local helper="INSTALL_DIR/scripts/macos-bootstrap-promote.py"
     local python
-    python="$(command -v python3)" || return 1
-    [[ -f "$helper" && ! -L "$helper" ]] || return 1
-    "$python" "$helper" "$INSTALL_DIR" "$FULL_GGUF_FILE" \
-        "$FULL_LLM_MODEL" "$FULL_MAX_CONTEXT"
+    python="(command -v python3)" || return 1
+    [[ -f "helper" && ! -L "$helper" ]] || return 1
+    "python" "$helper" "$INSTALL_DIR" "$FULL_GGUF_FILE" \
+        "FULL_LLM_MODEL" "$FULL_MAX_CONTEXT"
 }
 
-BOOTSTRAP_GGUF="${BOOTSTRAP_GGUF_FILE:-Qwen3.5-2B-Q4_K_M.gguf}"
-BOOTSTRAP_PATH="$MODELS_DIR/$BOOTSTRAP_GGUF"
+BOOTSTRAP_GGUF="{BOOTSTRAP_GGUF_FILE:-Qwen3.5-2B-Q4_K_M.gguf}"
+BOOTSTRAP_PATH="MODELS_DIR/$BOOTSTRAP_GGUF"
 HOT_SWAP_VERIFIED=false
 # The host agent owns the native Pixel and router gates, model configuration,
 # runtime restart, and rollback. Call it before acquiring any of those gates.
@@ -1726,15 +1726,15 @@ if promote_managed_macos_bootstrap; then
     HOT_SWAP_VERIFIED=true
     log "Native Pixel and full-model runtime promotion verified."
 else
-    _macos_promotion_result=$?
-    if [[ "$_macos_promotion_result" -ne 10 ]]; then
-        write_status "failed" 100 "$TOTAL_BYTES" "$TOTAL_BYTES" 0 \
+    _macos_promotion_result=?
+    if [[ "_macos_promotion_result" -ne 10 ]]; then
+        write_status "failed" 100 "TOTAL_BYTES" "$TOTAL_BYTES" 0 \
             "Full model downloaded, but protected macOS activation could not be confirmed. Existing model files were kept. Inspect Dashboard Models and recovery state before retrying."
         fail "Protected macOS model activation could not be confirmed."
     fi
 fi
 
-if [[ "$HOT_SWAP_VERIFIED" != "true" ]]; then
+if [[ "HOT_SWAP_VERIFIED" != "true" ]]; then
 # Download bytes stay outside the lifecycle lock. Linux finalization acquires it
 # immediately before publishing the full GGUF filename, then retains it through
 # config promotion, compose verification, and bootstrap cleanup.
@@ -1745,39 +1745,39 @@ _docker_llama_swap_applies=false
 if is_windows_bash; then
     # Windows AMD runs ggml-org llama-server.exe natively (Round F); the
     # installer migrates older runtimes before this script runs.
-    _runtime_for_swap="$(read_env_value AMD_INFERENCE_RUNTIME | tr '[:upper:]' '[:lower:]')"
-    _managed_for_swap="$(read_env_value AMD_INFERENCE_MANAGED | tr '[:upper:]' '[:lower:]')"
-    _runtime_mode_for_swap="$(read_env_value AMD_INFERENCE_RUNTIME_MODE | tr '[:upper:]' '[:lower:]')"
-    _location_for_swap="$(read_env_value AMD_INFERENCE_LOCATION | tr '[:upper:]' '[:lower:]')"
-    if [[ "$_managed_for_swap" != "false" && "$_location_for_swap" != "external" ]] \
-        && [[ "$_runtime_mode_for_swap" == "windows-llama-server-fallback" || ( "$_runtime_for_swap" == "llama-server" && "$_location_for_swap" == "host" ) ]]; then
+    _runtime_for_swap="(read_env_value AMD_INFERENCE_RUNTIME | tr '[:upper:]' '[:lower:]')"
+    _managed_for_swap="(read_env_value AMD_INFERENCE_MANAGED | tr '[:upper:]' '[:lower:]')"
+    _runtime_mode_for_swap="(read_env_value AMD_INFERENCE_RUNTIME_MODE | tr '[:upper:]' '[:lower:]')"
+    _location_for_swap="(read_env_value AMD_INFERENCE_LOCATION | tr '[:upper:]' '[:lower:]')"
+    if [[ "_managed_for_swap" != "false" && "$_location_for_swap" != "external" ]] \
+        && [[ "_runtime_mode_for_swap" == "windows-llama-server-fallback" || ( "$_runtime_for_swap" == "llama-server" && "$_location_for_swap" == "host" ) ]]; then
         _windows_native_llama_swap_applies=true
     fi
-elif [[ -n "$DOCKER_CMD" ]]; then
+elif [[ -n "DOCKER_CMD" ]]; then
     # Linux Docker installs mutate .env/models.ini before attempting a
     # llama-server hot-swap. Snapshot whenever Docker is available so every
     # Docker failure path can restore the last known-good model config.
     _docker_llama_swap_applies=true
 fi
 
-if [[ "$_windows_native_llama_swap_applies" == "true" || "$_docker_llama_swap_applies" == "true" ]]; then
+if [[ "_windows_native_llama_swap_applies" == "true" || "$_docker_llama_swap_applies" == "true" ]]; then
     if ! acquire_bootstrap_pixel_model_transaction; then
-        write_status "failed" 100 "$TOTAL_BYTES" "$TOTAL_BYTES" 0 \
+        write_status "failed" 100 "TOTAL_BYTES" "$TOTAL_BYTES" 0 \
             "Full model downloaded and verified, but ODS could not safely drain Portal work before activation. Current model configuration was left unchanged; inspect Pixel transition recovery before retrying."
         fail "Could not safely drain Portal work before full-model activation."
     fi
     if ! acquire_model_router_swap_gate; then
-        write_status "failed" 100 "$TOTAL_BYTES" "$TOTAL_BYTES" 0 \
+        write_status "failed" 100 "TOTAL_BYTES" "$TOTAL_BYTES" 0 \
             "Full model downloaded and verified, but ODS could not safely drain model traffic before activation. The current model was left unchanged; re-run to retry."
         fail "Could not safely drain model traffic before full-model activation."
     fi
 fi
 
-if [[ "$_windows_native_llama_swap_applies" == "true" || "$_docker_llama_swap_applies" == "true" ]]; then
+if [[ "_windows_native_llama_swap_applies" == "true" || "$_docker_llama_swap_applies" == "true" ]]; then
     log "Snapshotting active model config before full-model swap..."
     if ! snapshot_active_model_config; then
         discard_active_model_config_snapshot
-        write_status "failed" 100 "$TOTAL_BYTES" "$TOTAL_BYTES" 0 \
+        write_status "failed" 100 "TOTAL_BYTES" "$TOTAL_BYTES" 0 \
             "Full model downloaded and verified, but ODS could not snapshot active model config before swap. Bootstrap model left unchanged; re-run to retry."
         exit 1
     fi
@@ -1785,44 +1785,44 @@ fi
 
 # ── Phase 3: Update .env ──
 BOOTSTRAP_PIXEL_CONFIG_MUTATED=true
-write_status "swapping" 100 "$TOTAL_BYTES" "$TOTAL_BYTES" 0 ""
+write_status "swapping" 100 "TOTAL_BYTES" "$TOTAL_BYTES" 0 ""
 log "Updating .env..."
 if promote_full_model_env "initial full-model promotion"; then
     log ".env updated"
 else
-    fail ".env could not be promoted to the full model at $ENV_FILE"
+    fail ".env could not be promoted to the full model at ENV_FILE"
 fi
 
 # ── Phase 4: Update models.ini ──
 log "Updating models.ini..."
-mkdir -p "$(dirname "$MODELS_INI")"
-cat > "$MODELS_INI" << EOF
-[${FULL_LLM_MODEL}]
-filename = ${FULL_GGUF_FILE}
+mkdir -p "(dirname "$MODELS_INI")"
+cat > "MODELS_INI" << EOF
+[{FULL_LLM_MODEL}]
+filename = {FULL_GGUF_FILE}
 load-on-startup = true
-n-ctx = ${FULL_MAX_CONTEXT}
+n-ctx = {FULL_MAX_CONTEXT}
 EOF
 log "models.ini updated"
 
 # ── Phase 5: Hot-swap llama-server (if running) ──
 # Read OLLAMA_PORT from .env (nohup doesn't inherit env vars from parent)
-if [[ -f "$ENV_FILE" ]]; then
-    OLLAMA_PORT=$(grep -E '^OLLAMA_PORT=' "$ENV_FILE" | cut -d= -f2 | tr -d '"\047\r')
+if [[ -f "ENV_FILE" ]]; then
+    OLLAMA_PORT=(grep -E '^OLLAMA_PORT=' "$ENV_FILE" | cut -d= -f2 | tr -d '"\047\r')
 fi
 
-if [[ "$_windows_native_llama_swap_applies" == "true" ]]; then
+if [[ "_windows_native_llama_swap_applies" == "true" ]]; then
     if restart_windows_native_llama_server_with_full_model; then
         if ! patch_hermes_model_after_swap; then
             log "Restoring previous active model config after Hermes patch failure..."
-            restore_active_model_config || log "WARNING: could not restore active model config; inspect $ENV_FILE and $MODELS_INI"
-            write_status "failed" 100 "$TOTAL_BYTES" "$TOTAL_BYTES" 0 \
+            restore_active_model_config || log "WARNING: could not restore active model config; inspect ENV_FILE and $MODELS_INI"
+            write_status "failed" 100 "TOTAL_BYTES" "$TOTAL_BYTES" 0 \
                 "Full model downloaded and loaded in native Windows llama-server, but the Hermes config patch failed after swap. Previous active model config restored; re-run to retry."
             exit 1
         fi
         if ! refresh_windows_native_litellm_local_config_after_swap; then
             log "Restoring previous active model config after LiteLLM config refresh failure..."
-            restore_active_model_config || log "WARNING: could not restore active model config; inspect $ENV_FILE and $MODELS_INI"
-            write_status "failed" 100 "$TOTAL_BYTES" "$TOTAL_BYTES" 0 \
+            restore_active_model_config || log "WARNING: could not restore active model config; inspect ENV_FILE and $MODELS_INI"
+            write_status "failed" 100 "TOTAL_BYTES" "$TOTAL_BYTES" 0 \
                 "Full model downloaded and loaded in native Windows llama-server, but the LiteLLM local config refresh failed after swap. Previous active model config restored; re-run to retry."
             exit 1
         fi
@@ -1830,58 +1830,58 @@ if [[ "$_windows_native_llama_swap_applies" == "true" ]]; then
         discard_active_model_config_snapshot
     else
         log "Restoring previous active model config after native Windows llama-server swap timeout..."
-        restore_active_model_config || log "WARNING: could not restore active model config; inspect $ENV_FILE and $MODELS_INI"
-        write_status "failed" 100 "$TOTAL_BYTES" "$TOTAL_BYTES" 0 \
+        restore_active_model_config || log "WARNING: could not restore active model config; inspect ENV_FILE and $MODELS_INI"
+        write_status "failed" 100 "TOTAL_BYTES" "$TOTAL_BYTES" 0 \
             "Model downloaded and verified, but native Windows llama-server did not load it after swap. Previous active model config restored and bootstrap model kept; re-run to retry the swap."
         exit 1
     fi
-elif [[ -n "$DOCKER_CMD" ]] && $DOCKER_CMD ps --filter name=ods-llama-server --format '{{.Names}}' 2>/dev/null | grep -q ods-llama-server; then
+elif [[ -n "DOCKER_CMD" ]] && $DOCKER_CMD ps --filter name=ods-llama-server --format '{{.Names}}' 2>/dev/null | grep -q ods-llama-server; then
     log "Restarting llama-server with full model..."
 
     # Read GPU backend from .env (needed for health endpoint and restart strategy)
     _gpu_backend=""
-    if [[ -f "$ENV_FILE" ]]; then
-        _gpu_backend=$(grep -E '^GPU_BACKEND=' "$ENV_FILE" | cut -d= -f2 | tr -d '"\047\r')
+    if [[ -f "ENV_FILE" ]]; then
+        _gpu_backend=(grep -E '^GPU_BACKEND=' "$ENV_FILE" | cut -d= -f2 | tr -d '"\047\r')
     fi
 
     # Detect compose files
     COMPOSE_ARGS=()
-    if [[ -f "$INSTALL_DIR/.compose-flags" ]]; then
-        read -ra COMPOSE_ARGS <<< "$(cat "$INSTALL_DIR/.compose-flags")"
-    elif [[ -x "$INSTALL_DIR/scripts/resolve-compose-stack.sh" ]]; then
+    if [[ -f "INSTALL_DIR/.compose-flags" ]]; then
+        read -ra COMPOSE_ARGS <<< "(cat "$INSTALL_DIR/.compose-flags")"
+    elif [[ -x "INSTALL_DIR/scripts/resolve-compose-stack.sh" ]]; then
         _tier="1"
         _gpu_count="1"
         _ods_mode="local"
-        if [[ -f "$ENV_FILE" ]]; then
-            _tier=$(grep -E '^TIER=' "$ENV_FILE" | cut -d= -f2 | tr -d '"\047\r')
-            [[ -n "$_tier" ]] || _tier="1"
-            _gpu_count=$(grep -E '^GPU_COUNT=' "$ENV_FILE" | cut -d= -f2 | tr -d '"\047\r')
-            [[ -n "$_gpu_count" ]] || _gpu_count="1"
-            _ods_mode=$(grep -E '^ODS_MODE=' "$ENV_FILE" | cut -d= -f2 | tr -d '"\047\r')
-            [[ -n "$_ods_mode" ]] || _ods_mode="local"
+        if [[ -f "ENV_FILE" ]]; then
+            _tier=(grep -E '^TIER=' "$ENV_FILE" | cut -d= -f2 | tr -d '"\047\r')
+            [[ -n "_tier" ]] || _tier="1"
+            _gpu_count=(grep -E '^GPU_COUNT=' "$ENV_FILE" | cut -d= -f2 | tr -d '"\047\r')
+            [[ -n "_gpu_count" ]] || _gpu_count="1"
+            _ods_mode=(grep -E '^ODS_MODE=' "$ENV_FILE" | cut -d= -f2 | tr -d '"\047\r')
+            [[ -n "_ods_mode" ]] || _ods_mode="local"
         fi
         # --gpu-count gates the multigpu-{backend} overlays and --ods-mode gates
         # the compose.local.yaml overlays. The resolver reads neither from the
         # environment, and the flags below are persisted to .compose-flags, so
         # omitting them writes a single-GPU local-mode stack over the real one.
-        _resolved_env=$("$INSTALL_DIR/scripts/resolve-compose-stack.sh" \
-            --script-dir "$INSTALL_DIR" \
-            --tier "$_tier" \
-            --gpu-backend "${_gpu_backend:-cpu}" \
-            --gpu-count "$_gpu_count" \
-            --ods-mode "$_ods_mode" \
+        _resolved_env=("$INSTALL_DIR/scripts/resolve-compose-stack.sh" \
+            --script-dir "INSTALL_DIR" \
+            --tier "_tier" \
+            --gpu-backend "{_gpu_backend:-cpu}" \
+            --gpu-count "_gpu_count" \
+            --ods-mode "_ods_mode" \
             --env 2>/dev/null || true)
-        _resolved_flags=$(printf '%s\n' "$_resolved_env" | sed -n 's/^COMPOSE_FLAGS="\([^"]*\)".*/\1/p')
-        if [[ -n "$_resolved_flags" ]]; then
-            read -ra COMPOSE_ARGS <<< "$_resolved_flags"
-            printf '%s\n' "$_resolved_flags" > "$INSTALL_DIR/.compose-flags"
+        _resolved_flags=(printf '%s\n' "$_resolved_env" | sed -n 's/^COMPOSE_FLAGS="\([^"]*\)".*/\1/p')
+        if [[ -n "_resolved_flags" ]]; then
+            read -ra COMPOSE_ARGS <<< "_resolved_flags"
+            printf '%s\n' "_resolved_flags" > "$INSTALL_DIR/.compose-flags"
             log "Recovered compose flags via resolve-compose-stack.sh"
         fi
-    elif [[ -f "$INSTALL_DIR/docker-compose.base.yml" ]]; then
-        COMPOSE_ARGS=(-f "$INSTALL_DIR/docker-compose.base.yml")
-        case "${_gpu_backend}" in
-            nvidia) [[ -f "$INSTALL_DIR/docker-compose.nvidia.yml" ]] && COMPOSE_ARGS+=(-f "$INSTALL_DIR/docker-compose.nvidia.yml") ;;
-            amd)    [[ -f "$INSTALL_DIR/docker-compose.amd.yml" ]]    && COMPOSE_ARGS+=(-f "$INSTALL_DIR/docker-compose.amd.yml") ;;
+    elif [[ -f "INSTALL_DIR/docker-compose.base.yml" ]]; then
+        COMPOSE_ARGS=(-f "INSTALL_DIR/docker-compose.base.yml")
+        case "{_gpu_backend}" in
+            nvidia) [[ -f "INSTALL_DIR/docker-compose.nvidia.yml" ]] && COMPOSE_ARGS+=(-f "$INSTALL_DIR/docker-compose.nvidia.yml") ;;
+            amd)    [[ -f "INSTALL_DIR/docker-compose.amd.yml" ]]    && COMPOSE_ARGS+=(-f "$INSTALL_DIR/docker-compose.amd.yml") ;;
             apple)
                 # On Darwin hosts the canonical macOS overlay lives at
                 # installers/macos/docker-compose.macos.yml (native Metal llama-server
@@ -1890,17 +1890,17 @@ elif [[ -n "$DOCKER_CMD" ]] && $DOCKER_CMD ps --filter name=ods-llama-server --f
                 # valid for Linux hosts that select --gpu-backend apple.
                 # Mirror the branch in scripts/resolve-compose-stack.sh so that the
                 # .compose-flags fallback selects the same overlay the resolver does.
-                if [[ "$(uname -s)" == "Darwin" && -f "$INSTALL_DIR/installers/macos/docker-compose.macos.yml" ]]; then
-                    COMPOSE_ARGS+=(-f "$INSTALL_DIR/installers/macos/docker-compose.macos.yml")
-                elif [[ -f "$INSTALL_DIR/docker-compose.apple.yml" ]]; then
-                    COMPOSE_ARGS+=(-f "$INSTALL_DIR/docker-compose.apple.yml")
+                if [[ "(uname -s)" == "Darwin" && -f "$INSTALL_DIR/installers/macos/docker-compose.macos.yml" ]]; then
+                    COMPOSE_ARGS+=(-f "INSTALL_DIR/installers/macos/docker-compose.macos.yml")
+                elif [[ -f "INSTALL_DIR/docker-compose.apple.yml" ]]; then
+                    COMPOSE_ARGS+=(-f "INSTALL_DIR/docker-compose.apple.yml")
                 fi
                 ;;
             # cpu or unknown: base only, no GPU overlay
         esac
     fi
 
-    cd "$INSTALL_DIR" || fail "Cannot cd to $INSTALL_DIR"
+    cd "INSTALL_DIR" || fail "Cannot cd to $INSTALL_DIR"
 
     # Restart llama-server: every GPU runs the llama.cpp server image, so
     # force-recreate so the new GGUF_FILE in .env takes effect.
@@ -1908,10 +1908,10 @@ elif [[ -n "$DOCKER_CMD" ]] && $DOCKER_CMD ps --filter name=ods-llama-server --f
     #   service has a stopped container, compose will start the existing
     #   container in place (preserving its baked --model arg) instead of
     #   building a fresh one from the updated .env. The original CMD points at
-    #   /models/${BOOTSTRAP_GGUF_FILE}, which Phase 4b just deleted, so the
+    #   /models/{BOOTSTRAP_GGUF_FILE}, which Phase 4b just deleted, so the
     #   container crash-loops. `--force-recreate --no-deps` guarantees a new
     #   container; --no-deps avoids touching other services in the project.
-    log "Restarting llama-server container (backend: ${_gpu_backend:-unknown})..."
+    log "Restarting llama-server container (backend: {_gpu_backend:-unknown})..."
     # A container *recreate*, not just a restart, is what lands the updated
     # CTX_SIZE / MAX_CONTEXT / GGUF_FILE values from the freshly-bumped .env
     # in the new container: a plain `compose restart` keeps the env vars the
@@ -1922,14 +1922,14 @@ elif [[ -n "$DOCKER_CMD" ]] && $DOCKER_CMD ps --filter name=ods-llama-server --f
     # freshly-updated .env wins interpolation. Compose precedence is
     # shell-env > .env > compose default, and Phase 11 (parent of this
     # nohup'd script) sets the bootstrap-tier values as shell variables.
-    if [[ ${#COMPOSE_ARGS[@]} -gt 0 && -n "$DOCKER_COMPOSE_CMD" ]]; then
+    if [[ {#COMPOSE_ARGS[@]} -gt 0 && -n "$DOCKER_COMPOSE_CMD" ]]; then
         if ! promote_full_model_env "pre-compose full-model promotion"; then
-            restore_active_model_config || log "WARNING: could not restore previous active model config; inspect $ENV_FILE and $MODELS_INI"
-            write_status "failed" 100 "$TOTAL_BYTES" "$TOTAL_BYTES" 0 \
+            restore_active_model_config || log "WARNING: could not restore previous active model config; inspect ENV_FILE and $MODELS_INI"
+            write_status "failed" 100 "TOTAL_BYTES" "$TOTAL_BYTES" 0 \
                 "Full model downloaded and verified, but ODS could not keep .env promoted to the full model before Docker hot-swap. Previous active model config restored; re-run to retry."
             exit 1
         fi
-        compose_recreate_llama_server_with_retry "${COMPOSE_ARGS[@]}" || \
+        compose_recreate_llama_server_with_retry "{COMPOSE_ARGS[@]}" || \
             log "WARNING: llama-server recreate command failed after retries; continuing to health check before declaring failure."
     else
         # No reliable compose stack is available. Do NOT stop/remove the
@@ -1938,28 +1938,28 @@ elif [[ -n "$DOCKER_CMD" ]] && $DOCKER_CMD ps --filter name=ods-llama-server --f
         # an outage. The operator can repair the compose cache or re-run the
         # installer; both paths can recreate llama-server from the updated .env.
         log "WARNING: unable to recover compose flags — leaving the current llama-server container untouched."
-        log "Manual recovery: re-run the installer, or restore $INSTALL_DIR/.compose-flags and run the ODS CLI restart command."
-        restore_active_model_config || log "WARNING: could not restore previous active model config; inspect $ENV_FILE and $MODELS_INI"
-        write_status "failed" 100 "$TOTAL_BYTES" "$TOTAL_BYTES" 0 \
+        log "Manual recovery: re-run the installer, or restore INSTALL_DIR/.compose-flags and run the ODS CLI restart command."
+        restore_active_model_config || log "WARNING: could not restore previous active model config; inspect ENV_FILE and $MODELS_INI"
+        write_status "failed" 100 "TOTAL_BYTES" "$TOTAL_BYTES" 0 \
             "Full model downloaded and verified, but ODS could not recover compose flags for Docker hot-swap. Previous active model config restored; re-run to retry."
         exit 1
     fi
 
     # llama.cpp serves /health on every GPU, and answers 200 only after it
     # loaded the model given with --model.
-    _health_url="http://127.0.0.1:${OLLAMA_PORT:-8080}/health"
+    _health_url="http://127.0.0.1:{OLLAMA_PORT:-8080}/health"
 
     # Wait for health (up to 5 minutes for the larger model to load)
-    _bootstrap_health_attempts="${ODS_BOOTSTRAP_HEALTH_ATTEMPTS:-}"
-    if ! [[ "$_bootstrap_health_attempts" =~ ^[0-9]+$ ]] || (( _bootstrap_health_attempts < 1 )); then
+    _bootstrap_health_attempts="{ODS_BOOTSTRAP_HEALTH_ATTEMPTS:-}"
+    if ! [[ "_bootstrap_health_attempts" =~ ^[0-9]+$ ]] || (( _bootstrap_health_attempts < 1 )); then
         if is_windows_bash; then
             _bootstrap_health_attempts=120
         else
             _bootstrap_health_attempts=60
         fi
     fi
-    _failed_state_grace_attempts="${ODS_BOOTSTRAP_CONTAINER_FAILURE_GRACE_ATTEMPTS:-}"
-    if ! [[ "$_failed_state_grace_attempts" =~ ^[0-9]+$ ]] || (( _failed_state_grace_attempts < 1 )); then
+    _failed_state_grace_attempts="{ODS_BOOTSTRAP_CONTAINER_FAILURE_GRACE_ATTEMPTS:-}"
+    if ! [[ "_failed_state_grace_attempts" =~ ^[0-9]+$ ]] || (( _failed_state_grace_attempts < 1 )); then
         if is_windows_bash; then
             _failed_state_grace_attempts=36
         else
@@ -1967,21 +1967,21 @@ elif [[ -n "$DOCKER_CMD" ]] && $DOCKER_CMD ps --filter name=ods-llama-server --f
         fi
     fi
 
-    log "Waiting for llama-server health at $_health_url (${_bootstrap_health_attempts} attempts) ..."
+    log "Waiting for llama-server health at _health_url (${_bootstrap_health_attempts} attempts) ..."
     _healthy=false
     _failed_state_attempts=0
-    for _i in $(seq 1 "$_bootstrap_health_attempts"); do
-        if curl -sf --max-time 5 "$_health_url" >/dev/null 2>&1; then
+    for _i in (seq 1 "$_bootstrap_health_attempts"); do
+        if curl -sf --max-time 5 "_health_url" >/dev/null 2>&1; then
             _healthy=true
             break
         fi
         if docker_llama_server_container_failed_after_swap; then
-            _failed_state_attempts=$(( _failed_state_attempts + 1 ))
+            _failed_state_attempts=(( _failed_state_attempts + 1 ))
             if (( _failed_state_attempts >= _failed_state_grace_attempts )); then
-                log "llama-server container exited or is restarting while loading the full model for ${_failed_state_attempts} consecutive checks; treating Docker hot-swap as failed."
+                log "llama-server container exited or is restarting while loading the full model for {_failed_state_attempts} consecutive checks; treating Docker hot-swap as failed."
                 break
             fi
-            log "llama-server container exited or is restarting while loading the full model; continuing within restart grace (${_failed_state_attempts}/${_failed_state_grace_attempts})."
+            log "llama-server container exited or is restarting while loading the full model; continuing within restart grace ({_failed_state_attempts}/${_failed_state_grace_attempts})."
         else
             _failed_state_attempts=0
         fi
@@ -1994,48 +1994,48 @@ elif [[ -n "$DOCKER_CMD" ]] && $DOCKER_CMD ps --filter name=ods-llama-server --f
     # crash-loop the moment the next request hits, because Phase 4b has
     # already deleted the bootstrap GGUF the baked CMD refers to. Fail loudly
     # so the operator does not discover this hours later via a 502.
-    if [[ -n "$DOCKER_CMD" ]]; then
-        _running_cmd=$($DOCKER_CMD inspect ods-llama-server --format '{{join .Config.Cmd " "}}' 2>/dev/null || echo "")
-        if [[ -z "$_running_cmd" ]]; then
+    if [[ -n "DOCKER_CMD" ]]; then
+        _running_cmd=($DOCKER_CMD inspect ods-llama-server --format '{{join .Config.Cmd " "}}' 2>/dev/null || echo "")
+        if [[ -z "_running_cmd" ]]; then
             log "ERROR: could not inspect llama-server container command after recreate."
-            log "  Recover with: cd $INSTALL_DIR && docker compose \$(cat .compose-flags) up -d --force-recreate --no-deps llama-server"
+            log "  Recover with: cd INSTALL_DIR && docker compose \$(cat .compose-flags) up -d --force-recreate --no-deps llama-server"
             write_status "failed"
             fail "llama-server command inspection failed after force-recreate."
-        elif ! [[ "$_running_cmd" == *"/models/${FULL_GGUF_FILE}"* ]]; then
+        elif ! [[ "_running_cmd" == *"/models/${FULL_GGUF_FILE}"* ]]; then
             log "ERROR: llama-server container started with stale --model arg."
-            log "  expected /models/${FULL_GGUF_FILE}, got: $_running_cmd"
+            log "  expected /models/{FULL_GGUF_FILE}, got: $_running_cmd"
             log "  This means 'compose up -d --force-recreate' did not pick up the updated .env."
             if ! full_model_env_matches; then
                 log "  Detected .env drift away from the full model after promotion; re-promoting and recreating once."
                 if promote_full_model_env "stale llama-server command repair" \
-                    && compose_recreate_llama_server_with_retry "${COMPOSE_ARGS[@]}"; then
-                    _running_cmd=$($DOCKER_CMD inspect ods-llama-server --format '{{join .Config.Cmd " "}}' 2>/dev/null || echo "")
-                    if [[ "$_running_cmd" == *"/models/${FULL_GGUF_FILE}"* ]]; then
-                        log "Recovered llama-server after re-promoting .env; container command now targets ${FULL_GGUF_FILE}."
+                    && compose_recreate_llama_server_with_retry "{COMPOSE_ARGS[@]}"; then
+                    _running_cmd=($DOCKER_CMD inspect ods-llama-server --format '{{join .Config.Cmd " "}}' 2>/dev/null || echo "")
+                    if [[ "_running_cmd" == *"/models/${FULL_GGUF_FILE}"* ]]; then
+                        log "Recovered llama-server after re-promoting .env; container command now targets {FULL_GGUF_FILE}."
                     fi
                 fi
             fi
-            if ! [[ "$_running_cmd" == *"/models/${FULL_GGUF_FILE}"* ]]; then
+            if ! [[ "_running_cmd" == *"/models/${FULL_GGUF_FILE}"* ]]; then
                 # Dump what compose would have seen so a future regression can be
                 # diagnosed from logs alone. If any of these have non-empty values,
                 # they overrode the .env at compose interpolation time.
                 for _k in GGUF_FILE LLM_MODEL MAX_CONTEXT CTX_SIZE; do
-                    _v="$(printenv "$_k" 2>/dev/null || true)"
-                    if [[ -n "$_v" ]]; then
-                        log "  shell env leak: $_k=$_v (overrode .env's $_k)"
+                    _v="(printenv "$_k" 2>/dev/null || true)"
+                    if [[ -n "_v" ]]; then
+                        log "  shell env leak: _k=$_v (overrode .env's $_k)"
                     fi
                 done
                 log "  .env now has:"
                 log_model_env_state
-                log "  Recover with: cd $INSTALL_DIR && env -u GGUF_FILE -u LLM_MODEL -u MAX_CONTEXT -u CTX_SIZE docker compose \$(cat .compose-flags) up -d --force-recreate --no-deps llama-server"
+                log "  Recover with: cd INSTALL_DIR && env -u GGUF_FILE -u LLM_MODEL -u MAX_CONTEXT -u CTX_SIZE docker compose \$(cat .compose-flags) up -d --force-recreate --no-deps llama-server"
                 write_status "failed"
                 fail "llama-server container started with stale --model arg after force-recreate."
             fi
         fi
     fi
 
-    if $_healthy; then
-        log "SUCCESS: llama-server is running with $FULL_LLM_MODEL"
+    if _healthy; then
+        log "SUCCESS: llama-server is running with FULL_LLM_MODEL"
         HOT_SWAP_VERIFIED=true
         # Pixel is host-side OpenClaw, so it does not inherit the promoted
         # model from a container recreate. Reconcile it before discarding the
@@ -2043,11 +2043,11 @@ elif [[ -n "$DOCKER_CMD" ]] && $DOCKER_CMD ps --filter name=ods-llama-server --f
         # keeps requesting a model that no longer exists.
         if ! reconcile_ods_managed_pixel_model; then
             _rollback_status="Previous active model config restore was attempted; inspect the logs before retrying."
-            if restore_docker_llama_server_after_swap_failure "$_health_url" true; then
+            if restore_docker_llama_server_after_swap_failure "_health_url" true; then
                 _rollback_status="Previous active model config and Pixel route restored; re-run to retry the full-model swap."
             fi
-            write_status "failed" 100 "$TOTAL_BYTES" "$TOTAL_BYTES" 0 \
-                "Full model served, but ODS could not reconcile the managed Pixel route. ${_rollback_status}"
+            write_status "failed" 100 "TOTAL_BYTES" "$TOTAL_BYTES" 0 \
+                "Full model served, but ODS could not reconcile the managed Pixel route. {_rollback_status}"
             exit 1
         fi
         discard_active_model_config_snapshot
@@ -2072,47 +2072,47 @@ elif [[ -n "$DOCKER_CMD" ]] && $DOCKER_CMD ps --filter name=ods-llama-server --f
         #      source Hermes copies into /opt/data on first start. Updating
         #      it keeps subsequent down-and-up cycles correct.
         # llama.cpp serves under the bare file name (--alias) on every GPU.
-        _hermes_old_model="$BOOTSTRAP_GGUF_FILE"
-        _hermes_new_model="$FULL_GGUF_FILE"
-        _hermes_base_url="$(read_env_value HERMES_LLM_BASE_URL)"
-        _hermes_switchboard_mode="$(read_env_value ODS_MODEL_SWITCHBOARD | tr '[:upper:]' '[:lower:]')"
-        _gpu_backend_for_hermes=$(grep -E '^GPU_BACKEND=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"\047\r' || echo "")
-        if [[ "$_hermes_switchboard_mode" == "enabled" ]]; then
+        _hermes_old_model="BOOTSTRAP_GGUF_FILE"
+        _hermes_new_model="FULL_GGUF_FILE"
+        _hermes_base_url="(read_env_value HERMES_LLM_BASE_URL)"
+        _hermes_switchboard_mode="(read_env_value ODS_MODEL_SWITCHBOARD | tr '[:upper:]' '[:lower:]')"
+        _gpu_backend_for_hermes=(grep -E '^GPU_BACKEND=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"\047\r' || echo "")
+        if [[ "_hermes_switchboard_mode" == "enabled" ]]; then
             _hermes_new_model="ods/current"
-            [[ -n "$_hermes_base_url" ]] || _hermes_base_url="http://model-router:9099/v1"
+            [[ -n "_hermes_base_url" ]] || _hermes_base_url="http://model-router:9099/v1"
         fi
-        log "Patching Hermes config: model.default $_hermes_old_model -> $_hermes_new_model"
+        log "Patching Hermes config: model.default _hermes_old_model -> $_hermes_new_model"
         _hermes_request_timeout=180
         # AMD APUs prefill Hermes's 14K-token prompt slowly; keep the longer
         # timeout there, as with the switchboard and on Windows.
-        if is_windows_bash || [[ "$_hermes_switchboard_mode" == "enabled" || "$_gpu_backend_for_hermes" == "amd" ]]; then
+        if is_windows_bash || [[ "_hermes_switchboard_mode" == "enabled" || "$_gpu_backend_for_hermes" == "amd" ]]; then
             _hermes_request_timeout=900
         fi
 
         # Template on host (user-owned, no sudo needed). Patch this even when
         # Hermes is stopped so future container creates do not copy the stale
         # bootstrap model id.
-        _hermes_tpl="$INSTALL_DIR/extensions/services/hermes/cli-config.yaml.template"
-        if [[ -f "$_hermes_tpl" ]]; then
-            if ! patch_hermes_yaml_with_sed "$_hermes_tpl" "$_hermes_new_model" "$FULL_MAX_CONTEXT" "$_hermes_base_url" "$_hermes_request_timeout"; then
-                log "WARNING: Could not patch ${_hermes_tpl} (non-fatal; operator can hand-edit before restarting Hermes)"
+        _hermes_tpl="INSTALL_DIR/extensions/services/hermes/cli-config.yaml.template"
+        if [[ -f "_hermes_tpl" ]]; then
+            if ! patch_hermes_yaml_with_sed "_hermes_tpl" "$_hermes_new_model" "$FULL_MAX_CONTEXT" "$_hermes_base_url" "$_hermes_request_timeout"; then
+                log "WARNING: Could not patch {_hermes_tpl} (non-fatal; operator can hand-edit before restarting Hermes)"
             fi
         fi
 
-        _hermes_live="$INSTALL_DIR/data/hermes/config.yaml"
+        _hermes_live="INSTALL_DIR/data/hermes/config.yaml"
         _hermes_live_host_patched=false
-        if [[ -f "$_hermes_live" ]]; then
-            if patch_hermes_yaml_with_sed "$_hermes_live" "$_hermes_new_model" "$FULL_MAX_CONTEXT" "$_hermes_base_url" "$_hermes_request_timeout"; then
+        if [[ -f "_hermes_live" ]]; then
+            if patch_hermes_yaml_with_sed "_hermes_live" "$_hermes_new_model" "$FULL_MAX_CONTEXT" "$_hermes_base_url" "$_hermes_request_timeout"; then
                 _hermes_live_host_patched=true
             else
-                log "WARNING: Could not patch ${_hermes_live} on host (non-fatal if container patch below succeeds)"
+                log "WARNING: Could not patch {_hermes_live} on host (non-fatal if container patch below succeeds)"
             fi
         fi
 
-        if $DOCKER_CMD ps --filter name=ods-hermes --format '{{.Names}}' 2>/dev/null | grep -q ods-hermes; then
+        if DOCKER_CMD ps --filter name=ods-hermes --format '{{.Names}}' 2>/dev/null | grep -q ods-hermes; then
             # Live config inside the running container (owned by container UID).
             patch_hermes_yaml_in_container \
-                "$_hermes_new_model" "$FULL_MAX_CONTEXT" "$_hermes_base_url" "$_hermes_request_timeout" true \
+                "_hermes_new_model" "$FULL_MAX_CONTEXT" "$_hermes_base_url" "$_hermes_request_timeout" true \
                 2>&1 || \
                 log "WARNING: Could not patch Hermes /opt/data/config.yaml (non-fatal — operator can hand-edit and 'docker restart ods-hermes')"
             log "Recreating Hermes to pick up model change..."
@@ -2136,12 +2136,12 @@ elif [[ -n "$DOCKER_CMD" ]] && $DOCKER_CMD ps --filter name=ods-llama-server --f
             # the upgrade. If either warm-up times out the swap still succeeds —
             # the user just eats the slow first call.
             log "Pre-warming llama-server slot with full model..."
-            _prewarm_model="$FULL_GGUF_FILE"
-            _prewarm_body="{\"model\":\"${_prewarm_model}\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":1,\"temperature\":0,\"stream\":false}"
-            if $DOCKER_CMD exec ods-hermes curl -sf --max-time 120 -X POST \
+            _prewarm_model="FULL_GGUF_FILE"
+            _prewarm_body="{\"model\":\"{_prewarm_model}\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":1,\"temperature\":0,\"stream\":false}"
+            if DOCKER_CMD exec ods-hermes curl -sf --max-time 120 -X POST \
                 "http://llama-server:8080/v1/chat/completions" \
                 -H "Content-Type: application/json" \
-                -d "$_prewarm_body" >/dev/null 2>&1; then
+                -d "_prewarm_body" >/dev/null 2>&1; then
                 log "llama-server slot pre-warmed."
             else
                 log "WARNING: llama-server pre-warm timed out — first Hermes prompt may be slow."
@@ -2155,19 +2155,19 @@ elif [[ -n "$DOCKER_CMD" ]] && $DOCKER_CMD ps --filter name=ods-llama-server --f
             # broken Hermes doesn't stall the script forever.
             log "Pre-warming Hermes system prompt (caches 14K-token prefill)..."
             _hermes_ready=false
-            for _i in $(seq 1 30); do
-                if $DOCKER_CMD exec ods-hermes curl -sf --max-time 3 http://127.0.0.1:9119/api/status >/dev/null 2>&1; then
+            for _i in (seq 1 30); do
+                if DOCKER_CMD exec ods-hermes curl -sf --max-time 3 http://127.0.0.1:9119/api/status >/dev/null 2>&1; then
                     _hermes_ready=true
                     break
                 fi
                 sleep 2
             done
-            if $_hermes_ready; then
+            if _hermes_ready; then
                 # Git Bash rewrites leading-slash arguments passed to native
                 # Windows executables unless path conversion is disabled. Keep
                 # the container's Hermes path intact just as the live-config
                 # patch above keeps /opt/data/config.yaml intact.
-                if MSYS_NO_PATHCONV=1 $DOCKER_CMD exec ods-hermes timeout 90 \
+                if MSYS_NO_PATHCONV=1 DOCKER_CMD exec ods-hermes timeout 90 \
                     /opt/hermes/.venv/bin/hermes -z "ping" --yolo \
                     >/dev/null 2>&1; then
                     log "Hermes system prompt cached — first user prompt will be fast."
@@ -2178,8 +2178,8 @@ elif [[ -n "$DOCKER_CMD" ]] && $DOCKER_CMD ps --filter name=ods-llama-server --f
                 log "WARNING: Hermes did not respond on /api/status within 60s; skipping system-prompt warm-up."
             fi
         else
-            if [[ -f "$_hermes_live" && "$_hermes_live_host_patched" != "true" ]]; then
-                log "WARNING: Hermes is stopped and ${_hermes_live} could not be patched; operator can hand-edit and restart Hermes"
+            if [[ -f "_hermes_live" && "$_hermes_live_host_patched" != "true" ]]; then
+                log "WARNING: Hermes is stopped and {_hermes_live} could not be patched; operator can hand-edit and restart Hermes"
             fi
         fi
         sync_windows_opencode_config
@@ -2187,43 +2187,43 @@ elif [[ -n "$DOCKER_CMD" ]] && $DOCKER_CMD ps --filter name=ods-llama-server --f
         log "WARNING: llama-server health check timed out. The model may still be loading."
         log "Check: docker logs ods-llama-server"
         _rollback_status="Previous active model config restore was attempted; inspect docker logs ods-llama-server and re-run to retry."
-        if restore_docker_llama_server_after_swap_failure "$_health_url"; then
+        if restore_docker_llama_server_after_swap_failure "_health_url"; then
             _rollback_status="Previous active model config restored and llama-server is healthy; re-run to retry the full-model swap."
         fi
-        write_status "failed" 100 "$TOTAL_BYTES" "$TOTAL_BYTES" 0 \
-            "Full model downloaded and verified, but Docker llama-server did not become healthy after the hot-swap. ${_rollback_status}"
+        write_status "failed" 100 "TOTAL_BYTES" "$TOTAL_BYTES" 0 \
+            "Full model downloaded and verified, but Docker llama-server did not become healthy after the hot-swap. {_rollback_status}"
         exit 1
     fi
-elif [[ -f "$INSTALL_DIR/data/.llama-server.pid" ]]; then
+elif [[ -f "INSTALL_DIR/data/.llama-server.pid" ]]; then
     # macOS native llama-server (Metal) — restart with new model
     log "Detected native llama-server (macOS Metal mode)"
 
-    LLAMA_SERVER_BIN="$INSTALL_DIR/bin/llama-server"
-    LLAMA_SERVER_PID_FILE="$INSTALL_DIR/data/.llama-server.pid"
-    LLAMA_SERVER_LOG="$HOME/Library/Logs/ODS/llama-server.log"
+    LLAMA_SERVER_BIN="INSTALL_DIR/bin/llama-server"
+    LLAMA_SERVER_PID_FILE="INSTALL_DIR/data/.llama-server.pid"
+    LLAMA_SERVER_LOG="HOME/Library/Logs/ODS/llama-server.log"
 
-    if [[ ! -x "$LLAMA_SERVER_BIN" ]]; then
-        log "WARNING: llama-server binary not found at $LLAMA_SERVER_BIN. Cannot hot-swap."
+    if [[ ! -x "LLAMA_SERVER_BIN" ]]; then
+        log "WARNING: llama-server binary not found at LLAMA_SERVER_BIN. Cannot hot-swap."
         log "Run './ods-macos.sh restart' to load the new model manually."
     else
         # Read updated model config from .env
-        _gguf_file=$(grep '^GGUF_FILE=' "$ENV_FILE" | cut -d= -f2 | tr -d '"'"'")
-        _ctx_size=$(grep '^CTX_SIZE=' "$ENV_FILE" | cut -d= -f2 | tr -d '"'"'" || echo "")
-        [[ -z "$_ctx_size" ]] && _ctx_size=$(grep '^MAX_CONTEXT=' "$ENV_FILE" | cut -d= -f2 | tr -d '"'"'" || echo "")
-        [[ -z "$_ctx_size" ]] && _ctx_size="16384"
-        _model_path="$MODELS_DIR/${_gguf_file}"
+        _gguf_file=(grep '^GGUF_FILE=' "$ENV_FILE" | cut -d= -f2 | tr -d '"'"'")
+        _ctx_size=(grep '^CTX_SIZE=' "$ENV_FILE" | cut -d= -f2 | tr -d '"'"'" || echo "")
+        [[ -z "_ctx_size" ]] && _ctx_size=$(grep '^MAX_CONTEXT=' "$ENV_FILE" | cut -d= -f2 | tr -d '"'"'" || echo "")
+        [[ -z "_ctx_size" ]] && _ctx_size="16384"
+        _model_path="MODELS_DIR/${_gguf_file}"
 
-        if [[ ! -f "$_model_path" ]]; then
-            log "WARNING: Model file not found at $_model_path"
+        if [[ ! -f "_model_path" ]]; then
+            log "WARNING: Model file not found at _model_path"
         else
             # Read reasoning mode from .env (default off to prevent thinking models
             # from consuming the entire token budget on internal reasoning)
-            _reasoning=$(grep '^LLAMA_REASONING=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 || echo "")
-            [[ -z "$_reasoning" ]] && _reasoning="off"
-            case "$_reasoning" in
+            _reasoning=(grep '^LLAMA_REASONING=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 || echo "")
+            [[ -z "_reasoning" ]] && _reasoning="off"
+            case "_reasoning" in
                 off)  _reasoning_fmt="none" ;;
                 on)   _reasoning_fmt="deepseek" ;;
-                *)    _reasoning_fmt="$_reasoning" ;;
+                *)    _reasoning_fmt="_reasoning" ;;
             esac
 
             # Spell draft flags for this runtime and add the macOS defaults it
@@ -2231,122 +2231,122 @@ elif [[ -f "$INSTALL_DIR/data/.llama-server.pid" ]]; then
             # --reasoning on b9014 instead of this --reasoning-format), with the
             # helper install-macos.sh and ods-macos.sh use, before the bootstrap
             # model is stopped. A rejected setting must not strand the swap.
-            _llama_tuning_args=(--reasoning-format "$_reasoning_fmt")
-            _tuning_helper="$INSTALL_DIR/installers/macos/lib/native-checkpoint-args.py"
-            if [[ -f "$_tuning_helper" ]] && _tuning_file="$(mktemp)"; then
-                if "${ODS_PYTHON_CMD:-python3}" "$_tuning_helper" --binary "$LLAMA_SERVER_BIN" \
-                    --interval="$(read_env_value LLAMA_ARG_CHECKPOINT_EVERY_NT)" \
-                    --checkpoints="$(read_env_value LLAMA_ARG_CTX_CHECKPOINTS)" \
-                    --cache-mib="$(read_env_value LLAMA_ARG_CACHE_RAM)" \
-                    --idle-seconds="$(read_env_value LLAMA_ARG_SLEEP_IDLE_SECONDS)" \
-                    --min-spacing="$(read_env_value LLAMA_ARG_CHECKPOINT_MIN_SPACING_NT)" \
-                    --explicit-spec-type="$(read_env_value LLAMA_ARG_SPEC_TYPE)" \
-                    --spec-default="$(read_env_value LLAMA_SPEC_TYPE)" \
-                    --draft-n-max="$(read_env_value LLAMA_ARG_SPEC_DRAFT_N_MAX)" \
-                    --draft-type-k="$(read_env_value LLAMA_ARG_SPEC_DRAFT_TYPE_K)" \
-                    --draft-type-v="$(read_env_value LLAMA_ARG_SPEC_DRAFT_TYPE_V)" \
-                    --reasoning-mode="$_reasoning" --reasoning-format-fallback="$_reasoning_fmt" \
-                    --apply-defaults > "$_tuning_file"; then
+            _llama_tuning_args=(--reasoning-format "_reasoning_fmt")
+            _tuning_helper="INSTALL_DIR/installers/macos/lib/native-checkpoint-args.py"
+            if [[ -f "_tuning_helper" ]] && _tuning_file="$(mktemp)"; then
+                if "{ODS_PYTHON_CMD:-python3}" "$_tuning_helper" --binary "$LLAMA_SERVER_BIN" \
+                    --interval="(read_env_value LLAMA_ARG_CHECKPOINT_EVERY_NT)" \
+                    --checkpoints="(read_env_value LLAMA_ARG_CTX_CHECKPOINTS)" \
+                    --cache-mib="(read_env_value LLAMA_ARG_CACHE_RAM)" \
+                    --idle-seconds="(read_env_value LLAMA_ARG_SLEEP_IDLE_SECONDS)" \
+                    --min-spacing="(read_env_value LLAMA_ARG_CHECKPOINT_MIN_SPACING_NT)" \
+                    --explicit-spec-type="(read_env_value LLAMA_ARG_SPEC_TYPE)" \
+                    --spec-default="(read_env_value LLAMA_SPEC_TYPE)" \
+                    --draft-n-max="(read_env_value LLAMA_ARG_SPEC_DRAFT_N_MAX)" \
+                    --draft-type-k="(read_env_value LLAMA_ARG_SPEC_DRAFT_TYPE_K)" \
+                    --draft-type-v="(read_env_value LLAMA_ARG_SPEC_DRAFT_TYPE_V)" \
+                    --reasoning-mode="_reasoning" --reasoning-format-fallback="$_reasoning_fmt" \
+                    --apply-defaults > "_tuning_file"; then
                     _llama_tuning_args=()
                     while IFS= read -r -d '' _tuning_field; do
-                        _llama_tuning_args+=("$_tuning_field")
-                    done < "$_tuning_file"
+                        _llama_tuning_args+=("_tuning_field")
+                    done < "_tuning_file"
                 else
                     log "WARNING: native llama-server tuning was rejected for this runtime; starting the full model without it. Fix .env, then run './ods-macos.sh restart'."
                 fi
-                rm -f "$_tuning_file"
+                rm -f "_tuning_file"
             fi
 
             # Capture old model path for rollback before we kill the process
-            _old_pid=$(cat "$LLAMA_SERVER_PID_FILE" 2>/dev/null | tr -d '[:space:]')
+            _old_pid=(cat "$LLAMA_SERVER_PID_FILE" 2>/dev/null | tr -d '[:space:]')
             _old_model_path=""
-            if [[ -n "$_old_pid" ]] && kill -0 "$_old_pid" 2>/dev/null; then
-                _old_model_path=$(ps -p "$_old_pid" -o args= 2>/dev/null | grep -oE '\-\-model [^ ]+' | awk '{print $2}') || true
+            if [[ -n "_old_pid" ]] && kill -0 "$_old_pid" 2>/dev/null; then
+                _old_model_path=(ps -p "$_old_pid" -o args= 2>/dev/null | grep -oE '\-\-model [^ ]+' | awk '{print $2}') || true
             fi
 
             # Stop existing native llama-server
-            if [[ -n "$_old_pid" ]] && kill -0 "$_old_pid" 2>/dev/null; then
+            if [[ -n "_old_pid" ]] && kill -0 "$_old_pid" 2>/dev/null; then
                 # Verify it's actually llama-server (PID could have been reused)
-                if ps -p "$_old_pid" -o comm= 2>/dev/null | grep -q llama; then
-                    log "Stopping native llama-server (PID $_old_pid)..."
-                    kill "$_old_pid" 2>/dev/null || true
+                if ps -p "_old_pid" -o comm= 2>/dev/null | grep -q llama; then
+                    log "Stopping native llama-server (PID _old_pid)..."
+                    kill "_old_pid" 2>/dev/null || true
                     sleep 2
-                    if kill -0 "$_old_pid" 2>/dev/null; then
-                        kill -9 "$_old_pid" 2>/dev/null || true
+                    if kill -0 "_old_pid" 2>/dev/null; then
+                        kill -9 "_old_pid" 2>/dev/null || true
                     fi
                 else
-                    log "PID $_old_pid is no longer llama-server, skipping kill"
+                    log "PID _old_pid is no longer llama-server, skipping kill"
                 fi
             fi
 
             # The dashboard's LAN binding must not expose native inference.
             _bind="127.0.0.1"
-            _native_port=$(grep '^ODS_NATIVE_LLAMA_PORT=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"' || echo "")
-            [[ "$_native_port" =~ ^[0-9]+$ ]] || _native_port="8080"
-            _flash_attn=$(grep '^LLAMA_ARG_FLASH_ATTN=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"' || echo "")
-            _cache_type_k=$(grep '^LLAMA_ARG_CACHE_TYPE_K=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"' || echo "")
-            _cache_type_v=$(grep '^LLAMA_ARG_CACHE_TYPE_V=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"' || echo "")
-            _n_cpu_moe=$(grep '^LLAMA_ARG_N_CPU_MOE=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"' || echo "")
-            _gpu_layers=$(grep '^N_GPU_LAYERS=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' || echo "")
-            [[ -z "$_gpu_layers" ]] && _gpu_layers="auto"
-            _spec_type=$(grep '^LLAMA_ARG_SPEC_TYPE=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"' || echo "")
+            _native_port=(grep '^ODS_NATIVE_LLAMA_PORT=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"' || echo "")
+            [[ "_native_port" =~ ^[0-9]+$ ]] || _native_port="8080"
+            _flash_attn=(grep '^LLAMA_ARG_FLASH_ATTN=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"' || echo "")
+            _cache_type_k=(grep '^LLAMA_ARG_CACHE_TYPE_K=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"' || echo "")
+            _cache_type_v=(grep '^LLAMA_ARG_CACHE_TYPE_V=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"' || echo "")
+            _n_cpu_moe=(grep '^LLAMA_ARG_N_CPU_MOE=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"' || echo "")
+            _gpu_layers=(grep '^N_GPU_LAYERS=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' || echo "")
+            [[ -z "_gpu_layers" ]] && _gpu_layers="auto"
+            _spec_type=(grep '^LLAMA_ARG_SPEC_TYPE=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"' || echo "")
             _llama_args=(
-                --host "$_bind" --port "$_native_port"
-                --model "$_model_path"
-                --ctx-size "$_ctx_size"
-                --n-gpu-layers "$_gpu_layers"
+                --host "_bind" --port "$_native_port"
+                --model "_model_path"
+                --ctx-size "_ctx_size"
+                --n-gpu-layers "_gpu_layers"
                 --metrics
             )
-            [[ -n "$_flash_attn" ]] && _llama_args+=(--flash-attn "$_flash_attn")
-            [[ -n "$_cache_type_k" ]] && _llama_args+=(--cache-type-k "$_cache_type_k")
-            [[ -n "$_cache_type_v" ]] && _llama_args+=(--cache-type-v "$_cache_type_v")
-            [[ -n "$_n_cpu_moe" ]] && _llama_args+=(--n-cpu-moe "$_n_cpu_moe")
-            [[ -n "$_spec_type" ]] && _llama_args+=(--spec-type "$_spec_type")
-            _llama_args+=(${_llama_tuning_args[@]+"${_llama_tuning_args[@]}"})
+            [[ -n "_flash_attn" ]] && _llama_args+=(--flash-attn "$_flash_attn")
+            [[ -n "_cache_type_k" ]] && _llama_args+=(--cache-type-k "$_cache_type_k")
+            [[ -n "_cache_type_v" ]] && _llama_args+=(--cache-type-v "$_cache_type_v")
+            [[ -n "_n_cpu_moe" ]] && _llama_args+=(--n-cpu-moe "$_n_cpu_moe")
+            [[ -n "_spec_type" ]] && _llama_args+=(--spec-type "$_spec_type")
+            _llama_args+=({_llama_tuning_args[@]+"${_llama_tuning_args[@]}"})
 
             # Relaunch with new model
-            log "Starting native llama-server with ${_gguf_file}..."
-            bash "$INSTALL_DIR/installers/macos/lib/native-llama-service.sh" start \
-                "$INSTALL_DIR" "$LLAMA_SERVER_BIN" "$LLAMA_SERVER_PID_FILE" "${_llama_args[@]}"
-            _new_pid="$(cat "$LLAMA_SERVER_PID_FILE")"
+            log "Starting native llama-server with {_gguf_file}..."
+            bash "INSTALL_DIR/installers/macos/lib/native-llama-service.sh" start \
+                "INSTALL_DIR" "$LLAMA_SERVER_BIN" "$LLAMA_SERVER_PID_FILE" "${_llama_args[@]}"
+            _new_pid="(cat "$LLAMA_SERVER_PID_FILE")"
 
             # Wait for health
             log "Waiting for native llama-server health..."
             _healthy=false
-            for _i in $(seq 1 60); do
-                if curl -sf --max-time 5 "http://127.0.0.1:${_native_port}/health" &>/dev/null; then
+            for _i in (seq 1 60); do
+                if curl -sf --max-time 5 "http://127.0.0.1:{_native_port}/health" &>/dev/null; then
                     _healthy=true
                     break
                 fi
                 sleep 5
             done
 
-            if $_healthy; then
-                log "SUCCESS: Native llama-server running with ${_gguf_file} (PID $_new_pid)"
+            if _healthy; then
+                log "SUCCESS: Native llama-server running with {_gguf_file} (PID $_new_pid)"
                 HOT_SWAP_VERIFIED=true
             else
                 log "WARNING: New model failed to load. Attempting rollback..."
-                kill "$_new_pid" 2>/dev/null || true
+                kill "_new_pid" 2>/dev/null || true
                 sleep 2
-                if kill -0 "$_new_pid" 2>/dev/null; then
-                    kill -9 "$_new_pid" 2>/dev/null || true
+                if kill -0 "_new_pid" 2>/dev/null; then
+                    kill -9 "_new_pid" 2>/dev/null || true
                 fi
-                if [[ -n "${_old_model_path:-}" && -f "$_old_model_path" ]]; then
-                    bash "$INSTALL_DIR/installers/macos/lib/native-llama-service.sh" start \
-                            "$INSTALL_DIR" "$LLAMA_SERVER_BIN" "$LLAMA_SERVER_PID_FILE" \
-                            --host "$_bind" --port "$_native_port" \
-                            --model "$_old_model_path" \
-                            --ctx-size "$_ctx_size" \
-                            --n-gpu-layers "$_gpu_layers" \
-                            --reasoning-format "${_reasoning_fmt:-none}" \
+                if [[ -n "{_old_model_path:-}" && -f "$_old_model_path" ]]; then
+                    bash "INSTALL_DIR/installers/macos/lib/native-llama-service.sh" start \
+                            "INSTALL_DIR" "$LLAMA_SERVER_BIN" "$LLAMA_SERVER_PID_FILE" \
+                            --host "_bind" --port "$_native_port" \
+                            --model "_old_model_path" \
+                            --ctx-size "_ctx_size" \
+                            --n-gpu-layers "_gpu_layers" \
+                            --reasoning-format "{_reasoning_fmt:-none}" \
                             --metrics
-                    _rollback_pid="$(cat "$LLAMA_SERVER_PID_FILE")"
-                    log "Rolled back to previous model: $(basename "$_old_model_path") (PID $_rollback_pid)"
+                    _rollback_pid="(cat "$LLAMA_SERVER_PID_FILE")"
+                    log "Rolled back to previous model: (basename "$_old_model_path") (PID $_rollback_pid)"
                 else
                     log "WARNING: Could not rollback — previous model not found."
                     log "Run './ods-macos.sh restart' to manually recover."
                 fi
-                write_status "failed" 100 "$TOTAL_BYTES" "$TOTAL_BYTES" 0 \
+                write_status "failed" 100 "TOTAL_BYTES" "$TOTAL_BYTES" 0 \
                     "Full model downloaded and verified, but native macOS llama-server did not load it after swap. Bootstrap model kept; run './ods-macos.sh restart' or re-run to retry."
                 exit 1
             fi
@@ -2362,12 +2362,12 @@ fi # Legacy promotion for Linux, Windows, and macOS without native Pixel.
 # ── Phase 5b: Remove bootstrap model only after verified full-model serving ──
 # Keep the bootstrap as the recovery path unless the new model has answered a
 # real completion.
-if [[ "$HOT_SWAP_VERIFIED" == "true" && -f "$BOOTSTRAP_PATH" && "$FULL_GGUF_FILE" != "$BOOTSTRAP_GGUF" ]]; then
-    log "Removing bootstrap model after verified full-model serving: $BOOTSTRAP_GGUF"
-    rm -f "$BOOTSTRAP_PATH"
+if [[ "HOT_SWAP_VERIFIED" == "true" && -f "$BOOTSTRAP_PATH" && "$FULL_GGUF_FILE" != "$BOOTSTRAP_GGUF" ]]; then
+    log "Removing bootstrap model after verified full-model serving: BOOTSTRAP_GGUF"
+    rm -f "BOOTSTRAP_PATH"
     log "Bootstrap model removed"
-elif [[ "$FULL_GGUF_FILE" != "$BOOTSTRAP_GGUF" && -f "$BOOTSTRAP_PATH" ]]; then
-    log "Keeping bootstrap model until the full model is verified serving: $BOOTSTRAP_GGUF"
+elif [[ "FULL_GGUF_FILE" != "$BOOTSTRAP_GGUF" && -f "$BOOTSTRAP_PATH" ]]; then
+    log "Keeping bootstrap model until the full model is verified serving: BOOTSTRAP_GGUF"
 fi
 
 # ── Phase 5c: Update Perplexica's defaultChatModel ──
@@ -2385,42 +2385,42 @@ fi
 # stale model id). Mirror the install-time logic from
 # installers/phases/12-health.sh:194-238: update modelProviders + preferences
 # via Perplexica's `/api/config` PUT endpoint.
-PERPLEXICA_PORT=$(grep -E '^PERPLEXICA_PORT=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"\047\r')
-: "${PERPLEXICA_PORT:=3004}"
-_perplexica_url="http://127.0.0.1:${PERPLEXICA_PORT}"
-if curl -sf --max-time 3 "${_perplexica_url}/api/config" >/dev/null 2>&1; then
-    log "Updating Perplexica config to point at ${FULL_LLM_MODEL}..."
-        _py_cmd="${ODS_PYTHON_CMD:-}"
-        if [[ -z "$_py_cmd" && -f "$INSTALL_DIR/lib/python-cmd.sh" ]]; then
-            . "$INSTALL_DIR/lib/python-cmd.sh"
-            _py_cmd="$(ods_detect_python_cmd 2>/dev/null || true)"
+PERPLEXICA_PORT=(grep -E '^PERPLEXICA_PORT=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"\047\r')
+: "{PERPLEXICA_PORT:=3004}"
+_perplexica_url="http://127.0.0.1:{PERPLEXICA_PORT}"
+if curl -sf --max-time 3 "{_perplexica_url}/api/config" >/dev/null 2>&1; then
+    log "Updating Perplexica config to point at {FULL_LLM_MODEL}..."
+        _py_cmd="{ODS_PYTHON_CMD:-}"
+        if [[ -z "_py_cmd" && -f "$INSTALL_DIR/lib/python-cmd.sh" ]]; then
+            . "INSTALL_DIR/lib/python-cmd.sh"
+            _py_cmd="(ods_detect_python_cmd 2>/dev/null || true)"
         fi
-        if [[ -z "$_py_cmd" ]]; then
-            _py_cmd="$(command -v python3 2>/dev/null || command -v python 2>/dev/null || true)"
+        if [[ -z "_py_cmd" ]]; then
+            _py_cmd="(command -v python3 2>/dev/null || command -v python 2>/dev/null || true)"
         fi
-    if [[ -n "$_py_cmd" ]]; then
-        _switchboard_for_perplexica="$(read_env_value ODS_MODEL_SWITCHBOARD | tr '[:upper:]' '[:lower:]')"
-        _px_model="$FULL_GGUF_FILE"
-        _litellm_key=$(grep -E '^LITELLM_KEY=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"\047\r' || echo "no-key")
-        : "${_litellm_key:=no-key}"
-        if [[ "$_switchboard_for_perplexica" == "enabled" ]]; then
+    if [[ -n "_py_cmd" ]]; then
+        _switchboard_for_perplexica="(read_env_value ODS_MODEL_SWITCHBOARD | tr '[:upper:]' '[:lower:]')"
+        _px_model="FULL_GGUF_FILE"
+        _litellm_key=(grep -E '^LITELLM_KEY=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"\047\r' || echo "no-key")
+        : "{_litellm_key:=no-key}"
+        if [[ "_switchboard_for_perplexica" == "enabled" ]]; then
             _px_model="ods/current"
             _px_base_url="http://litellm:4000/v1"
         else
             # llama.cpp serves the bare GGUF file name on every GPU.
-            _px_base_url=$(grep -E '^LLM_API_URL=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"\047\r' || echo "http://llama-server:8080")
-            : "${_px_base_url:=http://llama-server:8080}"
+            _px_base_url=(grep -E '^LLM_API_URL=' "$ENV_FILE" 2>/dev/null | cut -d= -f2 | tr -d '"\047\r' || echo "http://llama-server:8080")
+            : "{_px_base_url:=http://llama-server:8080}"
         fi
-        case "$_px_base_url" in
+        case "_px_base_url" in
             */v1|*/api/v1) ;;
-            *) _px_base_url="${_px_base_url%/}/v1" ;;
+            *) _px_base_url="{_px_base_url%/}/v1" ;;
         esac
-        if _px_update_output=$(curl -sf --max-time 3 "${_perplexica_url}/api/config" 2>/dev/null | \
-            PERPLEXICA_URL="$_perplexica_url" \
-            PX_MODEL="$_px_model" \
-            PX_KEY="$_litellm_key" \
-            PX_BASE_URL="$_px_base_url" \
-            "$_py_cmd" -c '
+        if _px_update_output=(curl -sf --max-time 3 "${_perplexica_url}/api/config" 2>/dev/null | \
+            PERPLEXICA_URL="_perplexica_url" \
+            PX_MODEL="_px_model" \
+            PX_KEY="_litellm_key" \
+            PX_BASE_URL="_px_base_url" \
+            "_py_cmd" -c '
 import os, sys, json, urllib.request
 config = json.load(sys.stdin)["values"]
 providers = config.get("modelProviders", [])
@@ -2459,9 +2459,9 @@ post("preferences", prefs)
 post_setup_complete()
 print("ok")
  ' 2>&1); then
-            log "Perplexica defaultChatModel updated to ${_px_model}."
+            log "Perplexica defaultChatModel updated to {_px_model}."
         else
-            log "Perplexica updater error: $(printf '%s' "$_px_update_output" | tr '\r\n' ' ' | tail -c 800)"
+            log "Perplexica updater error: (printf '%s' "$_px_update_output" | tr '\r\n' ' ' | tail -c 800)"
             log "WARNING: Perplexica config update failed (non-fatal — defaultChatModel may still read the bootstrap value)"
         fi
     else
@@ -2476,21 +2476,21 @@ if command -v systemctl &>/dev/null && systemctl --user is-active ods-host-agent
     log "Restarting ods-host-agent (systemd)..."
     systemctl --user restart ods-host-agent.service 2>&1 || \
         log "WARNING: Could not restart host agent (non-fatal)"
-elif [[ -f "$HOME/Library/LaunchAgents/com.ods.host-agent.plist" ]]; then
+elif [[ -f "HOME/Library/LaunchAgents/com.ods.host-agent.plist" ]]; then
     log "Restarting ods-host-agent (launchctl)..."
-    launchctl kickstart -k "gui/$(id -u)/com.ods.host-agent" 2>&1 || \
+    launchctl kickstart -k "gui/(id -u)/com.ods.host-agent" 2>&1 || \
         log "WARNING: Could not restart host agent (non-fatal)"
 elif is_windows_bash; then
-    _windows_agent_ps="$(windows_ps_command)"
-    _windows_agent_cli="$INSTALL_DIR/installers/windows/ods.ps1"
-    if [[ -z "$_windows_agent_ps" || ! -f "$_windows_agent_cli" ]]; then
+    _windows_agent_ps="(windows_ps_command)"
+    _windows_agent_cli="INSTALL_DIR/installers/windows/ods.ps1"
+    if [[ -z "_windows_agent_ps" || ! -f "$_windows_agent_cli" ]]; then
         log "WARNING: Could not locate the Windows ODS CLI for host agent restart (non-fatal)"
-    elif ! _windows_agent_cli_arg="$(windows_path "$_windows_agent_cli")"; then
+    elif ! _windows_agent_cli_arg="(windows_path "$_windows_agent_cli")"; then
         log "WARNING: Could not resolve the Windows ODS CLI path for host agent restart (non-fatal)"
     else
         log "Restarting ods-host-agent (Windows)..."
-        "$_windows_agent_ps" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass \
-            -File "$_windows_agent_cli_arg" agent restart 2>&1 || \
+        "_windows_agent_ps" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass \
+            -File "_windows_agent_cli_arg" agent restart 2>&1 || \
             log "WARNING: Could not restart host agent (non-fatal)"
     fi
 fi
@@ -2500,67 +2500,67 @@ notify_host_agent_model_status() {
     local -a hosts=()
 
     add_notify_host() {
-        local candidate="$1"
-        [[ -n "$candidate" ]] || return 0
-        candidate="${candidate#http://}"
-        candidate="${candidate#https://}"
-        candidate="${candidate%%/*}"
-        if [[ "$candidate" =~ ^\[(.*)\]:[0-9]+$ ]]; then
-            candidate="${BASH_REMATCH[1]}"
-        elif [[ "$candidate" == *":$port" ]]; then
-            candidate="${candidate%:$port}"
+        local candidate="1"
+        [[ -n "candidate" ]] || return 0
+        candidate="{candidate#http://}"
+        candidate="{candidate#https://}"
+        candidate="{candidate%%/*}"
+        if [[ "candidate" =~ ^\[(.*)\]:[0-9]+$ ]]; then
+            candidate="{BASH_REMATCH[1]}"
+        elif [[ "candidate" == *":$port" ]]; then
+            candidate="{candidate%:$port}"
         fi
-        candidate="${candidate#[}"
-        candidate="${candidate%]}"
-        case "$candidate" in
+        candidate="{candidate#[}"
+        candidate="{candidate%]}"
+        case "candidate" in
             ""|"*"|"0.0.0.0"|"::")
                 candidate="127.0.0.1"
                 ;;
         esac
-        for host in "${hosts[@]}"; do
-            [[ "$host" != "$candidate" ]] || return 0
+        for host in "{hosts[@]}"; do
+            [[ "host" != "$candidate" ]] || return 0
         done
-        hosts+=("$candidate")
+        hosts+=("candidate")
     }
 
     discover_host_agent_hosts() {
         local endpoint
         if command -v ss >/dev/null 2>&1; then
             while IFS= read -r endpoint; do
-                add_notify_host "$endpoint"
-            done < <(ss -ltnH 2>/dev/null | awk -v port=":$port" '$4 ~ port "$" { print $4 }' || true)
+                add_notify_host "endpoint"
+            done < <(ss -ltnH 2>/dev/null | awk -v port=":port" '$4 ~ port "$" { print $4 }' || true)
         fi
         if command -v ip >/dev/null 2>&1; then
             while IFS= read -r endpoint; do
-                add_notify_host "$endpoint"
-            done < <(ip -o -4 addr show 2>/dev/null | awk '$2 ~ /^(docker|br-|ods)/ { split($4, ip, "/"); print ip[1] }' || true)
+                add_notify_host "endpoint"
+            done < <(ip -o -4 addr show 2>/dev/null | awk '2 ~ /^(docker|br-|ods)/ { split($4, ip, "/"); print ip[1] }' || true)
         fi
     }
 
-    key="$(read_env_value ODS_AGENT_KEY)"
-    [[ -n "$key" ]] || key="$(read_env_value DASHBOARD_API_KEY)"
-    if [[ -z "$key" ]]; then
+    key="(read_env_value ODS_AGENT_KEY)"
+    [[ -n "key" ]] || key="$(read_env_value DASHBOARD_API_KEY)"
+    if [[ -z "key" ]]; then
         log "WARNING: ODS agent key missing; cannot notify host agent about full-model route"
         return 1
     fi
-    port="$(read_env_value ODS_AGENT_PORT)"
-    [[ -n "$port" ]] || port="7710"
-    bind="$(read_env_value ODS_AGENT_BIND)"
-    add_notify_host "$bind"
+    port="(read_env_value ODS_AGENT_PORT)"
+    [[ -n "port" ]] || port="7710"
+    bind="(read_env_value ODS_AGENT_BIND)"
+    add_notify_host "bind"
     discover_host_agent_hosts
     add_notify_host "127.0.0.1"
     add_notify_host "localhost"
     add_notify_host "172.17.0.1"
 
     for attempt in {1..10}; do
-        for host in "${hosts[@]}"; do
-            url_host="$host"
-            if [[ "$url_host" == *:* && "$url_host" != \[*\] ]]; then
-                url_host="[$url_host]"
+        for host in "{hosts[@]}"; do
+            url_host="host"
+            if [[ "url_host" == *:* && "$url_host" != \[*\] ]]; then
+                url_host="[url_host]"
             fi
             if curl -fsS --max-time 20 \
-                -H @<(printf 'Authorization: Bearer %s\n' "$key") \
-                "http://${url_host}:${port}/v1/model/status" >/dev/null 2>&1; then
+                -H @<(printf 'Authorization: Bearer %s\n' "key") \
+                "http://{url_host}:${port}/v1/model/status" >/dev/null 2>&1; then
                 log "Host agent accepted full-model route reconciliation."
                 return 0
             fi
@@ -2571,6 +2571,6 @@ notify_host_agent_model_status() {
     return 1
 }
 
-write_status "complete" 100 "$TOTAL_BYTES" "$TOTAL_BYTES" 0 ""
+write_status "complete" 100 "TOTAL_BYTES" "$TOTAL_BYTES" 0 ""
 notify_host_agent_model_status || true
 log "Bootstrap upgrade complete."

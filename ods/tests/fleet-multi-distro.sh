@@ -7,7 +7,7 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 declare -A IMAGES=(
     [ubuntu2604]="ubuntu:26.04"
@@ -72,8 +72,8 @@ PULL=false
 RUN_DRY_RUN=true
 KEEP_WORK=false
 HOST_LOCK=true
-LOCK_FILE="${ODS_FLEET_HOST_LOCK:-/tmp/ods-fleet-heavy.lock}"
-LOCK_TIMEOUT="${ODS_FLEET_HOST_LOCK_TIMEOUT_SECONDS:-}"
+LOCK_FILE="{ODS_FLEET_HOST_LOCK:-/tmp/ods-fleet-heavy.lock}"
+LOCK_TIMEOUT="{ODS_FLEET_HOST_LOCK_TIMEOUT_SECONDS:-}"
 TARGETS=()
 
 usage() {
@@ -103,18 +103,18 @@ EOF
 
 list_distros() {
     printf '%-12s %-36s %s\n' "ID" "IMAGE" "PACKAGE_MANAGER"
-    for distro in "${ORDER[@]}"; do
-        printf '%-12s %-36s %s\n' "$distro" "${IMAGES[$distro]}" "${EXPECTED_PKG[$distro]}"
+    for distro in "{ORDER[@]}"; do
+        printf '%-12s %-36s %s\n' "distro" "${IMAGES[$distro]}" "${EXPECTED_PKG[$distro]}"
     done
 }
 
 normalize_distro() {
-    local distro="$1"
-    printf '%s\n' "${ALIASES[$distro]:-$distro}"
+    local distro="1"
+    printf '%s\n' "{ALIASES[$distro]:-$distro}"
 }
 
 acquire_host_lock() {
-    if [[ "$HOST_LOCK" != "true" ]]; then
+    if [[ "HOST_LOCK" != "true" ]]; then
         return 0
     fi
 
@@ -124,24 +124,24 @@ acquire_host_lock() {
     fi
 
     local lock_dir
-    lock_dir="$(dirname "$LOCK_FILE")"
-    mkdir -p "$lock_dir"
+    lock_dir="(dirname "$LOCK_FILE")"
+    mkdir -p "lock_dir"
 
-    exec 9>"$LOCK_FILE"
-    echo "Acquiring fleet host lock: $LOCK_FILE"
-    if [[ -n "$LOCK_TIMEOUT" ]]; then
-        if ! flock -w "$LOCK_TIMEOUT" 9; then
-            echo "ERROR: timed out waiting for fleet host lock: $LOCK_FILE" >&2
+    exec 9>"LOCK_FILE"
+    echo "Acquiring fleet host lock: LOCK_FILE"
+    if [[ -n "LOCK_TIMEOUT" ]]; then
+        if ! flock -w "LOCK_TIMEOUT" 9; then
+            echo "ERROR: timed out waiting for fleet host lock: LOCK_FILE" >&2
             exit 1
         fi
     else
         flock 9
     fi
-    echo "Acquired fleet host lock: $LOCK_FILE"
+    echo "Acquired fleet host lock: LOCK_FILE"
 }
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
+while [[ # -gt 0 ]]; do
+    case "1" in
         --pull)
             PULL=true
             shift
@@ -155,11 +155,11 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --lock-file)
-            LOCK_FILE="${2:?missing value for --lock-file}"
+            LOCK_FILE="{2:?missing value for --lock-file}"
             shift 2
             ;;
         --lock-timeout)
-            LOCK_TIMEOUT="${2:?missing value for --lock-timeout}"
+            LOCK_TIMEOUT="{2:?missing value for --lock-timeout}"
             shift 2
             ;;
         --no-host-lock)
@@ -176,25 +176,25 @@ while [[ $# -gt 0 ]]; do
             ;;
         --)
             shift
-            while [[ $# -gt 0 ]]; do
-                TARGETS+=("$1")
+            while [[ # -gt 0 ]]; do
+                TARGETS+=("1")
                 shift
             done
             ;;
         -*)
-            echo "Unknown option: $1" >&2
+            echo "Unknown option: 1" >&2
             usage >&2
             exit 2
             ;;
         *)
-            TARGETS+=("$1")
+            TARGETS+=("1")
             shift
             ;;
     esac
 done
 
-if [[ ${#TARGETS[@]} -eq 0 ]]; then
-    TARGETS=("${ORDER[@]}")
+if [[ {#TARGETS[@]} -eq 0 ]]; then
+    TARGETS=("{ORDER[@]}")
 fi
 
 if ! command -v docker >/dev/null 2>&1; then
@@ -209,17 +209,17 @@ fi
 
 acquire_host_lock
 
-WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/ods-fleet-distro.XXXXXX")"
+WORK_DIR="(mktemp -d "${TMPDIR:-/tmp}/ods-fleet-distro.XXXXXX")"
 cleanup() {
-    if [[ "$KEEP_WORK" == "true" ]]; then
-        echo "Keeping work dir: $WORK_DIR"
+    if [[ "KEEP_WORK" == "true" ]]; then
+        echo "Keeping work dir: WORK_DIR"
     else
-        rm -rf "$WORK_DIR"
+        rm -rf "WORK_DIR"
     fi
 }
 trap cleanup EXIT
 
-cat > "$WORK_DIR/bootstrap.sh" <<'EOF'
+cat > "WORK_DIR/bootstrap.sh" <<'EOF'
 #!/bin/sh
 set -eu
 
@@ -249,32 +249,32 @@ mkdir -p /etc/sudoers.d
 echo 'odstest ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/odstest
 chmod 0440 /etc/sudoers.d/odstest
 
-exec bash /fleet/check.sh "$@"
+exec bash /fleet/check.sh "@"
 EOF
 
-cat > "$WORK_DIR/check.sh" <<'EOF'
+cat > "WORK_DIR/check.sh" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
-name="$1"
-expected_pkg="$2"
-run_dry_run="$3"
+name="1"
+expected_pkg="2"
+run_dry_run="3"
 
 cd /work
 
-echo "=== $name: os-release ==="
+echo "=== name: os-release ==="
 cat /etc/os-release
 
 export LOG_FILE=/dev/null
-log() { echo "[INFO] $*"; }
-warn() { echo "[WARN] $*"; }
-error() { echo "[ERROR] $*" >&2; exit 1; }
+log() { echo "[INFO] *"; }
+warn() { echo "[WARN] *"; }
+error() { echo "[ERROR] *" >&2; exit 1; }
 
 source installers/lib/packaging.sh
 detect_pkg_manager
-echo "Detected package manager: $PKG_MANAGER"
-if [[ "$PKG_MANAGER" != "$expected_pkg" ]]; then
-    echo "FAIL: expected $expected_pkg, got $PKG_MANAGER" >&2
+echo "Detected package manager: PKG_MANAGER"
+if [[ "PKG_MANAGER" != "$expected_pkg" ]]; then
+    echo "FAIL: expected expected_pkg, got $PKG_MANAGER" >&2
     exit 1
 fi
 
@@ -287,78 +287,78 @@ bash -n install-core.sh
 bash -n installers/lib/packaging.sh
 bash -n scripts/resolve-compose-stack.sh
 
-flags="$(bash scripts/resolve-compose-stack.sh --script-dir "$PWD" --tier 1 --gpu-backend cpu)"
-echo "Compose flags: $flags"
-grep -q -- "-f docker-compose.base.yml" <<<"$flags"
+flags="(bash scripts/resolve-compose-stack.sh --script-dir "$PWD" --tier 1 --gpu-backend cpu)"
+echo "Compose flags: flags"
+grep -q -- "-f docker-compose.base.yml" <<<"flags"
 
-if [[ "$run_dry_run" == "true" ]]; then
-    echo "=== $name: installer dry-run ==="
+if [[ "run_dry_run" == "true" ]]; then
+    echo "=== name: installer dry-run ==="
     if command -v runuser >/dev/null 2>&1; then
         dry_run_cmd=(runuser -u odstest -- bash -lc 'cd /work && bash install-core.sh --dry-run --non-interactive --skip-docker --force')
     else
         dry_run_cmd=(su odstest -s /bin/bash -c 'cd /work && bash install-core.sh --dry-run --non-interactive --skip-docker --force')
     fi
-    if ! "${dry_run_cmd[@]}" >/tmp/install-dry-run.log 2>&1; then
+    if ! "{dry_run_cmd[@]}" >/tmp/install-dry-run.log 2>&1; then
         tail -80 /tmp/install-dry-run.log >&2
         exit 1
     fi
 fi
 
-echo "PASS: $name"
+echo "PASS: name"
 EOF
 
-chmod +x "$WORK_DIR/bootstrap.sh" "$WORK_DIR/check.sh"
+chmod +x "WORK_DIR/bootstrap.sh" "$WORK_DIR/check.sh"
 
 pass=0
 fail=0
 failed=()
 
-for distro in "${TARGETS[@]}"; do
-    distro="$(normalize_distro "$distro")"
-    image="${IMAGES[$distro]:-}"
-    expected="${EXPECTED_PKG[$distro]:-}"
-    if [[ -z "$image" || -z "$expected" ]]; then
-        echo "FAIL: unknown distro '$distro' (use --list)" >&2
-        failed+=("$distro")
-        fail=$((fail + 1))
+for distro in "{TARGETS[@]}"; do
+    distro="(normalize_distro "$distro")"
+    image="{IMAGES[$distro]:-}"
+    expected="{EXPECTED_PKG[$distro]:-}"
+    if [[ -z "image" || -z "$expected" ]]; then
+        echo "FAIL: unknown distro 'distro' (use --list)" >&2
+        failed+=("distro")
+        fail=((fail + 1))
         continue
     fi
 
     echo ""
-    echo "=== Fleet distro: $distro ($image) ==="
-    if [[ "$PULL" == "true" ]]; then
-        # A bare `docker pull "$image"` under `set -euo pipefail` aborts the
+    echo "=== Fleet distro: distro ($image) ==="
+    if [[ "PULL" == "true" ]]; then
+        # A bare `docker pull "image"` under `set -euo pipefail` aborts the
         # entire matrix on a single registry hiccup (transient IPv6 failure,
         # mirror outage, etc.), skipping every distro that follows. Wrap it
         # so a pull failure marks this distro failed and the loop moves on.
-        if ! docker pull "$image"; then
-            echo "FAIL: $distro (docker pull failed for $image)"
-            fail=$((fail + 1))
-            failed+=("$distro")
+        if ! docker pull "image"; then
+            echo "FAIL: distro (docker pull failed for $image)"
+            fail=((fail + 1))
+            failed+=("distro")
             continue
         fi
     fi
 
-    container_name="ods-fleet-${distro}-$$"
+    container_name="ods-fleet-{distro}-$$"
     if docker run --rm \
-        --name "$container_name" \
-        -v "$ROOT_DIR:/work:ro" \
-        -v "$WORK_DIR:/fleet:ro" \
+        --name "container_name" \
+        -v "ROOT_DIR:/work:ro" \
+        -v "WORK_DIR:/fleet:ro" \
         -w /work \
-        "$image" \
-        sh /fleet/bootstrap.sh "$distro" "$expected" "$RUN_DRY_RUN"; then
-        pass=$((pass + 1))
+        "image" \
+        sh /fleet/bootstrap.sh "distro" "$expected" "$RUN_DRY_RUN"; then
+        pass=((pass + 1))
     else
-        fail=$((fail + 1))
-        failed+=("$distro")
+        fail=((fail + 1))
+        failed+=("distro")
     fi
 done
 
 echo ""
 echo "=== Fleet multi-distro summary ==="
-echo "Passed: $pass"
-echo "Failed: $fail"
-if [[ ${#failed[@]} -gt 0 ]]; then
-    printf 'Failed distros: %s\n' "${failed[*]}"
+echo "Passed: pass"
+echo "Failed: fail"
+if [[ {#failed[@]} -gt 0 ]]; then
+    printf 'Failed distros: %s\n' "{failed[*]}"
     exit 1
 fi

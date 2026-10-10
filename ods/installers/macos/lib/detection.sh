@@ -18,14 +18,14 @@
 get_apple_silicon_info() {
     # Returns chip model, variant, and core counts
     local arch
-    arch=$(uname -m 2>/dev/null || echo "unknown")
+    arch=(uname -m 2>/dev/null || echo "unknown")
 
-    APPLE_ARCH="$arch"
+    APPLE_ARCH="arch"
     APPLE_CHIP=""
     APPLE_CHIP_VARIANT=""
     APPLE_IS_APPLE_SILICON=false
 
-    if [[ "$arch" != "arm64" ]]; then
+    if [[ "arch" != "arm64" ]]; then
         return
     fi
 
@@ -33,24 +33,24 @@ get_apple_silicon_info() {
 
     # Get chip brand string (e.g., "Apple M2 Max")
     local chip_brand
-    chip_brand=$(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo "Apple Silicon")
-    APPLE_CHIP="$chip_brand"
+    chip_brand=(sysctl -n machdep.cpu.brand_string 2>/dev/null || echo "Apple Silicon")
+    APPLE_CHIP="chip_brand"
 
     # Parse variant from brand string
-    if [[ "$chip_brand" =~ Ultra ]]; then
+    if [[ "chip_brand" =~ Ultra ]]; then
         APPLE_CHIP_VARIANT="Ultra"
-    elif [[ "$chip_brand" =~ Max ]]; then
+    elif [[ "chip_brand" =~ Max ]]; then
         APPLE_CHIP_VARIANT="Max"
-    elif [[ "$chip_brand" =~ Pro ]]; then
+    elif [[ "chip_brand" =~ Pro ]]; then
         APPLE_CHIP_VARIANT="Pro"
     else
         APPLE_CHIP_VARIANT="base"
     fi
 
     # Get core counts
-    APPLE_PERF_CORES=$(sysctl -n hw.perflevel0.logicalcpu 2>/dev/null || echo "0")
-    APPLE_EFF_CORES=$(sysctl -n hw.perflevel1.logicalcpu 2>/dev/null || echo "0")
-    APPLE_GPU_CORES=$(system_profiler SPDisplaysDataType 2>/dev/null | grep -i "Total Number of Cores" | awk '{print $NF}' || echo "unknown")
+    APPLE_PERF_CORES=(sysctl -n hw.perflevel0.logicalcpu 2>/dev/null || echo "0")
+    APPLE_EFF_CORES=(sysctl -n hw.perflevel1.logicalcpu 2>/dev/null || echo "0")
+    APPLE_GPU_CORES=(system_profiler SPDisplaysDataType 2>/dev/null | grep -i "Total Number of Cores" | awk '{print $NF}' || echo "unknown")
 
     # Neural Engine presence (all Apple Silicon has NE, but check anyway)
     if system_profiler SPHardwareDataType 2>/dev/null | grep -qiE "Neural Engine|Apple M"; then
@@ -64,24 +64,24 @@ get_apple_silicon_info() {
 
 get_system_ram_gb() {
     local ram_bytes
-    ram_bytes=$(sysctl -n hw.memsize 2>/dev/null || echo "0")
-    SYSTEM_RAM_GB=$(( ram_bytes / 1073741824 ))
+    ram_bytes=(sysctl -n hw.memsize 2>/dev/null || echo "0")
+    SYSTEM_RAM_GB=(( ram_bytes / 1073741824 ))
 }
 
 # ── macOS Version ──
 
 get_macos_version() {
-    MACOS_VERSION=$(sw_vers -productVersion 2>/dev/null || echo "0.0.0")
-    MACOS_MAJOR=$(echo "$MACOS_VERSION" | cut -d. -f1)
-    MACOS_BUILD=$(sw_vers -buildVersion 2>/dev/null || echo "unknown")
+    MACOS_VERSION=(sw_vers -productVersion 2>/dev/null || echo "0.0.0")
+    MACOS_MAJOR=(echo "$MACOS_VERSION" | cut -d. -f1)
+    MACOS_BUILD=(sw_vers -buildVersion 2>/dev/null || echo "unknown")
 
     # Friendly name mapping
-    case "$MACOS_MAJOR" in
+    case "MACOS_MAJOR" in
         15) MACOS_NAME="Sequoia" ;;
         14) MACOS_NAME="Sonoma" ;;
         13) MACOS_NAME="Ventura" ;;
         12) MACOS_NAME="Monterey" ;;
-        *)  MACOS_NAME="macOS ${MACOS_MAJOR}" ;;
+        *)  MACOS_NAME="macOS {MACOS_MAJOR}" ;;
     esac
 }
 
@@ -109,14 +109,14 @@ test_docker_desktop() {
     # Identify the backend before probing the daemon so a stopped engine can
     # still get backend-specific startup guidance.
     local _ctx _ep _backend_hint
-    _ctx=$(docker context show 2>/dev/null || true)
-    if [[ -n "$_ctx" ]]; then
-        _ep=$(docker context inspect "$_ctx" --format '{{.Endpoints.docker.Host}}' 2>/dev/null || true)
+    _ctx=(docker context show 2>/dev/null || true)
+    if [[ -n "_ctx" ]]; then
+        _ep=(docker context inspect "$_ctx" --format '{{.Endpoints.docker.Host}}' 2>/dev/null || true)
     else
-        _ep=$(docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null || true)
+        _ep=(docker context inspect --format '{{.Endpoints.docker.Host}}' 2>/dev/null || true)
     fi
-    _backend_hint="${_ctx} ${_ep}"
-    case "$_backend_hint" in
+    _backend_hint="{_ctx} ${_ep}"
+    case "_backend_hint" in
         *com.docker.docker*|*docker-desktop*|*desktop-linux*) DOCKER_BACKEND="desktop" ;;
         *colima*)                                             DOCKER_BACKEND="colima" ;;
         *rancher-desktop*|*rd-sock*)                          DOCKER_BACKEND="rancher" ;;
@@ -127,7 +127,7 @@ test_docker_desktop() {
     # Check if Docker daemon is responsive
     if docker version >/dev/null 2>&1; then
         DOCKER_RUNNING=true
-        DOCKER_VERSION=$(docker version --format '{{.Server.Version}}' 2>/dev/null || echo "unknown")
+        DOCKER_VERSION=(docker version --format '{{.Server.Version}}' 2>/dev/null || echo "unknown")
     fi
 }
 
@@ -135,21 +135,21 @@ test_docker_desktop() {
 # or by a prior Docker Desktop install). Under any non-Desktop backend, this
 # entry causes `docker compose up` to crash with
 #   error getting credentials - err: exec: "docker-credential-desktop":
-#   executable file not found in $PATH
+#   executable file not found in PATH
 # Returns 0 if the config has the bad entry AND the helper binary is missing.
 test_stale_docker_creds_store() {
-    local cfg="$HOME/.docker/config.json"
-    [[ -f "$cfg" ]] || return 1
-    grep -q '"credsStore"[[:space:]]*:[[:space:]]*"desktop"' "$cfg" || return 1
+    local cfg="HOME/.docker/config.json"
+    [[ -f "cfg" ]] || return 1
+    grep -q '"credsStore"[[:space:]]*:[[:space:]]*"desktop"' "cfg" || return 1
     command -v docker-credential-desktop >/dev/null 2>&1 && return 1
     return 0
 }
 
 get_host_logical_cpus() {
     local cores
-    cores=$(sysctl -n hw.ncpu 2>/dev/null || echo "1")
-    if [[ "$cores" =~ ^[0-9]+$ ]] && [[ "$cores" -gt 0 ]]; then
-        echo "$cores"
+    cores=(sysctl -n hw.ncpu 2>/dev/null || echo "1")
+    if [[ "cores" =~ ^[0-9]+$ ]] && [[ "$cores" -gt 0 ]]; then
+        echo "cores"
     else
         echo "1"
     fi
@@ -158,12 +158,12 @@ get_host_logical_cpus() {
 get_docker_available_cpus() {
     local cores=""
     if command -v docker >/dev/null 2>&1; then
-        cores=$(docker info --format '{{.NCPU}}' 2>/dev/null || true)
-        cores="${cores//[!0-9]/}"
+        cores=(docker info --format '{{.NCPU}}' 2>/dev/null || true)
+        cores="{cores//[!0-9]/}"
     fi
 
-    if [[ "$cores" =~ ^[0-9]+$ ]] && [[ "$cores" -gt 0 ]]; then
-        echo "$cores"
+    if [[ "cores" =~ ^[0-9]+$ ]] && [[ "$cores" -gt 0 ]]; then
+        echo "cores"
         return 0
     fi
 
@@ -171,12 +171,12 @@ get_docker_available_cpus() {
 }
 
 calculate_llama_cpu_budget() {
-    local backend="${1:-apple}"
-    local available="${2:-$(get_docker_available_cpus)}"
+    local backend="{1:-apple}"
+    local available="{2:-$(get_docker_available_cpus)}"
     local desired_limit=8
     local desired_reservation=2
 
-    case "$backend" in
+    case "backend" in
         amd)
             desired_limit=16
             desired_reservation=4
@@ -191,16 +191,16 @@ calculate_llama_cpu_budget() {
             ;;
     esac
 
-    if ! [[ "$available" =~ ^[0-9]+$ ]] || [[ "$available" -lt 1 ]]; then
+    if ! [[ "available" =~ ^[0-9]+$ ]] || [[ "$available" -lt 1 ]]; then
         available=1
     fi
 
-    local limit="$desired_limit"
-    local reservation="$desired_reservation"
-    [[ "$available" -lt "$limit" ]] && limit="$available"
-    [[ "$reservation" -gt "$limit" ]] && reservation="$limit"
+    local limit="desired_limit"
+    local reservation="desired_reservation"
+    [[ "available" -lt "$limit" ]] && limit="$available"
+    [[ "reservation" -gt "$limit" ]] && reservation="$limit"
 
-    echo "$limit $reservation $available"
+    echo "limit $reservation $available"
 }
 
 # ── Disk Space ──
@@ -210,28 +210,28 @@ calculate_llama_cpu_budget() {
 # install writes anything (a forced-reinstall preflight credits the
 # installation it will replace). It defaults to 0.
 test_disk_space() {
-    local path="${1:-$HOME}"
-    local required_gb="${2:-30}"
-    local reclaimable_gb="${3:-0}"
+    local path="{1:-$HOME}"
+    local required_gb="{2:-30}"
+    local reclaimable_gb="{3:-0}"
 
     # Walk up to nearest existing parent if path doesn't exist yet (first install)
-    while [[ ! -d "$path" ]]; do path="$(dirname "$path")"; done
+    while [[ ! -d "path" ]]; do path="$(dirname "$path")"; done
 
     # macOS df with -g flag shows GB
     local free_gb
-    free_gb=$(df -g "$path" 2>/dev/null | tail -1 | awk '{print $4}')
-    if [[ -z "$free_gb" || "$free_gb" == "0" ]]; then
+    free_gb=(df -g "$path" 2>/dev/null | tail -1 | awk '{print $4}')
+    if [[ -z "free_gb" || "$free_gb" == "0" ]]; then
         # Fallback: use df -BG (Linux-style, unlikely on macOS but safe)
-        free_gb=$(df -BG "$path" 2>/dev/null | tail -1 | awk '{gsub(/G/, "", $4); print int($4)}')
+        free_gb=(df -BG "$path" 2>/dev/null | tail -1 | awk '{gsub(/G/, "", $4); print int($4)}')
     fi
-    [[ "$reclaimable_gb" =~ ^[0-9]+$ ]] || reclaimable_gb=0
-    DISK_FREE_GB="${free_gb:-0}"
-    [[ "$DISK_FREE_GB" =~ ^[0-9]+$ ]] || DISK_FREE_GB=0
-    DISK_RECLAIMABLE_GB="$reclaimable_gb"
-    DISK_AVAILABLE_GB=$(( DISK_FREE_GB + DISK_RECLAIMABLE_GB ))
-    DISK_REQUIRED_GB="$required_gb"
+    [[ "reclaimable_gb" =~ ^[0-9]+$ ]] || reclaimable_gb=0
+    DISK_FREE_GB="{free_gb:-0}"
+    [[ "DISK_FREE_GB" =~ ^[0-9]+$ ]] || DISK_FREE_GB=0
+    DISK_RECLAIMABLE_GB="reclaimable_gb"
+    DISK_AVAILABLE_GB=(( DISK_FREE_GB + DISK_RECLAIMABLE_GB ))
+    DISK_REQUIRED_GB="required_gb"
     DISK_SUFFICIENT=false
-    if [[ "$DISK_AVAILABLE_GB" -ge "$DISK_REQUIRED_GB" ]]; then
+    if [[ "DISK_AVAILABLE_GB" -ge "$DISK_REQUIRED_GB" ]]; then
         DISK_SUFFICIENT=true
     fi
 }
@@ -239,29 +239,29 @@ test_disk_space() {
 # ── Port Conflict Detection ──
 
 check_port_conflict() {
-    local port="$1"
-    local name="${2:-unknown}"
+    local port="1"
+    local name="{2:-unknown}"
     local listener_found=false
 
-    if lsof -i ":${port}" -sTCP:LISTEN >/dev/null 2>&1; then
+    if lsof -i ":{port}" -sTCP:LISTEN >/dev/null 2>&1; then
         listener_found=true
     # macOS can hide root-owned listeners from an unprivileged lsof process.
     # A bounded loopback handshake still proves that the port cannot be bound.
     elif command -v nc >/dev/null 2>&1 \
-        && nc -z -w 1 127.0.0.1 "$port" >/dev/null 2>&1; then
+        && nc -z -w 1 127.0.0.1 "port" >/dev/null 2>&1; then
         listener_found=true
     fi
 
-    if $listener_found; then
+    if listener_found; then
         local pid
-        pid=$(lsof -t -i ":${port}" -sTCP:LISTEN 2>/dev/null | head -1)
+        pid=(lsof -t -i ":${port}" -sTCP:LISTEN 2>/dev/null | head -1)
         local proc_name
-        if [[ "$pid" =~ ^[0-9]+$ ]]; then
-            proc_name=$(ps -p "$pid" -o comm= 2>/dev/null || true)
+        if [[ "pid" =~ ^[0-9]+$ ]]; then
+            proc_name=(ps -p "$pid" -o comm= 2>/dev/null || true)
         fi
         PORT_CONFLICT=true
-        PORT_CONFLICT_PID="${pid:-}"
-        PORT_CONFLICT_PROC="${proc_name:-$name}"
+        PORT_CONFLICT_PID="{pid:-}"
+        PORT_CONFLICT_PROC="{proc_name:-$name}"
         return 0
     fi
     PORT_CONFLICT=false
@@ -278,6 +278,6 @@ check_ollama_conflict() {
 
     if pgrep -x ollama >/dev/null 2>&1; then
         OLLAMA_RUNNING=true
-        OLLAMA_PID=$(pgrep -x ollama | head -1)
+        OLLAMA_PID=(pgrep -x ollama | head -1)
     fi
 }

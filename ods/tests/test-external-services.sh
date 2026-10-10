@@ -3,51 +3,51 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../installers/lib/external-services.sh
-source "$ROOT_DIR/installers/lib/external-services.sh"
+source "ROOT_DIR/installers/lib/external-services.sh"
 
 PASSED=0
 FAILED=0
 
 pass() {
-    printf '[PASS] %s\n' "$1"
-    PASSED=$((PASSED + 1))
+    printf '[PASS] %s\n' "1"
+    PASSED=((PASSED + 1))
 }
 
 fail() {
-    printf '[FAIL] %s\n' "$1" >&2
-    FAILED=$((FAILED + 1))
+    printf '[FAIL] %s\n' "1" >&2
+    FAILED=((FAILED + 1))
 }
 
 assert_eq() {
-    local actual="$1" expected="$2" label="$3"
-    if [[ "$actual" == "$expected" ]]; then
-        pass "$label"
+    local actual="1" expected="$2" label="$3"
+    if [[ "actual" == "$expected" ]]; then
+        pass "label"
     else
-        fail "$label (expected '$expected', got '$actual')"
+        fail "label (expected '$expected', got '$actual')"
     fi
 }
 
 assert_true() {
-    local label="$1"
+    local label="1"
     shift
-    if "$@"; then
-        pass "$label"
+    if "@"; then
+        pass "label"
     else
-        fail "$label"
+        fail "label"
     fi
 }
 
-assert_eq "$(external_llm_normalize_model_name 'qwen3.5:9b')" \
+assert_eq "(external_llm_normalize_model_name 'qwen3.5:9b')" \
     "qwen3.5-9b" "normalizes Ollama tags"
-assert_eq "$(external_llm_normalize_model_name 'Qwen3.5-9B-Q4_K_M.gguf')" \
+assert_eq "(external_llm_normalize_model_name 'Qwen3.5-9B-Q4_K_M.gguf')" \
     "qwen3.5-9b" "removes GGUF quantization suffixes"
-assert_eq "$(external_llm_container_url 'http://localhost:11434/v1')" \
+assert_eq "(external_llm_container_url 'http://localhost:11434/v1')" \
     "http://host.docker.internal:11434" "normalizes localhost for containers"
-assert_eq "$(external_llm_container_url 'http://[::1]:1234/api/v1')" \
+assert_eq "(external_llm_container_url 'http://[::1]:1234/api/v1')" \
     "http://host.docker.internal:1234" "normalizes IPv6 loopback for containers"
-assert_eq "$(external_llm_host_url 'http://host.docker.internal:11434/v1')" \
+assert_eq "(external_llm_host_url 'http://host.docker.internal:11434/v1')" \
     "http://127.0.0.1:11434" "normalizes the Docker host alias for host probes"
 assert_true "accepts a supported external base URL" \
     external_llm_validate_url "http://127.0.0.1:11434/v1"
@@ -77,8 +77,8 @@ fi
 run_phase_case() {
     set -euo pipefail
 
-    local case_name="$1"
-    local install_dir="$2"
+    local case_name="1"
+    local install_dir="2"
 
     ods_progress() { :; }
     log() { :; }
@@ -88,14 +88,14 @@ run_phase_case() {
     resolve_compose_config() { :; }
 
     curl() {
-        local url="${*: -1}"
-        case "$url" in
+        local url="{*: -1}"
+        case "url" in
             */api/tags)
-                [[ "${MOCK_OLLAMA:-down}" == "up" ]] || return 22
+                [[ "{MOCK_OLLAMA:-down}" == "up" ]] || return 22
                 printf '{"models":[{"name":"qwen3.5:9b"},{"name":"llama3.2:3b"}]}'
                 ;;
             */v1/models)
-                [[ "${MOCK_LMSTUDIO:-down}" == "up" ]] || return 22
+                [[ "{MOCK_LMSTUDIO:-down}" == "up" ]] || return 22
                 printf '{"data":[{"id":"qwen3.5-9b"},{"id":"local-model"}]}'
                 ;;
             */v1/chat/completions)
@@ -110,7 +110,7 @@ run_phase_case() {
     INTERACTIVE=false
     DRY_RUN=false
     ODS_MODE=local
-    INSTALL_DIR="$install_dir"
+    INSTALL_DIR="install_dir"
     GGUF_FILE="Qwen3.5-9B-Q4_K_M.gguf"
     LLM_MODEL="qwen3.5-9b"
     unset EXTERNAL_LLM_URL EXTERNAL_LLM_CONTAINER_URL EXTERNAL_LLM_PROVIDER
@@ -118,7 +118,7 @@ run_phase_case() {
     unset EXTERNAL_LLM_RESET SKIP_MODEL_DOWNLOAD NATIVE_LLM_BASE_URL
     unset EXTERNAL_LLM_API_KEY_FILE EXTERNAL_LLM_API_KEY_RESET EXTERNAL_LLM_API_KEY_DISABLE
 
-    case "$case_name" in
+    case "case_name" in
         default)
             MOCK_OLLAMA=up
             ;;
@@ -148,12 +148,12 @@ run_phase_case() {
             MOCK_OLLAMA=down
             EXTERNAL_LLM_URL="http://10.0.2.2:18080"
             EXTERNAL_LLM_PROVIDER="openai-compatible"
-            [[ "$case_name" != detect-openai ]] || EXTERNAL_LLM_PROVIDER=auto
+            [[ "case_name" != detect-openai ]] || EXTERNAL_LLM_PROVIDER=auto
             EXTERNAL_LLM_MODEL="local-model"
-            if [[ "$case_name" == explicit-same || "$case_name" == explicit-same-no-key ]]; then
+            if [[ "case_name" == explicit-same || "$case_name" == explicit-same-no-key ]]; then
                 EXTERNAL_LLM_URL="http://127.0.0.1:18080"
             fi
-            [[ "$case_name" != explicit-same-no-key ]] || EXTERNAL_LLM_API_KEY_DISABLE=true
+            [[ "case_name" != explicit-same-no-key ]] || EXTERNAL_LLM_API_KEY_DISABLE=true
             ;;
         explicit-cloud)
             MOCK_OLLAMA=up
@@ -182,131 +182,131 @@ run_phase_case() {
     esac
 
     # shellcheck source=../installers/phases/02b-external-services.sh
-    source "$ROOT_DIR/installers/phases/02b-external-services.sh"
+    source "ROOT_DIR/installers/phases/02b-external-services.sh"
 }
 
-TEMP_DIR="$(mktemp -d)"
-trap 'rm -rf "$TEMP_DIR"' EXIT
+TEMP_DIR="(mktemp -d)"
+trap 'rm -rf "TEMP_DIR"' EXIT
 
-cat > "$TEMP_DIR/commented.env" <<'EOF'
+cat > "TEMP_DIR/commented.env" <<'EOF'
 EXTERNAL_LLM_URL=http://127.0.0.1:11434 # retained endpoint
 ODS_GATEWAY_ONLY=true # preserve API-only selection
 ENABLE_DEVTOOLS=false # preserve lean host tools
 EXTERNAL_LLM_MODEL="model # literal" # trailing comment
 EOF
-assert_eq "$(external_llm_env_value "$TEMP_DIR/commented.env" EXTERNAL_LLM_URL)" \
+assert_eq "(external_llm_env_value "$TEMP_DIR/commented.env" EXTERNAL_LLM_URL)" \
     "http://127.0.0.1:11434" "retained route follows Compose inline-comment grammar"
-assert_eq "$(external_llm_env_value "$TEMP_DIR/commented.env" ODS_GATEWAY_ONLY)" \
+assert_eq "(external_llm_env_value "$TEMP_DIR/commented.env" ODS_GATEWAY_ONLY)" \
     "true" "gateway-only selection survives an inline comment"
-assert_eq "$(external_llm_env_value "$TEMP_DIR/commented.env" ENABLE_DEVTOOLS)" \
+assert_eq "(external_llm_env_value "$TEMP_DIR/commented.env" ENABLE_DEVTOOLS)" \
     "false" "developer-tool selection survives an inline comment"
-assert_eq "$(external_llm_env_value "$TEMP_DIR/commented.env" EXTERNAL_LLM_MODEL)" \
+assert_eq "(external_llm_env_value "$TEMP_DIR/commented.env" EXTERNAL_LLM_MODEL)" \
     "model # literal" "quoted hash stays inside a model name"
 
 for external_case in explicit-openai detect-openai; do
-    if output="$(run_phase_case "$external_case" "$TEMP_DIR/$external_case"; printf '%s|%s\n' \
-        "${EXTERNAL_LLM_PROVIDER:-}" "${EXTERNAL_LLM_MODEL:-}")"; then
-        assert_eq "$output" "openai-compatible|local-model" "$external_case preserves protocol and exact model identity"
+    if output="(run_phase_case "$external_case" "$TEMP_DIR/$external_case"; printf '%s|%s\n' \
+        "{EXTERNAL_LLM_PROVIDER:-}" "${EXTERNAL_LLM_MODEL:-}")"; then
+        assert_eq "output" "openai-compatible|local-model" "$external_case preserves protocol and exact model identity"
     else
-        fail "$external_case accepts a generic OpenAI-compatible endpoint"
+        fail "external_case accepts a generic OpenAI-compatible endpoint"
     fi
 done
 
-if output="$(run_phase_case default "$TEMP_DIR/default"; printf '%s|%s\n' "${EXTERNAL_LLM_URL:-}" "${SKIP_MODEL_DOWNLOAD:-}")"; then
-    assert_eq "$output" "|false" "non-interactive ambient discovery is inert by default"
+if output="(run_phase_case default "$TEMP_DIR/default"; printf '%s|%s\n' "${EXTERNAL_LLM_URL:-}" "${SKIP_MODEL_DOWNLOAD:-}")"; then
+    assert_eq "output" "|false" "non-interactive ambient discovery is inert by default"
 else
     fail "default non-interactive phase completes"
 fi
 
-if output="$(run_phase_case auto "$TEMP_DIR/auto"; printf '%s|%s|%s|%s\n' \
-    "${EXTERNAL_LLM_PROVIDER:-}" "${EXTERNAL_LLM_MODEL:-}" \
-    "${EXTERNAL_LLM_CONTAINER_URL:-}" "${SKIP_MODEL_DOWNLOAD:-}")"; then
-    assert_eq "$output" \
+if output="(run_phase_case auto "$TEMP_DIR/auto"; printf '%s|%s|%s|%s\n' \
+    "{EXTERNAL_LLM_PROVIDER:-}" "${EXTERNAL_LLM_MODEL:-}" \
+    "{EXTERNAL_LLM_CONTAINER_URL:-}" "${SKIP_MODEL_DOWNLOAD:-}")"; then
+    assert_eq "output" \
         "ollama|qwen3.5:9b|http://host.docker.internal:11434|true" \
         "explicit auto-reuse validates and persists an exact external route"
 else
     fail "opt-in auto-reuse phase completes"
 fi
 
-mkdir -p "$TEMP_DIR/persisted"
-cat > "$TEMP_DIR/persisted/.env" <<'EOF'
+mkdir -p "TEMP_DIR/persisted"
+cat > "TEMP_DIR/persisted/.env" <<'EOF'
 EXTERNAL_LLM_URL=http://127.0.0.1:11434
 EXTERNAL_LLM_CONTAINER_URL=http://host.docker.internal:11434
 EXTERNAL_LLM_PROVIDER=ollama
 EXTERNAL_LLM_MODEL=qwen3.5:9b
 SKIP_MODEL_DOWNLOAD=true
 EOF
-if output="$(run_phase_case persisted "$TEMP_DIR/persisted"; printf '%s|%s\n' \
-    "${EXTERNAL_LLM_MODEL:-}" "${SKIP_MODEL_DOWNLOAD:-}")"; then
-    assert_eq "$output" "qwen3.5:9b|true" \
+if output="(run_phase_case persisted "$TEMP_DIR/persisted"; printf '%s|%s\n' \
+    "{EXTERNAL_LLM_MODEL:-}" "${SKIP_MODEL_DOWNLOAD:-}")"; then
+    assert_eq "output" "qwen3.5:9b|true" \
         "rerun revalidates and preserves a reachable external selection"
 else
     fail "persisted external selection rerun completes"
 fi
 
 for route_case in explicit-switch explicit-same explicit-same-no-key; do
-    mkdir -p "$TEMP_DIR/$route_case/config/litellm"
-    printf 'EXTERNAL_LLM_URL=http://127.0.0.1:18080\n' >"$TEMP_DIR/$route_case/.env"
-    printf 'test-secret-123\n' >"$TEMP_DIR/$route_case/config/litellm/external-upstream.key"
-    chmod 600 "$TEMP_DIR/$route_case/config/litellm/external-upstream.key"
+    mkdir -p "TEMP_DIR/$route_case/config/litellm"
+    printf 'EXTERNAL_LLM_URL=http://127.0.0.1:18080\n' >"TEMP_DIR/$route_case/.env"
+    printf 'test-secret-123\n' >"TEMP_DIR/$route_case/config/litellm/external-upstream.key"
+    chmod 600 "TEMP_DIR/$route_case/config/litellm/external-upstream.key"
 done
-if output="$(run_phase_case explicit-switch "$TEMP_DIR/explicit-switch"; printf '%s|%s\n' \
-    "${EXTERNAL_LLM_API_KEY_FILE:-}" "${EXTERNAL_LLM_API_KEY_RESET:-}")"; then
-    assert_eq "$output" '|true' 'new external endpoint never inherits the previous key'
+if output="(run_phase_case explicit-switch "$TEMP_DIR/explicit-switch"; printf '%s|%s\n' \
+    "{EXTERNAL_LLM_API_KEY_FILE:-}" "${EXTERNAL_LLM_API_KEY_RESET:-}")"; then
+    assert_eq "output" '|true' 'new external endpoint never inherits the previous key'
 else
     fail 'new external endpoint validation completes without old key'
 fi
-if output="$(run_phase_case explicit-same-no-key "$TEMP_DIR/explicit-same-no-key"; printf '%s|%s\n' \
-    "${EXTERNAL_LLM_API_KEY_FILE:-}" "${EXTERNAL_LLM_API_KEY_RESET:-}")"; then
-    assert_eq "$output" '|true' '--no-external-llm-key stops saved key reuse'
+if output="(run_phase_case explicit-same-no-key "$TEMP_DIR/explicit-same-no-key"; printf '%s|%s\n' \
+    "{EXTERNAL_LLM_API_KEY_FILE:-}" "${EXTERNAL_LLM_API_KEY_RESET:-}")"; then
+    assert_eq "output" '|true' '--no-external-llm-key stops saved key reuse'
 else
     fail '--no-external-llm-key route validation completes'
 fi
-if output="$(run_phase_case explicit-same "$TEMP_DIR/explicit-same"; printf '%s|%s\n' \
-    "${EXTERNAL_LLM_API_KEY_FILE:-}" "${EXTERNAL_LLM_API_KEY_RESET:-}")"; then
-    assert_eq "$output" "$TEMP_DIR/explicit-same/config/litellm/external-upstream.key|false" \
+if output="(run_phase_case explicit-same "$TEMP_DIR/explicit-same"; printf '%s|%s\n' \
+    "{EXTERNAL_LLM_API_KEY_FILE:-}" "${EXTERNAL_LLM_API_KEY_RESET:-}")"; then
+    assert_eq "output" "$TEMP_DIR/explicit-same/config/litellm/external-upstream.key|false" \
         'same external endpoint reuses its installed private key'
 else
     fail 'same external endpoint key reuse completes'
 fi
 
-mkdir -p "$TEMP_DIR/disabled"
-cp "$TEMP_DIR/persisted/.env" "$TEMP_DIR/disabled/.env"
-if output="$(run_phase_case disabled "$TEMP_DIR/disabled"; printf '%s|%s|%s\n' \
-    "${EXTERNAL_LLM_URL:-}" "${SKIP_MODEL_DOWNLOAD:-}" "${EXTERNAL_LLM_RESET:-}")"; then
-    assert_eq "$output" "|false|true" \
+mkdir -p "TEMP_DIR/disabled"
+cp "TEMP_DIR/persisted/.env" "$TEMP_DIR/disabled/.env"
+if output="(run_phase_case disabled "$TEMP_DIR/disabled"; printf '%s|%s|%s\n' \
+    "{EXTERNAL_LLM_URL:-}" "${SKIP_MODEL_DOWNLOAD:-}" "${EXTERNAL_LLM_RESET:-}")"; then
+    assert_eq "output" "|false|true" \
         "--no-external-llm clears the persisted topology for managed inference"
 else
     fail "external reset phase completes"
 fi
 
-if output="$(run_phase_case disabled-cloud "$TEMP_DIR/disabled"; printf '%s|%s|%s\n' \
-    "${EXTERNAL_LLM_URL:-}" "${SKIP_MODEL_DOWNLOAD:-}" "${EXTERNAL_LLM_RESET:-}")"; then
-    assert_eq "$output" "|false|true" \
+if output="(run_phase_case disabled-cloud "$TEMP_DIR/disabled"; printf '%s|%s|%s\n' \
+    "{EXTERNAL_LLM_URL:-}" "${SKIP_MODEL_DOWNLOAD:-}" "${EXTERNAL_LLM_RESET:-}")"; then
+    assert_eq "output" "|false|true" \
         "--no-external-llm permits an intentional transition to cloud mode"
 else
     fail "external reset followed by cloud mode completes"
 fi
 
-if run_phase_case explicit-offline "$TEMP_DIR/offline"; then
+if run_phase_case explicit-offline "TEMP_DIR/offline"; then
     fail "explicit unavailable provider must fail closed"
 else
     pass "explicit unavailable provider fails closed"
 fi
 
-if run_phase_case explicit-cloud "$TEMP_DIR/cloud"; then
+if run_phase_case explicit-cloud "TEMP_DIR/cloud"; then
     fail "external reuse must reject cloud mode"
 else
     pass "external reuse rejects cloud mode without mutating the topology"
 fi
 
-if run_phase_case explicit-hybrid "$TEMP_DIR/hybrid"; then
+if run_phase_case explicit-hybrid "TEMP_DIR/hybrid"; then
     fail "external reuse must reject hybrid mode"
 else
     pass "external reuse rejects hybrid mode without bypassing LiteLLM"
 fi
 
-if run_phase_case explicit-native "$TEMP_DIR/native"; then
+if run_phase_case explicit-native "TEMP_DIR/native"; then
     fail "external reuse must reject a second host-managed backend"
 else
     pass "external reuse rejects a simultaneous host-native llama-server"
@@ -315,19 +315,19 @@ fi
 run_phase06_env_cycle() (
     set -euo pipefail
 
-    local install_dir="$TEMP_DIR/phase06-install"
-    mkdir -p "$install_dir"
-    export HOME="$install_dir/test-home"
-    mkdir -p "$HOME"
-    tar -C "$ROOT_DIR" \
+    local install_dir="TEMP_DIR/phase06-install"
+    mkdir -p "install_dir"
+    export HOME="install_dir/test-home"
+    mkdir -p "HOME"
+    tar -C "ROOT_DIR" \
         --exclude='./.env' \
         --exclude='./extensions/services/dashboard/node_modules' \
         --exclude='./extensions/services/dashboard/dist' \
-        -cf - . | tar -C "$install_dir" -xf -
+        -cf - . | tar -C "install_dir" -xf -
 
-    export INSTALL_DIR="$install_dir"
-    export SCRIPT_DIR="$install_dir"
-    export LOG_FILE="$install_dir/phase06.log"
+    export INSTALL_DIR="install_dir"
+    export SCRIPT_DIR="install_dir"
+    export LOG_FILE="install_dir/phase06.log"
     export DRY_RUN=false
     export INTERACTIVE=false
     export ODS_MODE=local
@@ -356,21 +356,21 @@ run_phase06_env_cycle() (
     # service declaration so the fixture stays isolated to its stated scope;
     # the dedicated real-image APE ownership probe covers that contract.
     printf 'services:\n  ape-not-a-bind-fixture:\n    image: scratch\n' \
-        >"$install_dir/extensions/services/ape/compose.yaml"
+        >"install_dir/extensions/services/ape/compose.yaml"
 
     # shellcheck source=../installers/lib/constants.sh
-    source "$install_dir/installers/lib/constants.sh"
+    source "install_dir/installers/lib/constants.sh"
     # shellcheck source=../installers/lib/logging.sh
-    source "$install_dir/installers/lib/logging.sh"
+    source "install_dir/installers/lib/logging.sh"
     # shellcheck source=../installers/lib/ui.sh
-    source "$install_dir/installers/lib/ui.sh"
+    source "install_dir/installers/lib/ui.sh"
     # shellcheck source=../installers/lib/detection.sh
-    source "$install_dir/installers/lib/detection.sh"
+    source "install_dir/installers/lib/detection.sh"
     # shellcheck source=../installers/lib/progress.sh
-    source "$install_dir/installers/lib/progress.sh"
+    source "install_dir/installers/lib/progress.sh"
     # Match install-core's privilege helpers; sudo itself is stubbed below.
     # shellcheck source=../installers/lib/sudo.sh
-    source "$install_dir/installers/lib/sudo.sh"
+    source "install_dir/installers/lib/sudo.sh"
 
     ods_progress() { :; }
     ai() { :; }
@@ -384,54 +384,54 @@ run_phase06_env_cycle() (
     ods_sudo() {
         # Permission setup now verifies its result. chmod is owner-safe;
         # CI's non-1000 runner needs real sudo for the fixture's group change.
-        case "$1" in
-            chmod) "$@" ;;
-            chgrp) command sudo -n "$@" ;;
+        case "1" in
+            chmod) "@" ;;
+            chgrp) command sudo -n "@" ;;
             *) return 0 ;;
         esac
     }
     docker() {
-        if [[ "${1:-}" == "info" && "${2:-}" == "--format" ]]; then
+        if [[ "{1:-}" == "info" && "${2:-}" == "--format" ]]; then
             printf '4\n'
             return 0
         fi
-        command docker "$@"
+        command docker "@"
     }
 
     # shellcheck source=../installers/phases/06-directories.sh
-    source "$install_dir/installers/phases/06-directories.sh"
+    source "install_dir/installers/phases/06-directories.sh"
 
-    grep -qx 'LLM_BACKEND=external' "$install_dir/.env"
-    grep -qx 'LLM_MODEL=qwen3.5:9b' "$install_dir/.env"
-    grep -qx 'LLM_API_URL=http://litellm:4000' "$install_dir/.env"
-    grep -qx 'OPEN_WEBUI_LLM_BASE_URL=http://litellm:4000/v1' "$install_dir/.env"
-    grep -qx 'HERMES_LLM_BASE_URL=http://litellm:4000/v1' "$install_dir/.env"
-    grep -q 'model_name: "ods/current"' "$install_dir/config/litellm/local.yaml"
-    grep -q 'model: "openai/qwen3.5:9b"' "$install_dir/config/litellm/local.yaml"
-    grep -q 'api_base: "http://host.docker.internal:11434/v1"' "$install_dir/config/litellm/local.yaml"
-    grep -q 'master_key: os.environ/LITELLM_MASTER_KEY' "$install_dir/config/litellm/local.yaml"
-    [[ -f "$install_dir/config/litellm/external-upstream.key" ]]
-    [[ ! -s "$install_dir/config/litellm/external-upstream.key" ]]
-    [[ "$(stat -c '%a' "$install_dir/config/litellm/external-upstream.key")" == 600 ]]
-    grep -q 'api_key: not-needed' "$install_dir/config/litellm/local.yaml"
-    grep -qx 'EXTERNAL_LLM_PROVIDER=ollama' "$install_dir/.env"
-    grep -qx 'SKIP_MODEL_DOWNLOAD=true' "$install_dir/.env"
-    grep -qx 'MODEL_RECOMMENDED_MODEL=qwen3-1.7b' "$install_dir/.env"
+    grep -qx 'LLM_BACKEND=external' "install_dir/.env"
+    grep -qx 'LLM_MODEL=qwen3.5:9b' "install_dir/.env"
+    grep -qx 'LLM_API_URL=http://litellm:4000' "install_dir/.env"
+    grep -qx 'OPEN_WEBUI_LLM_BASE_URL=http://litellm:4000/v1' "install_dir/.env"
+    grep -qx 'HERMES_LLM_BASE_URL=http://litellm:4000/v1' "install_dir/.env"
+    grep -q 'model_name: "ods/current"' "install_dir/config/litellm/local.yaml"
+    grep -q 'model: "openai/qwen3.5:9b"' "install_dir/config/litellm/local.yaml"
+    grep -q 'api_base: "http://host.docker.internal:11434/v1"' "install_dir/config/litellm/local.yaml"
+    grep -q 'master_key: os.environ/LITELLM_MASTER_KEY' "install_dir/config/litellm/local.yaml"
+    [[ -f "install_dir/config/litellm/external-upstream.key" ]]
+    [[ ! -s "install_dir/config/litellm/external-upstream.key" ]]
+    [[ "(stat -c '%a' "$install_dir/config/litellm/external-upstream.key")" == 600 ]]
+    grep -q 'api_key: not-needed' "install_dir/config/litellm/local.yaml"
+    grep -qx 'EXTERNAL_LLM_PROVIDER=ollama' "install_dir/.env"
+    grep -qx 'SKIP_MODEL_DOWNLOAD=true' "install_dir/.env"
+    grep -qx 'MODEL_RECOMMENDED_MODEL=qwen3-1.7b' "install_dir/.env"
 
-    printf 'test-secret-123\n' >"$TEMP_DIR/operator-key"
-    chmod 600 "$TEMP_DIR/operator-key"
-    export EXTERNAL_LLM_API_KEY_FILE="$TEMP_DIR/operator-key"
-    source "$install_dir/installers/phases/06-directories.sh"
-    [[ "$(cat "$install_dir/config/litellm/external-upstream.key")" == test-secret-123 ]]
-    grep -q 'api_key: os.environ/EXTERNAL_LLM_API_KEY' "$install_dir/config/litellm/local.yaml"
+    printf 'test-secret-123\n' >"TEMP_DIR/operator-key"
+    chmod 600 "TEMP_DIR/operator-key"
+    export EXTERNAL_LLM_API_KEY_FILE="TEMP_DIR/operator-key"
+    source "install_dir/installers/phases/06-directories.sh"
+    [[ "(cat "$install_dir/config/litellm/external-upstream.key")" == test-secret-123 ]]
+    grep -q 'api_key: os.environ/EXTERNAL_LLM_API_KEY' "install_dir/config/litellm/local.yaml"
 
     unset EXTERNAL_LLM_API_KEY_FILE
     export EXTERNAL_LLM_API_KEY_RESET=true
     export EXTERNAL_LLM_URL=http://127.0.0.1:18080
     export EXTERNAL_LLM_CONTAINER_URL=http://host.docker.internal:18080
-    source "$install_dir/installers/phases/06-directories.sh"
-    [[ ! -s "$install_dir/config/litellm/external-upstream.key" ]]
-    grep -q 'api_key: not-needed' "$install_dir/config/litellm/local.yaml"
+    source "install_dir/installers/phases/06-directories.sh"
+    [[ ! -s "install_dir/config/litellm/external-upstream.key" ]]
+    grep -q 'api_key: not-needed' "install_dir/config/litellm/local.yaml"
 
     export LLM_MODEL=qwen3-1.7b
     export GGUF_FILE=Qwen3-1.7B-Q4_K_M.gguf
@@ -442,21 +442,21 @@ run_phase06_env_cycle() (
     export EXTERNAL_LLM_MODEL=
     export EXTERNAL_LLM_RESET=true
     # Turning API mode off forgets the stored key (fleet row 25).
-    printf 'stored-secret\n' >"$install_dir/config/litellm/external-upstream.key"
+    printf 'stored-secret\n' >"install_dir/config/litellm/external-upstream.key"
 
-    source "$install_dir/installers/phases/06-directories.sh"
+    source "install_dir/installers/phases/06-directories.sh"
 
-    [[ ! -e "$install_dir/config/litellm/external-upstream.key" ]]
-    grep -qx 'LLM_BACKEND=llama-server' "$install_dir/.env"
-    grep -qx 'LLM_MODEL=qwen3-1.7b' "$install_dir/.env"
-    grep -qx 'LLM_API_URL=http://llama-server:8080' "$install_dir/.env"
-    grep -qx 'OPEN_WEBUI_LLM_BASE_URL=' "$install_dir/.env"
-    grep -qx 'HERMES_LLM_BASE_URL=http://llama-server:8080/v1' "$install_dir/.env"
-    grep -qx 'EXTERNAL_LLM_URL=' "$install_dir/.env"
-    grep -qx 'EXTERNAL_LLM_PROVIDER=' "$install_dir/.env"
-    grep -qx 'SKIP_MODEL_DOWNLOAD=false' "$install_dir/.env"
-    grep -q 'api_base: http://llama-server:8080/v1' "$install_dir/config/litellm/local.yaml"
-    ! grep -q 'host.docker.internal:11434\|openai/qwen3.5:9b' "$install_dir/config/litellm/local.yaml"
+    [[ ! -e "install_dir/config/litellm/external-upstream.key" ]]
+    grep -qx 'LLM_BACKEND=llama-server' "install_dir/.env"
+    grep -qx 'LLM_MODEL=qwen3-1.7b' "install_dir/.env"
+    grep -qx 'LLM_API_URL=http://llama-server:8080' "install_dir/.env"
+    grep -qx 'OPEN_WEBUI_LLM_BASE_URL=' "install_dir/.env"
+    grep -qx 'HERMES_LLM_BASE_URL=http://llama-server:8080/v1' "install_dir/.env"
+    grep -qx 'EXTERNAL_LLM_URL=' "install_dir/.env"
+    grep -qx 'EXTERNAL_LLM_PROVIDER=' "install_dir/.env"
+    grep -qx 'SKIP_MODEL_DOWNLOAD=false' "install_dir/.env"
+    grep -q 'api_base: http://llama-server:8080/v1' "install_dir/config/litellm/local.yaml"
+    ! grep -q 'host.docker.internal:11434\|openai/qwen3.5:9b' "install_dir/config/litellm/local.yaml"
 
     # A Windows Portal reinstall (host-native llama-server) can inherit the
     # local route from an earlier CPU fallback. Recompute only that obsolete
@@ -464,30 +464,30 @@ run_phase06_env_cycle() (
     export EXTERNAL_LLM_RESET=false
     export NATIVE_LLM_BASE_URL=http://localhost:13305
     export ODS_MODE=local
-    source "$install_dir/installers/phases/06-directories.sh"
-    grep -qx 'LLM_API_URL=http://litellm:4000' "$install_dir/.env"
-    grep -qx 'NATIVE_LLM_CONTAINER_BASE_URL=http://host.docker.internal:13305' "$install_dir/.env"
+    source "install_dir/installers/phases/06-directories.sh"
+    grep -qx 'LLM_API_URL=http://litellm:4000' "install_dir/.env"
+    grep -qx 'NATIVE_LLM_CONTAINER_BASE_URL=http://host.docker.internal:13305' "install_dir/.env"
 
-    sed -i 's#^LLM_API_URL=.*#LLM_API_URL=http://llama-server:8080/v1#' "$install_dir/.env"
-    source "$install_dir/installers/phases/06-directories.sh"
-    grep -qx 'LLM_API_URL=http://litellm:4000' "$install_dir/.env"
+    sed -i 's#^LLM_API_URL=.*#LLM_API_URL=http://llama-server:8080/v1#' "install_dir/.env"
+    source "install_dir/installers/phases/06-directories.sh"
+    grep -qx 'LLM_API_URL=http://litellm:4000' "install_dir/.env"
 
-    sed -i 's#^LLM_API_URL=.*#LLM_API_URL=http://custom-litellm:4000#' "$install_dir/.env"
-    source "$install_dir/installers/phases/06-directories.sh"
-    grep -qx 'LLM_API_URL=http://custom-litellm:4000' "$install_dir/.env"
+    sed -i 's#^LLM_API_URL=.*#LLM_API_URL=http://custom-litellm:4000#' "install_dir/.env"
+    source "install_dir/installers/phases/06-directories.sh"
+    grep -qx 'LLM_API_URL=http://custom-litellm:4000' "install_dir/.env"
 
     # A rerun that pauses a model API (Settings > Remote model) restores the
     # LLM_API_URL the API replaced (fleet, laptop: http://litellm:4000 stayed
     # and Portal chat reached LiteLLM without a key), or the mode's default.
     export NATIVE_LLM_BASE_URL=
-    sed -i 's#^LLM_API_URL=.*#LLM_API_URL=http://litellm:4000#' "$install_dir/.env"
+    sed -i 's#^LLM_API_URL=.*#LLM_API_URL=http://litellm:4000#' "install_dir/.env"
     export ODS_REMOTE_ROUTE_PAUSED=true ODS_REMOTE_ROUTE_PREVIOUS_API_URL=http://llama-server:8080/v1
-    source "$install_dir/installers/phases/06-directories.sh"
-    grep -qx 'LLM_API_URL=http://llama-server:8080/v1' "$install_dir/.env"
-    sed -i 's#^LLM_API_URL=.*#LLM_API_URL=http://litellm:4000#' "$install_dir/.env"
+    source "install_dir/installers/phases/06-directories.sh"
+    grep -qx 'LLM_API_URL=http://llama-server:8080/v1' "install_dir/.env"
+    sed -i 's#^LLM_API_URL=.*#LLM_API_URL=http://litellm:4000#' "install_dir/.env"
     export ODS_REMOTE_ROUTE_PREVIOUS_API_URL=
-    source "$install_dir/installers/phases/06-directories.sh"
-    grep -qx 'LLM_API_URL=http://llama-server:8080' "$install_dir/.env"
+    source "install_dir/installers/phases/06-directories.sh"
+    grep -qx 'LLM_API_URL=http://llama-server:8080' "install_dir/.env"
     export ODS_REMOTE_ROUTE_PAUSED=false
 )
 
@@ -500,19 +500,19 @@ fi
 run_phase06_amd_external() (
     set -euo pipefail
 
-    local install_dir="$TEMP_DIR/phase06-amd"
-    mkdir -p "$install_dir"
-    export HOME="$install_dir/test-home"
-    mkdir -p "$HOME"
-    tar -C "$ROOT_DIR" \
+    local install_dir="TEMP_DIR/phase06-amd"
+    mkdir -p "install_dir"
+    export HOME="install_dir/test-home"
+    mkdir -p "HOME"
+    tar -C "ROOT_DIR" \
         --exclude='./.env' \
         --exclude='./extensions/services/dashboard/node_modules' \
         --exclude='./extensions/services/dashboard/dist' \
-        -cf - . | tar -C "$install_dir" -xf -
+        -cf - . | tar -C "install_dir" -xf -
 
-    export INSTALL_DIR="$install_dir"
-    export SCRIPT_DIR="$install_dir"
-    export LOG_FILE="$install_dir/phase06.log"
+    export INSTALL_DIR="install_dir"
+    export SCRIPT_DIR="install_dir"
+    export LOG_FILE="install_dir/phase06.log"
     export DRY_RUN=false
     export INTERACTIVE=false
     export ODS_MODE=local
@@ -537,14 +537,14 @@ run_phase06_amd_external() (
     # asserts only the .env routing contract, so remove the unrelated APE bind
     # service that the fixture neither provisions nor verifies.
     printf 'services:\n  ape-not-a-bind-fixture:\n    image: scratch\n' \
-        >"$install_dir/extensions/services/ape/compose.yaml"
+        >"install_dir/extensions/services/ape/compose.yaml"
 
-    source "$install_dir/installers/lib/constants.sh"
-    source "$install_dir/installers/lib/logging.sh"
-    source "$install_dir/installers/lib/ui.sh"
-    source "$install_dir/installers/lib/detection.sh"
-    source "$install_dir/installers/lib/progress.sh"
-    source "$install_dir/installers/lib/sudo.sh"
+    source "install_dir/installers/lib/constants.sh"
+    source "install_dir/installers/lib/logging.sh"
+    source "install_dir/installers/lib/ui.sh"
+    source "install_dir/installers/lib/detection.sh"
+    source "install_dir/installers/lib/progress.sh"
+    source "install_dir/installers/lib/sudo.sh"
 
     ods_progress() { :; }
     ai() { :; }
@@ -556,30 +556,30 @@ run_phase06_amd_external() (
     show_phase() { :; }
     sudo() { return 0; }
     ods_sudo() {
-        case "$1" in
-            chmod) "$@" ;;
-            chgrp) command sudo -n "$@" ;;
+        case "1" in
+            chmod) "@" ;;
+            chgrp) command sudo -n "@" ;;
             *) return 0 ;;
         esac
     }
     docker() {
-        if [[ "${1:-}" == "info" && "${2:-}" == "--format" ]]; then
+        if [[ "{1:-}" == "info" && "${2:-}" == "--format" ]]; then
             printf '4\n'
             return 0
         fi
-        command docker "$@"
+        command docker "@"
     }
 
-    source "$install_dir/installers/phases/06-directories.sh"
+    source "install_dir/installers/phases/06-directories.sh"
 
-    grep -qx 'ODS_MODE=local' "$install_dir/.env"
-    grep -qx 'LLM_BACKEND=external' "$install_dir/.env"
-    grep -qx 'LLM_API_BASE_PATH=/v1' "$install_dir/.env"
-    grep -qx 'AMD_INFERENCE_RUNTIME=' "$install_dir/.env"
-    grep -qx 'AMD_INFERENCE_BACKEND=' "$install_dir/.env"
-    grep -qx 'AMD_INFERENCE_LOCATION=' "$install_dir/.env"
-    grep -qx 'AMD_INFERENCE_PORT=' "$install_dir/.env"
-    grep -qx 'AMD_INFERENCE_MANAGED=' "$install_dir/.env"
+    grep -qx 'ODS_MODE=local' "install_dir/.env"
+    grep -qx 'LLM_BACKEND=external' "install_dir/.env"
+    grep -qx 'LLM_API_BASE_PATH=/v1' "install_dir/.env"
+    grep -qx 'AMD_INFERENCE_RUNTIME=' "install_dir/.env"
+    grep -qx 'AMD_INFERENCE_BACKEND=' "install_dir/.env"
+    grep -qx 'AMD_INFERENCE_LOCATION=' "install_dir/.env"
+    grep -qx 'AMD_INFERENCE_PORT=' "install_dir/.env"
+    grep -qx 'AMD_INFERENCE_MANAGED=' "install_dir/.env"
 )
 
 if run_phase06_amd_external; then
@@ -589,15 +589,15 @@ else
 fi
 
 probe_retries_after_one_transport_failure() (
-    local curl_failure="$1" calls=0
+    local curl_failure="1" calls=0
     curl() {
-        calls=$((calls + 1))
-        [[ "${*: -1}" == "http://127.0.0.1:18080/v1/chat/completions" ]] || return 99
-        [[ "$calls" -eq 2 ]] || return "$curl_failure"
+        calls=((calls + 1))
+        [[ "{*: -1}" == "http://127.0.0.1:18080/v1/chat/completions" ]] || return 99
+        [[ "calls" -eq 2 ]] || return "$curl_failure"
     }
-    sleep() { [[ "$1" == 2 ]]; }
+    sleep() { [[ "1" == 2 ]]; }
     external_llm_probe_completion 'http://127.0.0.1:18080' 'test-model' >/dev/null 2>&1 &&
-        [[ "$calls" -eq 2 ]]
+        [[ "calls" -eq 2 ]]
 )
 assert_true "external completion probe retries one transient timeout" probe_retries_after_one_transport_failure 28
 assert_true "external completion probe retries one connection failure" probe_retries_after_one_transport_failure 7
@@ -605,36 +605,36 @@ assert_true "external completion probe retries one connection failure" probe_ret
 probe_fails_after_two_timeouts() (
     local calls=0
     curl() {
-        calls=$((calls + 1))
+        calls=((calls + 1))
         return 28
     }
-    sleep() { [[ "$1" == 2 ]]; }
+    sleep() { [[ "1" == 2 ]]; }
     if external_llm_probe_completion 'http://127.0.0.1:18080' 'test-model' >/dev/null 2>&1; then
         return 1
     fi
-    [[ "$calls" -eq 2 ]]
+    [[ "calls" -eq 2 ]]
 )
 assert_true "external completion probe stays red after bounded retries" probe_fails_after_two_timeouts
 
 probe_does_not_retry_http_error() (
     local calls=0
     curl() {
-        calls=$((calls + 1))
+        calls=((calls + 1))
         return 22
     }
     sleep() { return 99; }
     if external_llm_probe_completion 'http://127.0.0.1:18080' 'test-model' >/dev/null 2>&1; then
         return 1
     fi
-    [[ "$calls" -eq 1 ]]
+    [[ "calls" -eq 1 ]]
 )
 assert_true "external completion probe does not retry a hard HTTP error" probe_does_not_retry_http_error
 
-if python3 "$ROOT_DIR/tests/test-external-completion-probe.py"; then
+if python3 "ROOT_DIR/tests/test-external-completion-probe.py"; then
     pass "completion probe distinguishes reasoning budget exhaustion from invalid responses"
 else
     fail "external completion response validation"
 fi
 
-printf '\nResult: %d passed, %d failed\n' "$PASSED" "$FAILED"
-[[ "$FAILED" -eq 0 ]]
+printf '\nResult: %d passed, %d failed\n' "PASSED" "$FAILED"
+[[ "FAILED" -eq 0 ]]

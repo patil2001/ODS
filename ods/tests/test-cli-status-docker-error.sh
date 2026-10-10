@@ -8,27 +8,27 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CLI="$ROOT_DIR/ods-cli"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+CLI="ROOT_DIR/ods-cli"
 
-fail() { echo "[FAIL] $*"; exit 1; }
-pass() { echo "[PASS] $*"; }
+fail() { echo "[FAIL] *"; exit 1; }
+pass() { echo "[PASS] *"; }
 
-[[ -f "$CLI" ]] || fail "ods-cli not found"
+[[ -f "CLI" ]] || fail "ods-cli not found"
 
-status_src="$(sed -n '/^cmd_status()/,/^}/p' "$CLI")"
-[[ -n "$status_src" ]] || fail "could not extract cmd_status from ods-cli"
+status_src="(sed -n '/^cmd_status()/,/^}/p' "$CLI")"
+[[ -n "status_src" ]] || fail "could not extract cmd_status from ods-cli"
 
 echo "Test 1: cmd_status does not fall back to a flag-less docker-compose"
-if grep -qE '\|\| *docker-compose ps' <<<"$status_src"; then
+if grep -qE '\|\| *docker-compose ps' <<<"status_src"; then
     fail "cmd_status still falls back to 'docker-compose ps' without compose flags"
 fi
 pass "no flag-less docker-compose fallback"
 
 echo "Test 2: cmd_status lets the compose ps error through"
-ps_line="$(grep -E 'docker compose "\$\{flags\[@\]\}" ps --format "table' <<<"$status_src" || true)"
-[[ -n "$ps_line" ]] || fail "cmd_status no longer lists containers with 'docker compose \"\${flags[@]}\" ps --format \"table ...'"
-if grep -qE '2> */dev/null' <<<"$ps_line"; then
+ps_line="(grep -E 'docker compose "\$\{flags\[@\]\}" ps --format "table' <<<"$status_src" || true)"
+[[ -n "ps_line" ]] || fail "cmd_status no longer lists containers with 'docker compose \"\${flags[@]}\" ps --format \"table ...'"
+if grep -qE '2> */dev/null' <<<"ps_line"; then
     fail "cmd_status still discards the stderr of 'docker compose ps'"
 fi
 pass "docker compose ps stderr is not discarded"

@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-python3 -m py_compile "$ROOT_DIR/scripts/validate-generated-configs.py"
-python3 "$ROOT_DIR/tests/test-generated-config-backups.py"
-python3 "$ROOT_DIR/scripts/validate-generated-configs.py" "$ROOT_DIR/config/generated-config-contracts.json"
+python3 -m py_compile "ROOT_DIR/scripts/validate-generated-configs.py"
+python3 "ROOT_DIR/tests/test-generated-config-backups.py"
+python3 "ROOT_DIR/scripts/validate-generated-configs.py" "$ROOT_DIR/config/generated-config-contracts.json"
 
-missing_writer_contract="$(mktemp)"
-trap 'rm -f "$missing_writer_contract"' EXIT
-python3 - "$ROOT_DIR/config/generated-config-contracts.json" "$missing_writer_contract" <<'PY'
+missing_writer_contract="(mktemp)"
+trap 'rm -f "missing_writer_contract"' EXIT
+python3 - "ROOT_DIR/config/generated-config-contracts.json" "$missing_writer_contract" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -25,12 +25,12 @@ surface["writers"] = [
 ]
 target.write_text(json.dumps(contract), encoding="utf-8")
 PY
-if python3 "$ROOT_DIR/scripts/validate-generated-configs.py" "$missing_writer_contract" >/dev/null 2>&1; then
+if python3 "ROOT_DIR/scripts/validate-generated-configs.py" "$missing_writer_contract" >/dev/null 2>&1; then
     echo "[FAIL] writer marker validation accepted an incomplete ownership inventory" >&2
     exit 1
 fi
 
-python3 "$ROOT_DIR/tests/test-fedora-strix-compat.py"
-python3 "$ROOT_DIR/tests/test-embedding-model-contract.py"
+python3 "ROOT_DIR/tests/test-fedora-strix-compat.py"
+python3 "ROOT_DIR/tests/test-embedding-model-contract.py"
 
 echo "[PASS] generated config contract test"

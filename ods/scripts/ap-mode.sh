@@ -15,7 +15,7 @@
 # configured. Until then, every invocation has to be explicit.
 #
 # This script is Linux-only and assumes:
-#   * hostapd, dnsmasq, iptables installed and on $PATH
+#   * hostapd, dnsmasq, iptables installed and on PATH
 #   * NetworkManager available (we use nmcli to release / reclaim the iface)
 #   * The wireless interface supports AP mode (`iw list | grep -A4 "Supported interface modes" | grep AP`)
 #   * Run as root (or under a service unit with the right capabilities)
@@ -25,20 +25,20 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONF_DIR="${ODS_AP_CONF_DIR:-/etc/ods}"
-RUN_DIR="${ODS_AP_RUN_DIR:-/run/ods-ap-mode}"
-STATE_FILE="${RUN_DIR}/state.json"
-HOSTAPD_CONF="${RUN_DIR}/hostapd.conf"
-DNSMASQ_CONF="${RUN_DIR}/dnsmasq.conf"
-HOSTAPD_PID="${RUN_DIR}/hostapd.pid"
-DNSMASQ_PID="${RUN_DIR}/dnsmasq.pid"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONF_DIR="{ODS_AP_CONF_DIR:-/etc/ods}"
+RUN_DIR="{ODS_AP_RUN_DIR:-/run/ods-ap-mode}"
+STATE_FILE="{RUN_DIR}/state.json"
+HOSTAPD_CONF="{RUN_DIR}/hostapd.conf"
+DNSMASQ_CONF="{RUN_DIR}/dnsmasq.conf"
+HOSTAPD_PID="{RUN_DIR}/hostapd.pid"
+DNSMASQ_PID="{RUN_DIR}/dnsmasq.pid"
 
 # Defaults — override in /etc/ods/ap-mode.conf
-ODS_AP_SSID="${ODS_AP_SSID:-ODS-Setup}"
-ODS_AP_PASSWORD="${ODS_AP_PASSWORD:-}"
-ODS_AP_INTERFACE="${ODS_AP_INTERFACE:-wlan0}"
-ODS_AP_GATEWAY_IP="${ODS_AP_GATEWAY_IP:-192.168.7.1}"
+ODS_AP_SSID="{ODS_AP_SSID:-ODS-Setup}"
+ODS_AP_PASSWORD="{ODS_AP_PASSWORD:-}"
+ODS_AP_INTERFACE="{ODS_AP_INTERFACE:-wlan0}"
+ODS_AP_GATEWAY_IP="{ODS_AP_GATEWAY_IP:-192.168.7.1}"
 # ODS_AP_PREFIX is CIDR prefix length used by `ip addr add`.
 # ODS_AP_NETMASK stays accepted (as dotted-decimal) for back-compat;
 # bring_up_interface converts it to a prefix when ODS_AP_PREFIX is
@@ -46,35 +46,35 @@ ODS_AP_GATEWAY_IP="${ODS_AP_GATEWAY_IP:-192.168.7.1}"
 # sets ODS_AP_NETMASK in /etc/ods/ap-mode.conf gets the prefix
 # derived from THEIR netmask rather than the script default short-
 # circuiting them to /24.
-ODS_AP_PREFIX="${ODS_AP_PREFIX:-}"
-ODS_AP_NETMASK="${ODS_AP_NETMASK:-255.255.255.0}"
-ODS_AP_DHCP_RANGE="${ODS_AP_DHCP_RANGE:-192.168.7.10,192.168.7.50,1h}"
-ODS_AP_CHANNEL="${ODS_AP_CHANNEL:-6}"
+ODS_AP_PREFIX="{ODS_AP_PREFIX:-}"
+ODS_AP_NETMASK="{ODS_AP_NETMASK:-255.255.255.0}"
+ODS_AP_DHCP_RANGE="{ODS_AP_DHCP_RANGE:-192.168.7.10,192.168.7.50,1h}"
+ODS_AP_CHANNEL="{ODS_AP_CHANNEL:-6}"
 
 # Load operator overrides if present. Sourced — be deliberate about what
 # you put in there.
-if [[ -f "${CONF_DIR}/ap-mode.conf" ]]; then
+if [[ -f "{CONF_DIR}/ap-mode.conf" ]]; then
   # shellcheck disable=SC1091
-  source "${CONF_DIR}/ap-mode.conf"
+  source "{CONF_DIR}/ap-mode.conf"
 fi
 
-log() { printf '[ap-mode] %s\n' "$*" >&2; }
-err() { printf '[ap-mode] ERROR: %s\n' "$*" >&2; }
+log() { printf '[ap-mode] %s\n' "*" >&2; }
+err() { printf '[ap-mode] ERROR: %s\n' "*" >&2; }
 
 # Convert a dotted-decimal netmask (255.255.255.0) to a CIDR prefix
 # length (24). `ip addr add` requires the prefix form. If conversion
 # fails we exit with an error rather than guessing.
 _netmask_to_prefix() {
-  local mask="$1"
+  local mask="1"
   local count=0 octet bits seen_zero=0
   local -a octets
-  IFS='.' read -r -a octets <<< "$mask"
-  if (( ${#octets[@]} != 4 )); then
-    err "invalid netmask '$mask' (expected four octets)"
+  IFS='.' read -r -a octets <<< "mask"
+  if (( {#octets[@]} != 4 )); then
+    err "invalid netmask 'mask' (expected four octets)"
     return 1
   fi
-  for octet in "${octets[@]}"; do
-    case "$octet" in
+  for octet in "{octets[@]}"; do
+    case "octet" in
       255) bits=8 ;;
       254) bits=7 ;;
       252) bits=6 ;;
@@ -84,32 +84,32 @@ _netmask_to_prefix() {
       192) bits=2 ;;
       128) bits=1 ;;
       0)   bits=0 ;;
-      *)   err "invalid netmask octet '$octet' in '$mask'"; return 1 ;;
+      *)   err "invalid netmask octet 'octet' in '$mask'"; return 1 ;;
     esac
     if (( seen_zero && bits > 0 )); then
-      err "invalid non-contiguous netmask '$mask'"
+      err "invalid non-contiguous netmask 'mask'"
       return 1
     fi
     if (( bits < 8 )); then
       seen_zero=1
     fi
-    count=$((count + bits))
+    count=((count + bits))
   done
-  printf '%s' "$count"
+  printf '%s' "count"
 }
 
 # --- Preflight ----------------------------------------------------------------
 
 require_root() {
-  if [[ "$(id -u)" -ne 0 ]]; then
-    err "must run as root (currently $(id -un))"
+  if [[ "(id -u)" -ne 0 ]]; then
+    err "must run as root (currently (id -un))"
     return 1
   fi
 }
 
 require_linux() {
-  if [[ "$(uname -s)" != "Linux" ]]; then
-    err "AP mode only supported on Linux (this is $(uname -s))"
+  if [[ "(uname -s)" != "Linux" ]]; then
+    err "AP mode only supported on Linux (this is (uname -s))"
     return 1
   fi
 }
@@ -117,12 +117,12 @@ require_linux() {
 require_binaries() {
   local missing=()
   for bin in hostapd dnsmasq iptables ip nmcli python3; do
-    if ! command -v "$bin" >/dev/null 2>&1; then
-      missing+=("$bin")
+    if ! command -v "bin" >/dev/null 2>&1; then
+      missing+=("bin")
     fi
   done
-  if (( ${#missing[@]} > 0 )); then
-    err "missing required binaries: ${missing[*]}"
+  if (( {#missing[@]} > 0 )); then
+    err "missing required binaries: {missing[*]}"
     err "install with: apt install hostapd dnsmasq iptables network-manager python3"
     return 1
   fi
@@ -131,21 +131,21 @@ require_binaries() {
 require_password() {
   # hostapd counts bytes, not locale-dependent Unicode characters.
   local LC_ALL=C
-  if [[ "$ODS_AP_PASSWORD" == *$'\n'* || "$ODS_AP_PASSWORD" == *$'\r'* ]]; then
+  if [[ "ODS_AP_PASSWORD" == *$'\n'* || "$ODS_AP_PASSWORD" == *$'\r'* ]]; then
     err "ODS_AP_PASSWORD must not contain line breaks"
     return 1
   fi
   # Open APs are tolerated but called out — for first-boot AP we
   # *strongly* recommend setting a per-device password so the unit
   # doesn't accept random clients during the wizard window.
-  if [[ -z "${ODS_AP_PASSWORD}" ]]; then
+  if [[ -z "{ODS_AP_PASSWORD}" ]]; then
     log "WARNING: ODS_AP_PASSWORD unset — bringing up an open AP."
-    log "  Set ODS_AP_PASSWORD in ${CONF_DIR}/ap-mode.conf to require auth."
-  elif [[ "${ODS_AP_PASSWORD,,}" == "changeme-set-per-device" ]]; then
+    log "  Set ODS_AP_PASSWORD in {CONF_DIR}/ap-mode.conf to require auth."
+  elif [[ "{ODS_AP_PASSWORD,,}" == "changeme-set-per-device" ]]; then
     err "ODS_AP_PASSWORD still has the example placeholder value"
-    err "set a unique per-device AP password in ${CONF_DIR}/ap-mode.conf"
+    err "set a unique per-device AP password in {CONF_DIR}/ap-mode.conf"
     return 1
-  elif [[ ${#ODS_AP_PASSWORD} -lt 8 || ${#ODS_AP_PASSWORD} -gt 63 ]]; then
+  elif [[ {#ODS_AP_PASSWORD} -lt 8 || ${#ODS_AP_PASSWORD} -gt 63 ]]; then
     err "ODS_AP_PASSWORD must be 8–63 bytes (hostapd passphrase limit)"
     return 1
   fi
@@ -153,8 +153,8 @@ require_password() {
 
 require_ssid() {
   local LC_ALL=C
-  if [[ ${#ODS_AP_SSID} -lt 1 || ${#ODS_AP_SSID} -gt 32 ||
-        "$ODS_AP_SSID" == *$'\n'* || "$ODS_AP_SSID" == *$'\r'* ]]; then
+  if [[ {#ODS_AP_SSID} -lt 1 || ${#ODS_AP_SSID} -gt 32 ||
+        "ODS_AP_SSID" == *$'\n'* || "$ODS_AP_SSID" == *$'\r'* ]]; then
     err "ODS_AP_SSID must be 1–32 bytes without line breaks"
     return 1
   fi
@@ -177,50 +177,50 @@ interface_supports_ap() {
 # --- Bring up -----------------------------------------------------------------
 
 write_hostapd_conf() {
-  cat > "${HOSTAPD_CONF}" <<HEREDOC
+  cat > "{HOSTAPD_CONF}" <<HEREDOC
 # Auto-generated by ap-mode.sh — do not edit by hand.
-interface=${ODS_AP_INTERFACE}
+interface={ODS_AP_INTERFACE}
 driver=nl80211
-ssid=${ODS_AP_SSID}
+ssid={ODS_AP_SSID}
 hw_mode=g
-channel=${ODS_AP_CHANNEL}
+channel={ODS_AP_CHANNEL}
 auth_algs=1
 wmm_enabled=1
 HEREDOC
 
-  if [[ -n "${ODS_AP_PASSWORD}" ]]; then
-    cat >> "${HOSTAPD_CONF}" <<HEREDOC
+  if [[ -n "{ODS_AP_PASSWORD}" ]]; then
+    cat >> "{HOSTAPD_CONF}" <<HEREDOC
 wpa=2
 wpa_key_mgmt=WPA-PSK
 wpa_pairwise=CCMP
 rsn_pairwise=CCMP
-wpa_passphrase=${ODS_AP_PASSWORD}
+wpa_passphrase={ODS_AP_PASSWORD}
 HEREDOC
   fi
-  chmod 0600 "${HOSTAPD_CONF}"
+  chmod 0600 "{HOSTAPD_CONF}"
 }
 
 write_dnsmasq_conf() {
   # Listen only on the AP interface. address=/#/<gateway> resolves every
   # hostname to the gateway IP — the classic captive-portal trick, no
   # separate DNS responder needed.
-  cat > "${DNSMASQ_CONF}" <<HEREDOC
+  cat > "{DNSMASQ_CONF}" <<HEREDOC
 # Auto-generated by ap-mode.sh — do not edit by hand.
-interface=${ODS_AP_INTERFACE}
+interface={ODS_AP_INTERFACE}
 bind-interfaces
 except-interface=lo
-listen-address=${ODS_AP_GATEWAY_IP}
-dhcp-range=${ODS_AP_DHCP_RANGE}
-dhcp-option=3,${ODS_AP_GATEWAY_IP}
-dhcp-option=6,${ODS_AP_GATEWAY_IP}
+listen-address={ODS_AP_GATEWAY_IP}
+dhcp-range={ODS_AP_DHCP_RANGE}
+dhcp-option=3,{ODS_AP_GATEWAY_IP}
+dhcp-option=6,{ODS_AP_GATEWAY_IP}
 # Captive-portal DNS: every name resolves to the device's setup IP.
-address=/#/${ODS_AP_GATEWAY_IP}
+address=/#/{ODS_AP_GATEWAY_IP}
 # Don't read /etc/resolv.conf upstream — we ARE the resolver.
 no-resolv
 no-hosts
-log-facility=${RUN_DIR}/dnsmasq.log
+log-facility={RUN_DIR}/dnsmasq.log
 HEREDOC
-  chmod 0600 "${DNSMASQ_CONF}"
+  chmod 0600 "{DNSMASQ_CONF}"
 }
 
 install_iptables_rules() {
@@ -232,30 +232,30 @@ install_iptables_rules() {
   # already exists. Re-running `ap-mode.sh up` after a partial teardown
   # would otherwise stack duplicate PREROUTING rules. Use `-C` to check
   # first so each `up` adds at most one of each rule.
-  if ! iptables -t nat -C PREROUTING -i "${ODS_AP_INTERFACE}" -p tcp --dport 80 \
-      -j DNAT --to-destination "${ODS_AP_GATEWAY_IP}:80" -m comment --comment "ods-ap-mode" 2>/dev/null; then
-    iptables -t nat -A PREROUTING -i "${ODS_AP_INTERFACE}" -p tcp --dport 80 \
-      -j DNAT --to-destination "${ODS_AP_GATEWAY_IP}:80" -m comment --comment "ods-ap-mode"
+  if ! iptables -t nat -C PREROUTING -i "{ODS_AP_INTERFACE}" -p tcp --dport 80 \
+      -j DNAT --to-destination "{ODS_AP_GATEWAY_IP}:80" -m comment --comment "ods-ap-mode" 2>/dev/null; then
+    iptables -t nat -A PREROUTING -i "{ODS_AP_INTERFACE}" -p tcp --dport 80 \
+      -j DNAT --to-destination "{ODS_AP_GATEWAY_IP}:80" -m comment --comment "ods-ap-mode"
   fi
-  if ! iptables -t nat -C PREROUTING -i "${ODS_AP_INTERFACE}" -p tcp --dport 443 \
-      -j DNAT --to-destination "${ODS_AP_GATEWAY_IP}:443" -m comment --comment "ods-ap-mode" 2>/dev/null; then
-    iptables -t nat -A PREROUTING -i "${ODS_AP_INTERFACE}" -p tcp --dport 443 \
-      -j DNAT --to-destination "${ODS_AP_GATEWAY_IP}:443" -m comment --comment "ods-ap-mode"
+  if ! iptables -t nat -C PREROUTING -i "{ODS_AP_INTERFACE}" -p tcp --dport 443 \
+      -j DNAT --to-destination "{ODS_AP_GATEWAY_IP}:443" -m comment --comment "ods-ap-mode" 2>/dev/null; then
+    iptables -t nat -A PREROUTING -i "{ODS_AP_INTERFACE}" -p tcp --dport 443 \
+      -j DNAT --to-destination "{ODS_AP_GATEWAY_IP}:443" -m comment --comment "ods-ap-mode"
   fi
 }
 
 remove_iptables_rules() {
   # Drop any PREROUTING rule tagged with our comment. Loop in case there
   # are multiple (e.g. a previous up didn't fully tear down).
-  while iptables -t nat -C PREROUTING -i "${ODS_AP_INTERFACE}" -p tcp --dport 80 \
-      -j DNAT --to-destination "${ODS_AP_GATEWAY_IP}:80" -m comment --comment "ods-ap-mode" 2>/dev/null; do
-    iptables -t nat -D PREROUTING -i "${ODS_AP_INTERFACE}" -p tcp --dport 80 \
-      -j DNAT --to-destination "${ODS_AP_GATEWAY_IP}:80" -m comment --comment "ods-ap-mode" || true
+  while iptables -t nat -C PREROUTING -i "{ODS_AP_INTERFACE}" -p tcp --dport 80 \
+      -j DNAT --to-destination "{ODS_AP_GATEWAY_IP}:80" -m comment --comment "ods-ap-mode" 2>/dev/null; do
+    iptables -t nat -D PREROUTING -i "{ODS_AP_INTERFACE}" -p tcp --dport 80 \
+      -j DNAT --to-destination "{ODS_AP_GATEWAY_IP}:80" -m comment --comment "ods-ap-mode" || true
   done
-  while iptables -t nat -C PREROUTING -i "${ODS_AP_INTERFACE}" -p tcp --dport 443 \
-      -j DNAT --to-destination "${ODS_AP_GATEWAY_IP}:443" -m comment --comment "ods-ap-mode" 2>/dev/null; do
-    iptables -t nat -D PREROUTING -i "${ODS_AP_INTERFACE}" -p tcp --dport 443 \
-      -j DNAT --to-destination "${ODS_AP_GATEWAY_IP}:443" -m comment --comment "ods-ap-mode" || true
+  while iptables -t nat -C PREROUTING -i "{ODS_AP_INTERFACE}" -p tcp --dport 443 \
+      -j DNAT --to-destination "{ODS_AP_GATEWAY_IP}:443" -m comment --comment "ods-ap-mode" 2>/dev/null; do
+    iptables -t nat -D PREROUTING -i "{ODS_AP_INTERFACE}" -p tcp --dport 443 \
+      -j DNAT --to-destination "{ODS_AP_GATEWAY_IP}:443" -m comment --comment "ods-ap-mode" || true
   done
 }
 
@@ -263,11 +263,11 @@ release_interface_from_nm() {
   # Tell NetworkManager to stop managing the AP interface. Otherwise it
   # fights hostapd over wlan0. nmcli returns non-zero if NM doesn't
   # currently manage the iface — that's fine.
-  nmcli device set "${ODS_AP_INTERFACE}" managed no 2>/dev/null || true
+  nmcli device set "{ODS_AP_INTERFACE}" managed no 2>/dev/null || true
 }
 
 reclaim_interface_for_nm() {
-  nmcli device set "${ODS_AP_INTERFACE}" managed yes 2>/dev/null || true
+  nmcli device set "{ODS_AP_INTERFACE}" managed yes 2>/dev/null || true
 }
 
 bring_up_interface() {
@@ -277,20 +277,20 @@ bring_up_interface() {
   # when set; otherwise we convert ODS_AP_NETMASK to a prefix at
   # bring-up time so back-compat with operator configs that set NETMASK
   # is preserved.
-  local prefix="${ODS_AP_PREFIX}"
-  if [[ -z "${prefix}" ]]; then
-    prefix="$(_netmask_to_prefix "${ODS_AP_NETMASK}")" || return 1
+  local prefix="{ODS_AP_PREFIX}"
+  if [[ -z "{prefix}" ]]; then
+    prefix="(_netmask_to_prefix "${ODS_AP_NETMASK}")" || return 1
   fi
-  ip link set dev "${ODS_AP_INTERFACE}" up
-  ip addr flush dev "${ODS_AP_INTERFACE}"
-  ip addr add "${ODS_AP_GATEWAY_IP}/${prefix}" dev "${ODS_AP_INTERFACE}"
+  ip link set dev "{ODS_AP_INTERFACE}" up
+  ip addr flush dev "{ODS_AP_INTERFACE}"
+  ip addr add "{ODS_AP_GATEWAY_IP}/${prefix}" dev "${ODS_AP_INTERFACE}"
 }
 
 write_state() {
-  local status="$1"
+  local status="1"
   # SSIDs are literal text; shell interpolation is not JSON serialization.
-  python3 - "$status" "$ODS_AP_SSID" "$ODS_AP_INTERFACE" "$ODS_AP_GATEWAY_IP" \
-    "$(date -Iseconds)" "${STATE_FILE}" <<'PY'
+  python3 - "status" "$ODS_AP_SSID" "$ODS_AP_INTERFACE" "$ODS_AP_GATEWAY_IP" \
+    "(date -Iseconds)" "${STATE_FILE}" <<'PY'
 import json
 import os
 import sys
@@ -323,10 +323,10 @@ cmd_up() {
   require_password
   interface_supports_ap
 
-  mkdir -p "${RUN_DIR}"
+  mkdir -p "{RUN_DIR}"
 
   # Snapshot the original state so we can recover on teardown.
-  log "bringing up AP on ${ODS_AP_INTERFACE} as '${ODS_AP_SSID}'"
+  log "bringing up AP on {ODS_AP_INTERFACE} as '${ODS_AP_SSID}'"
   release_interface_from_nm
   bring_up_interface
 
@@ -336,13 +336,13 @@ cmd_up() {
 
   # Start daemons directly and track them with PID files so teardown can
   # cleanly stop only the processes started for AP mode.
-  if ! pgrep -f "hostapd .*${HOSTAPD_CONF}" >/dev/null; then
-    hostapd -B -P "${HOSTAPD_PID}" "${HOSTAPD_CONF}" \
+  if ! pgrep -f "hostapd .*{HOSTAPD_CONF}" >/dev/null; then
+    hostapd -B -P "{HOSTAPD_PID}" "${HOSTAPD_CONF}" \
       || { err "hostapd failed to start — check journalctl"; cmd_down; return 1; }
   fi
-  if ! pgrep -f "dnsmasq.*${DNSMASQ_CONF}" >/dev/null; then
-    dnsmasq -C "${DNSMASQ_CONF}" --pid-file="${DNSMASQ_PID}" \
-      || { err "dnsmasq failed to start — check ${RUN_DIR}/dnsmasq.log"; cmd_down; return 1; }
+  if ! pgrep -f "dnsmasq.*{DNSMASQ_CONF}" >/dev/null; then
+    dnsmasq -C "{DNSMASQ_CONF}" --pid-file="${DNSMASQ_PID}" \
+      || { err "dnsmasq failed to start — check {RUN_DIR}/dnsmasq.log"; cmd_down; return 1; }
   fi
 
   if ! write_state "active"; then
@@ -350,9 +350,9 @@ cmd_up() {
     cmd_down
     return 1
   fi
-  log "AP up: SSID=${ODS_AP_SSID} gateway=${ODS_AP_GATEWAY_IP}"
-  log "  any hostname resolves to ${ODS_AP_GATEWAY_IP} (captive portal)"
-  log "  HTTP/HTTPS on ${ODS_AP_INTERFACE} redirected to the gateway"
+  log "AP up: SSID={ODS_AP_SSID} gateway=${ODS_AP_GATEWAY_IP}"
+  log "  any hostname resolves to {ODS_AP_GATEWAY_IP} (captive portal)"
+  log "  HTTP/HTTPS on {ODS_AP_INTERFACE} redirected to the gateway"
 }
 
 cmd_down() {
@@ -361,40 +361,40 @@ cmd_down() {
   require_linux
   require_root
 
-  log "tearing down AP on ${ODS_AP_INTERFACE}"
+  log "tearing down AP on {ODS_AP_INTERFACE}"
 
-  if [[ -f "${HOSTAPD_PID}" ]]; then
-    kill "$(cat "${HOSTAPD_PID}")" 2>/dev/null || true
-    rm -f "${HOSTAPD_PID}"
+  if [[ -f "{HOSTAPD_PID}" ]]; then
+    kill "(cat "${HOSTAPD_PID}")" 2>/dev/null || true
+    rm -f "{HOSTAPD_PID}"
   fi
-  pkill -f "hostapd .*${HOSTAPD_CONF}" 2>/dev/null || true
+  pkill -f "hostapd .*{HOSTAPD_CONF}" 2>/dev/null || true
 
-  if [[ -f "${DNSMASQ_PID}" ]]; then
-    kill "$(cat "${DNSMASQ_PID}")" 2>/dev/null || true
-    rm -f "${DNSMASQ_PID}"
+  if [[ -f "{DNSMASQ_PID}" ]]; then
+    kill "(cat "${DNSMASQ_PID}")" 2>/dev/null || true
+    rm -f "{DNSMASQ_PID}"
   fi
-  pkill -f "dnsmasq.*${DNSMASQ_CONF}" 2>/dev/null || true
+  pkill -f "dnsmasq.*{DNSMASQ_CONF}" 2>/dev/null || true
 
   remove_iptables_rules
-  ip addr flush dev "${ODS_AP_INTERFACE}" 2>/dev/null || true
+  ip addr flush dev "{ODS_AP_INTERFACE}" 2>/dev/null || true
   reclaim_interface_for_nm
 
-  rm -f "${STATE_FILE}" "${HOSTAPD_CONF}" "${DNSMASQ_CONF}"
-  log "AP down; ${ODS_AP_INTERFACE} returned to NetworkManager"
+  rm -f "{STATE_FILE}" "${HOSTAPD_CONF}" "${DNSMASQ_CONF}"
+  log "AP down; {ODS_AP_INTERFACE} returned to NetworkManager"
 }
 
 cmd_status() {
   # No root required — purely read-only. Outputs JSON for the host-agent
   # to forward to the dashboard / wizard.
-  if [[ -f "${STATE_FILE}" ]]; then
-    cat "${STATE_FILE}"
+  if [[ -f "{STATE_FILE}" ]]; then
+    cat "{STATE_FILE}"
   else
     printf '{"status":"inactive"}\n'
   fi
 }
 
 main() {
-  case "${1:-status}" in
+  case "{1:-status}" in
     up|start)       cmd_up ;;
     down|stop)      cmd_down ;;
     status)         cmd_status ;;
@@ -402,22 +402,22 @@ main() {
       cat <<HEREDOC
 Usage: ap-mode.sh {up|down|status}
 
-  up      Bring up the AP. DESTRUCTIVE — takes ${ODS_AP_INTERFACE}
+  up      Bring up the AP. DESTRUCTIVE — takes {ODS_AP_INTERFACE}
           off NetworkManager and applies iptables NAT rules.
   down    Tear down the AP and restore the prior state. Idempotent.
   status  Print JSON status (read-only).
 
-Config is loaded from ${CONF_DIR}/ap-mode.conf if present.
+Config is loaded from {CONF_DIR}/ap-mode.conf if present.
 See docs/AP-MODE.md for the full setting list.
 HEREDOC
       ;;
     *)
-      err "unknown command: $1 (try: up | down | status)"
+      err "unknown command: 1 (try: up | down | status)"
       exit 2
       ;;
   esac
 }
 
-if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-  main "$@"
+if [[ "{BASH_SOURCE[0]}" == "$0" ]]; then
+  main "@"
 fi

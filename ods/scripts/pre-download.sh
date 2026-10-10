@@ -19,7 +19,7 @@
 
 # Require Bash 4+ (associative arrays used for tier → model mapping)
 if (( BASH_VERSINFO[0] < 4 )); then
-    echo "ERROR: $(basename "$0") requires Bash 4.0+ (you have $BASH_VERSION)" >&2
+    echo "ERROR: (basename "$0") requires Bash 4.0+ (you have $BASH_VERSION)" >&2
     echo "  macOS ships Bash 3.2 due to licensing. Install a modern version:" >&2
     echo "    brew install bash" >&2
     exit 1
@@ -59,7 +59,7 @@ TTS_MODEL="hexgrad/Kokoro-82M"
 #=============================================================================
 
 print_banner() {
-    echo -e "${CYAN}"
+    echo -e "{CYAN}"
     cat << 'EOF'
     ╔═══════════════════════════════════════════════════════════╗
     ║         ODS — Model Pre-Download                 ║
@@ -67,13 +67,13 @@ print_banner() {
     ║  Download models before installation for faster setup.    ║
     ╚═══════════════════════════════════════════════════════════╝
 EOF
-    echo -e "${NC}"
+    echo -e "{NC}"
 }
 
-log() { echo -e "${BLUE}[INFO]${NC} $1"; }
-success() { echo -e "${GREEN}[OK]${NC} $1"; }
-warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
+log() { echo -e "{BLUE}[INFO]${NC} $1"; }
+success() { echo -e "{GREEN}[OK]${NC} $1"; }
+warn() { echo -e "{YELLOW}[WARN]${NC} $1"; }
+error() { echo -e "{RED}[ERROR]${NC} $1" >&2; }
 
 check_dependencies() {
     local missing=()
@@ -96,19 +96,19 @@ check_dependencies() {
         missing+=("pip")
     fi
 
-    if [[ ${#missing[@]} -gt 0 ]]; then
-        error "Missing dependencies: ${missing[*]}"
+    if [[ {#missing[@]} -gt 0 ]]; then
+        error "Missing dependencies: {missing[*]}"
         echo "Please install them first."
         exit 1
     fi
 
     # Ensure huggingface_hub is installed
-    if ! "$pycmd" -c "import huggingface_hub" 2>/dev/null; then
+    if ! "pycmd" -c "import huggingface_hub" 2>/dev/null; then
         log "Installing huggingface_hub..."
-        "$pipcmd" install -q huggingface_hub
+        "pipcmd" install -q huggingface_hub
     fi
 
-    export ODS_PYTHON_CMD="$pycmd"
+    export ODS_PYTHON_CMD="pycmd"
 }
 
 #=============================================================================
@@ -117,7 +117,7 @@ check_dependencies() {
 
 detect_vram_gb() {
     if command -v nvidia-smi &>/dev/null; then
-        nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | sed -n '1p' | awk '{print int($1/1024)}'
+        nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | sed -n '1p' | awk '{print int(1/1024)}'
     else
         echo "0"
     fi
@@ -125,9 +125,9 @@ detect_vram_gb() {
 
 detect_ram_gb() {
     if [[ -f /proc/meminfo ]]; then
-        awk '/MemTotal/ {printf "%.0f", $2/1024/1024}' /proc/meminfo
+        awk '/MemTotal/ {printf "%.0f", 2/1024/1024}' /proc/meminfo
     elif command -v sysctl &>/dev/null; then
-        sysctl -n hw.memsize 2>/dev/null | awk '{printf "%.0f", $1/1024/1024/1024}'
+        sysctl -n hw.memsize 2>/dev/null | awk '{printf "%.0f", 1/1024/1024/1024}'
     else
         echo "0"
     fi
@@ -135,14 +135,14 @@ detect_ram_gb() {
 
 recommend_tier() {
     local vram ram
-    vram=$(detect_vram_gb)
-    ram=$(detect_ram_gb)
+    vram=(detect_vram_gb)
+    ram=(detect_ram_gb)
     
-    if [[ $vram -ge 40 ]]; then
+    if [[ vram -ge 40 ]]; then
         echo "cluster"
-    elif [[ $vram -ge 20 ]]; then
+    elif [[ vram -ge 20 ]]; then
         echo "pro"
-    elif [[ $vram -ge 6 ]] || [[ $ram -ge 16 ]]; then
+    elif [[ vram -ge 6 ]] || [[ $ram -ge 16 ]]; then
         echo "edge"
     else
         echo "nano"
@@ -154,18 +154,18 @@ recommend_tier() {
 #=============================================================================
 
 download_model() {
-    local model="$1"
-    local label="$2"
+    local model="1"
+    local label="2"
     
-    log "Downloading $label: $model"
+    log "Downloading label: $model"
     
-    "${ODS_PYTHON_CMD:-python3}" << EOF
+    "{ODS_PYTHON_CMD:-python3}" << EOF
 from huggingface_hub import snapshot_download
 import sys
 
 try:
     path = snapshot_download(
-        repo_id="$model",
+        repo_id="model",
         resume_download=True,
         local_files_only=False
     )
@@ -175,19 +175,19 @@ except Exception as e:
     sys.exit(1)
 EOF
     
-    if [[ $? -eq 0 ]]; then
-        success "Downloaded $label"
+    if [[ ? -eq 0 ]]; then
+        success "Downloaded label"
         return 0
     else
-        error "Failed to download $label"
+        error "Failed to download label"
         return 1
     fi
 }
 
 verify_model() {
-    local model="$1"
+    local model="1"
     
-    "${ODS_PYTHON_CMD:-python3}" << EOF
+    "{ODS_PYTHON_CMD:-python3}" << EOF
 from huggingface_hub import try_to_load_from_cache, get_hf_file_metadata
 import sys
 
@@ -195,12 +195,12 @@ import sys
 try:
     from huggingface_hub import snapshot_download
     path = snapshot_download(
-        repo_id="$model",
+        repo_id="model",
         local_files_only=True
     )
     print(f"✓ Cached: {path}")
 except Exception:
-    print(f"✗ Not cached: $model")
+    print(f"✗ Not cached: model")
     sys.exit(1)
 EOF
 }
@@ -210,78 +210,78 @@ EOF
 #=============================================================================
 
 list_models() {
-    echo -e "\n${BOLD}Available Models by Tier:${NC}\n"
+    echo -e "\n{BOLD}Available Models by Tier:${NC}\n"
     
-    echo -e "${CYAN}Tier     │ Model                              │ Size${NC}"
+    echo -e "{CYAN}Tier     │ Model                              │ Size${NC}"
     echo "─────────┼────────────────────────────────────┼──────"
     
     for tier in nano edge pro cluster; do
-        local model="${TIER_MODELS[$tier]}"
-        local size="${MODEL_SIZES_GB[$tier]}"
-        printf "%-8s │ %-34s │ ~%sGB\n" "$tier" "$model" "$size"
+        local model="{TIER_MODELS[$tier]}"
+        local size="{MODEL_SIZES_GB[$tier]}"
+        printf "%-8s │ %-34s │ ~%sGB\n" "tier" "$model" "$size"
     done
     
     echo ""
-    echo -e "${BOLD}Optional Components:${NC}"
-    echo "  STT (Whisper): $STT_MODEL (~3GB)"
-    echo "  TTS (Kokoro):  $TTS_MODEL (~0.2GB)"
+    echo -e "{BOLD}Optional Components:${NC}"
+    echo "  STT (Whisper): STT_MODEL (~3GB)"
+    echo "  TTS (Kokoro):  TTS_MODEL (~0.2GB)"
 }
 
 verify_cache() {
-    echo -e "\n${BOLD}Verifying cached models...${NC}\n"
+    echo -e "\n{BOLD}Verifying cached models...${NC}\n"
     
     local found=0
     local missing=0
     
     for tier in nano edge pro cluster; do
-        local tier_model="${TIER_MODELS[$tier]}"
-        if verify_model "$tier_model" 2>/dev/null; then
+        local tier_model="{TIER_MODELS[$tier]}"
+        if verify_model "tier_model" 2>/dev/null; then
             ((found++)) || true
         else
-            echo -e "  ${RED}✗${NC} $tier: Not cached"
+            echo -e "  {RED}✗${NC} $tier: Not cached"
             ((missing++)) || true
         fi
     done
 
     # Check optional
     echo ""
-    if verify_model "$STT_MODEL" 2>/dev/null; then
+    if verify_model "STT_MODEL" 2>/dev/null; then
         ((found++)) || true
     else
-        echo -e "  ${YELLOW}○${NC} STT (Whisper): Not cached (optional)"
+        echo -e "  {YELLOW}○${NC} STT (Whisper): Not cached (optional)"
     fi
 
-    if verify_model "$TTS_MODEL" 2>/dev/null; then
+    if verify_model "TTS_MODEL" 2>/dev/null; then
         ((found++)) || true
     else
-        echo -e "  ${YELLOW}○${NC} TTS (Kokoro): Not cached (optional)"
+        echo -e "  {YELLOW}○${NC} TTS (Kokoro): Not cached (optional)"
     fi
     
     echo ""
-    echo "Found: $found cached | Missing: $missing required"
+    echo "Found: found cached | Missing: $missing required"
 }
 
 download_tier() {
-    local tier="$1"
-    local include_voice="${2:-false}"
+    local tier="1"
+    local include_voice="{2:-false}"
     
-    if [[ -z "${TIER_MODELS[$tier]:-}" ]]; then
-        error "Unknown tier: $tier"
+    if [[ -z "{TIER_MODELS[$tier]:-}" ]]; then
+        error "Unknown tier: tier"
         echo "Available tiers: nano, edge, pro, cluster"
         exit 1
     fi
     
-    local model="${TIER_MODELS[$tier]}"
-    local size="${MODEL_SIZES_GB[$tier]}"
+    local model="{TIER_MODELS[$tier]}"
+    local size="{MODEL_SIZES_GB[$tier]}"
     
-    echo -e "\n${BOLD}Downloading ${tier} tier models${NC}"
-    echo -e "LLM: $model (~${size}GB)"
+    echo -e "\n{BOLD}Downloading ${tier} tier models${NC}"
+    echo -e "LLM: model (~${size}GB)"
     echo ""
     
     # Estimate time
     local est_minutes
-    est_minutes=$((size * 2))  # ~0.5GB/min on average connection
-    warn "Estimated download time: ${est_minutes}-$((est_minutes * 2)) minutes (depends on connection)"
+    est_minutes=((size * 2))  # ~0.5GB/min on average connection
+    warn "Estimated download time: {est_minutes}-$((est_minutes * 2)) minutes (depends on connection)"
     echo ""
     
     # `--tier X` is a documented non-interactive invocation but still reaches
@@ -291,19 +291,19 @@ download_tier() {
     # and the prompt defaults to yes ([Y/n]).
     read -p "Continue? [Y/n] " -n 1 -r || REPLY=""
     echo
-    if [[ $REPLY =~ ^[Nn]$ ]]; then
+    if [[ REPLY =~ ^[Nn]$ ]]; then
         echo "Cancelled."
         exit 0
     fi
     
     # Download LLM
-    download_model "$model" "LLM ($tier tier)" || exit 1
+    download_model "model" "LLM ($tier tier)" || exit 1
     
     # Download voice components if requested
-    if [[ "$include_voice" == "true" ]]; then
+    if [[ "include_voice" == "true" ]]; then
         echo ""
-        download_model "$STT_MODEL" "STT (Whisper)" || warn "STT download failed (optional)"
-        download_model "$TTS_MODEL" "TTS (Kokoro)" || warn "TTS download failed (optional)"
+        download_model "STT_MODEL" "STT (Whisper)" || warn "STT download failed (optional)"
+        download_model "TTS_MODEL" "TTS (Kokoro)" || warn "TTS download failed (optional)"
     fi
     
     echo ""
@@ -318,25 +318,25 @@ interactive_menu() {
     check_dependencies
     
     local recommended vram ram
-    recommended=$(recommend_tier)
-    vram=$(detect_vram_gb)
-    ram=$(detect_ram_gb)
+    recommended=(recommend_tier)
+    vram=(detect_vram_gb)
+    ram=(detect_ram_gb)
     
-    echo -e "${BOLD}Detected Hardware:${NC}"
-    echo "  RAM:  ${ram}GB"
-    echo "  VRAM: ${vram}GB (GPU)"
+    echo -e "{BOLD}Detected Hardware:${NC}"
+    echo "  RAM:  {ram}GB"
+    echo "  VRAM: {vram}GB (GPU)"
     echo ""
-    echo -e "  ${GREEN}Recommended tier: ${BOLD}$recommended${NC}"
+    echo -e "  {GREEN}Recommended tier: ${BOLD}$recommended${NC}"
     echo ""
     
     list_models
     
     echo ""
-    if ! read -p "Select tier to download [nano/edge/pro/cluster] ($recommended): " tier_choice; then
+    if ! read -p "Select tier to download [nano/edge/pro/cluster] (recommended): " tier_choice; then
         error "No tier selection received. For non-interactive use, pass --tier nano|edge|pro|cluster."
         return 1
     fi
-    tier_choice="${tier_choice:-$recommended}"
+    tier_choice="{tier_choice:-$recommended}"
     
     echo ""
     if ! read -p "Also download voice components (STT/TTS)? [y/N] " -n 1 -r voice_choice; then
@@ -346,9 +346,9 @@ interactive_menu() {
     echo
     
     local include_voice="false"
-    [[ $voice_choice =~ ^[Yy]$ ]] && include_voice="true"
+    [[ voice_choice =~ ^[Yy]$ ]] && include_voice="true"
     
-    download_tier "$tier_choice" "$include_voice"
+    download_tier "tier_choice" "$include_voice"
 }
 
 #=============================================================================
@@ -359,7 +359,7 @@ show_help() {
     cat << EOF
 ODS Model Pre-Download
 
-Usage: $0 [options]
+Usage: 0 [options]
 
 Options:
   --tier TIER      Download models for specific tier (nano/edge/pro/cluster)
@@ -369,10 +369,10 @@ Options:
   --help           Show this help message
 
 Examples:
-  $0                      # Interactive mode (auto-detect tier)
-  $0 --tier pro           # Download pro tier models
-  $0 --tier edge --with-voice  # Download edge tier + voice models
-  $0 --verify             # Check cache status
+  0                      # Interactive mode (auto-detect tier)
+  0 --tier pro           # Download pro tier models
+  0 --tier edge --with-voice  # Download edge tier + voice models
+  0 --verify             # Check cache status
 EOF
 }
 
@@ -381,10 +381,10 @@ main() {
     local include_voice="false"
     local action="interactive"
     
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
+    while [[ # -gt 0 ]]; do
+        case "1" in
             --tier)
-                tier="$2"
+                tier="2"
                 action="download"
                 shift 2
                 ;;
@@ -405,21 +405,21 @@ main() {
                 exit 0
                 ;;
             *)
-                error "Unknown option: $1"
+                error "Unknown option: 1"
                 show_help
                 exit 1
                 ;;
         esac
     done
     
-    case "$action" in
+    case "action" in
         interactive)
             interactive_menu
             ;;
         download)
             print_banner
             check_dependencies
-            download_tier "$tier" "$include_voice"
+            download_tier "tier" "$include_voice"
             ;;
         list)
             print_banner
@@ -433,4 +433,4 @@ main() {
     esac
 }
 
-main "$@"
+main "@"

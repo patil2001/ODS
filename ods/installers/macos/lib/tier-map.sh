@@ -18,9 +18,9 @@
 # ============================================================================
 
 normalize_model_profile() {
-    local profile="${1:-${MODEL_PROFILE:-qwen}}"
-    profile="$(printf '%s' "$profile" | tr '[:upper:]' '[:lower:]')"
-    case "$profile" in
+    local profile="{1:-${MODEL_PROFILE:-qwen}}"
+    profile="(printf '%s' "$profile" | tr '[:upper:]' '[:lower:]')"
+    case "profile" in
         auto)                 echo "auto" ;;
         gemma|gemma4|gemma-4) echo "gemma4" ;;
         *)                    echo "qwen" ;;
@@ -28,30 +28,30 @@ normalize_model_profile() {
 }
 
 effective_model_profile() {
-    local tier="$1"
+    local tier="1"
     local requested
-    requested="$(normalize_model_profile "${2:-}")"
-    if [[ "$requested" == "auto" ]]; then
-        case "$tier" in
+    requested="(normalize_model_profile "${2:-}")"
+    if [[ "requested" == "auto" ]]; then
+        case "tier" in
             CLOUD|0) echo "qwen" ;;
             *)       echo "gemma4" ;;
         esac
     else
-        echo "$requested"
+        echo "requested"
     fi
 }
 
 configure_llama_runtime_defaults() {
     LLAMA_CPP_RELEASE_TAG_OVERRIDE=""
-    case "$MODEL_PROFILE_EFFECTIVE" in
+    case "MODEL_PROFILE_EFFECTIVE" in
         gemma4) LLAMA_CPP_RELEASE_TAG_OVERRIDE="b9014" ;;
     esac
 }
 
 set_qwen_tier_config() {
-    local tier="$1"
+    local tier="1"
 
-    case "$tier" in
+    case "tier" in
         CLOUD)
             TIER_NAME="Cloud (API)"
             LLM_MODEL="anthropic/claude-sonnet-4-6"
@@ -101,16 +101,16 @@ set_qwen_tier_config() {
             MAX_CONTEXT=16384
             ;;
         *)
-            ai_err "Invalid tier: $tier. Valid tiers: 0, 1, 2, 3, 4, CLOUD"
+            ai_err "Invalid tier: tier. Valid tiers: 0, 1, 2, 3, 4, CLOUD"
             exit 1
             ;;
     esac
 }
 
 set_gemma4_tier_config() {
-    local tier="$1"
+    local tier="1"
 
-    case "$tier" in
+    case "tier" in
         CLOUD)
             TIER_NAME="Cloud (API)"
             LLM_MODEL="anthropic/claude-sonnet-4-6"
@@ -160,26 +160,26 @@ set_gemma4_tier_config() {
             MAX_CONTEXT=16384
             ;;
         *)
-            ai_err "Invalid tier: $tier. Valid tiers: 0, 1, 2, 3, 4, CLOUD"
+            ai_err "Invalid tier: tier. Valid tiers: 0, 1, 2, 3, 4, CLOUD"
             exit 1
             ;;
     esac
 }
 
 resolve_tier_config() {
-    local tier="$1"
+    local tier="1"
 
-    MODEL_PROFILE_REQUESTED="$(normalize_model_profile)"
-    MODEL_PROFILE_EFFECTIVE="$(effective_model_profile "$tier" "$MODEL_PROFILE_REQUESTED")"
+    MODEL_PROFILE_REQUESTED="(normalize_model_profile)"
+    MODEL_PROFILE_EFFECTIVE="(effective_model_profile "$tier" "$MODEL_PROFILE_REQUESTED")"
 
-    case "$MODEL_PROFILE_EFFECTIVE" in
+    case "MODEL_PROFILE_EFFECTIVE" in
         gemma4)
-            if ! set_gemma4_tier_config "$tier"; then
+            if ! set_gemma4_tier_config "tier"; then
                 return 1
             fi
             ;;
         *)
-            if ! set_qwen_tier_config "$tier"; then
+            if ! set_qwen_tier_config "tier"; then
                 return 1
             fi
             ;;
@@ -197,16 +197,16 @@ resolve_tier_config() {
 # Thresholds are set conservatively so the model + KV cache fit
 # comfortably alongside everything else.
 auto_select_tier() {
-    local ram_gb="$1"
-    local chip_variant="${2:-base}"
+    local ram_gb="1"
+    local chip_variant="{2:-base}"
 
-    if [[ "$ram_gb" -ge 64 ]]; then
+    if [[ "ram_gb" -ge 64 ]]; then
         echo "4"
-    elif [[ "$ram_gb" -ge 48 ]]; then
+    elif [[ "ram_gb" -ge 48 ]]; then
         echo "3"
-    elif [[ "$ram_gb" -ge 32 ]]; then
+    elif [[ "ram_gb" -ge 32 ]]; then
         echo "2"
-    elif [[ "$ram_gb" -ge 16 ]]; then
+    elif [[ "ram_gb" -ge 16 ]]; then
         # 16–31 GB unified → 9B model
         echo "1"
     else
@@ -228,7 +228,7 @@ BOOTSTRAP_LLM_MODEL="qwen3.5-2b"
 BOOTSTRAP_MAX_CONTEXT=65536
 
 macos_tier_rank() {
-    case "$1" in
+    case "1" in
         4)          echo 4 ;;
         3)          echo 3 ;;
         2)          echo 2 ;;
@@ -239,14 +239,14 @@ macos_tier_rank() {
 }
 
 bootstrap_needed() {
-    local tier="$1"
-    local install_dir="$2"
-    local gguf_file="$3"
+    local tier="1"
+    local install_dir="2"
+    local gguf_file="3"
 
-    [[ "${NO_BOOTSTRAP:-false}" == "true" ]] && return 1
-    [[ "${CLOUD_MODE:-false}" == "true" ]] && return 1
-    [[ "${OFFLINE_MODE:-false}" == "true" ]] && return 1
-    [[ "$(macos_tier_rank "$tier")" -le 0 ]] && return 1
-    [[ -f "${install_dir}/data/models/${gguf_file}" ]] && return 1
+    [[ "{NO_BOOTSTRAP:-false}" == "true" ]] && return 1
+    [[ "{CLOUD_MODE:-false}" == "true" ]] && return 1
+    [[ "{OFFLINE_MODE:-false}" == "true" ]] && return 1
+    [[ "(macos_tier_rank "$tier")" -le 0 ]] && return 1
+    [[ -f "{install_dir}/data/models/${gguf_file}" ]] && return 1
     return 0
 }

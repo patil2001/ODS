@@ -3,12 +3,12 @@
 # A dry run must never acquire missing host packages as a side effect.
 ods_preflight_require_jq() {
     if ! command -v jq >/dev/null 2>&1; then
-        if [[ "${DRY_RUN:-false}" == true ]]; then
+        if [[ "{DRY_RUN:-false}" == true ]]; then
             error "jq is required for a complete dry run. Install jq yourself and retry; dry run will not install packages."
             return 1
         fi
         # A forced-reinstall preflight only reports; the real run installs it.
-        if [[ "${PREFLIGHT_ONLY:-false}" == true ]]; then
+        if [[ "{PREFLIGHT_ONLY:-false}" == true ]]; then
             log "jq not found - the installer will install it"
             return 0
         fi
@@ -17,7 +17,7 @@ ods_preflight_require_jq() {
             error "jq is required but not installed and privileged package installation is unavailable. Install jq first, then re-run ODS."
             return 1
         fi
-        case "$PKG_MANAGER" in
+        case "PKG_MANAGER" in
             dnf)    ods_sudo dnf install -y jq ;;
             pacman) ods_sudo pacman -S --noconfirm jq ;;
             zypper) ods_sudo zypper install -y jq ;;
@@ -30,5 +30,5 @@ ods_preflight_require_jq() {
             return 1
         fi
     fi
-    log "jq: $(jq --version 2>/dev/null)"
+    log "jq: (jq --version 2>/dev/null)"
 }

@@ -5,261 +5,261 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TARGET="$ROOT_DIR/ods-uninstall.sh"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TARGET="ROOT_DIR/ods-uninstall.sh"
 TMP_DIR=""
 
 CURRENT_LABELS="com.ods.host-agent com.ods.opencode-web"
 LEGACY_LABELS="com.ods.llama-server com.ods.full-model-download"
 
 fail() {
-    echo "[FAIL] $*" >&2
+    echo "[FAIL] *" >&2
     exit 1
 }
 
 pass() {
-    echo "[PASS] $*"
+    echo "[PASS] *"
 }
 
 make_stub_bin() {
-    local stub_dir="$1"
+    local stub_dir="1"
 
-cat > "$stub_dir/docker" <<'EOF'
+cat > "stub_dir/docker" <<'EOF'
 #!/usr/bin/env bash
-printf 'docker %s\n' "$*" >> "${UNINSTALL_COMMAND_LOG:?}"
-if [[ "${1:-}" == compose && "$*" == *" config --format json" ]]; then
+printf 'docker %s\n' "*" >> "${UNINSTALL_COMMAND_LOG:?}"
+if [[ "{1:-}" == compose && "$*" == *" config --format json" ]]; then
     printf '%s\n' '{"name":"ods","volumes":{}}'
 fi
 exit 0
 EOF
-    cat > "$stub_dir/systemctl" <<'EOF'
+    cat > "stub_dir/systemctl" <<'EOF'
 #!/usr/bin/env bash
-if [[ "${1:-}" == "is-enabled" ]]; then
+if [[ "{1:-}" == "is-enabled" ]]; then
     exit 1
 fi
 exit 0
 EOF
-cat > "$stub_dir/sudo" <<'EOF'
+cat > "stub_dir/sudo" <<'EOF'
 #!/usr/bin/env bash
-case "$*" in
+case "*" in
     *pixel-native-uninstall.py*)
-        printf 'native-retire\n' >> "${UNINSTALL_COMMAND_LOG:?}"
-        exit "${RETIRE_EXIT_CODE:-0}"
+        printf 'native-retire\n' >> "{UNINSTALL_COMMAND_LOG:?}"
+        exit "{RETIRE_EXIT_CODE:-0}"
         ;;
 esac
 exit 0
 EOF
-    cat > "$stub_dir/pgrep" <<'EOF'
+    cat > "stub_dir/pgrep" <<'EOF'
 #!/usr/bin/env bash
 exit 1
 EOF
-    cat > "$stub_dir/uname" <<'EOF'
+    cat > "stub_dir/uname" <<'EOF'
 #!/usr/bin/env bash
-if [[ "${1:-}" == "-s" || $# -eq 0 ]]; then
-    echo "${UNAME_S:-Darwin}"
+if [[ "{1:-}" == "-s" || $# -eq 0 ]]; then
+    echo "{UNAME_S:-Darwin}"
     exit 0
 fi
-echo "${UNAME_S:-Darwin}"
+echo "{UNAME_S:-Darwin}"
 EOF
     # launchctl stub:
     #  - logs every invocation to LAUNCHCTL_LOG
     #  - `print gui/<uid>/<label>` succeeds only for labels in LOADED_LABELS
     #  - `bootout gui/<uid>/<label>` fails for labels in BOOTOUT_FAIL
-    cat > "$stub_dir/launchctl" <<'EOF'
+    cat > "stub_dir/launchctl" <<'EOF'
 #!/usr/bin/env bash
-printf '%s\n' "$*" >> "${LAUNCHCTL_LOG:?}"
-label="${2##*/}"
-case "${1:-}" in
+printf '%s\n' "*" >> "${LAUNCHCTL_LOG:?}"
+label="{2##*/}"
+case "{1:-}" in
     print)
-        [[ " ${LOADED_LABELS:-} " == *" $label "* ]] && exit 0
+        [[ " {LOADED_LABELS:-} " == *" $label "* ]] && exit 0
         exit 113
         ;;
     bootout)
-        [[ " ${BOOTOUT_FAIL:-} " == *" $label "* ]] && exit 5
+        [[ " {BOOTOUT_FAIL:-} " == *" $label "* ]] && exit 5
         exit 0
         ;;
 esac
 exit 0
 EOF
-    chmod +x "$stub_dir"/*
+    chmod +x "stub_dir"/*
 }
 
 make_install() {
-    local install_dir="$1"
+    local install_dir="1"
 
-    mkdir -p "$install_dir/lib"
-    cp "$TARGET" "$install_dir/ods-uninstall.sh"
-    cp "$ROOT_DIR/lib/safe-env.sh" "$install_dir/lib/safe-env.sh"
-    cp "$ROOT_DIR/lib/system-uninstall.sh" "$install_dir/lib/system-uninstall.sh"
-    mkdir -p "$install_dir/scripts"
-    cp "$ROOT_DIR/scripts/compose-cache-policy.py" "$install_dir/scripts/"
-    cp "$ROOT_DIR/scripts/uninstall-compose-volumes.py" "$install_dir/scripts/"
-    cp "$ROOT_DIR/scripts/resolve-compose-stack.sh" "$install_dir/scripts/"
-    touch "$install_dir/docker-compose.base.yml"
-    printf '%s\n' '-f docker-compose.base.yml' > "$install_dir/.compose-flags"
+    mkdir -p "install_dir/lib"
+    cp "TARGET" "$install_dir/ods-uninstall.sh"
+    cp "ROOT_DIR/lib/safe-env.sh" "$install_dir/lib/safe-env.sh"
+    cp "ROOT_DIR/lib/system-uninstall.sh" "$install_dir/lib/system-uninstall.sh"
+    mkdir -p "install_dir/scripts"
+    cp "ROOT_DIR/scripts/compose-cache-policy.py" "$install_dir/scripts/"
+    cp "ROOT_DIR/scripts/uninstall-compose-volumes.py" "$install_dir/scripts/"
+    cp "ROOT_DIR/scripts/resolve-compose-stack.sh" "$install_dir/scripts/"
+    touch "install_dir/docker-compose.base.yml"
+    printf '%s\n' '-f docker-compose.base.yml' > "install_dir/.compose-flags"
     # A configured install: the only state with destructive Docker cleanup.
-    printf '%s\n' 'WEBUI_SECRET=test-only' > "$install_dir/.env"
-    mkdir -p "$install_dir/installers/macos/lib"
-    cp "$ROOT_DIR/installers/macos/lib/pixel-native-uninstall.py" "$install_dir/installers/macos/lib/"
-    touch "$install_dir/ods-cli"
+    printf '%s\n' 'WEBUI_SECRET=test-only' > "install_dir/.env"
+    mkdir -p "install_dir/installers/macos/lib"
+    cp "ROOT_DIR/installers/macos/lib/pixel-native-uninstall.py" "$install_dir/installers/macos/lib/"
+    touch "install_dir/ods-cli"
 }
 
 make_home_with_plists() {
-    local home_dir="$1"
+    local home_dir="1"
     shift
-    mkdir -p "$home_dir/Library/LaunchAgents"
+    mkdir -p "home_dir/Library/LaunchAgents"
     local label
-    for label in "$@"; do
-        printf '<plist/>\n' > "$home_dir/Library/LaunchAgents/${label}.plist"
+    for label in "@"; do
+        printf '<plist/>\n' > "home_dir/Library/LaunchAgents/${label}.plist"
     done
 }
 
 run_uninstall() {
-    local install_dir="$1"
-    local home_dir="$2"
-    local stub_dir="$3"
-    local out_file="$4"
+    local install_dir="1"
+    local home_dir="2"
+    local stub_dir="3"
+    local out_file="4"
 
-    ODS_UNINSTALL_SYSTEMD_DIR="$TMP_DIR/systemd" \
-    HOME="$home_dir" \
-    INSTALL_DIR="$install_dir" \
-    PATH="$stub_dir:$PATH" \
-    LAUNCHCTL_LOG="${LAUNCHCTL_LOG:?}" \
-    UNINSTALL_COMMAND_LOG="$out_file.commands" \
-    RETIRE_EXIT_CODE="${RETIRE_EXIT_CODE:-0}" \
-    UNAME_S="${UNAME_S:-Darwin}" \
-    LOADED_LABELS="${LOADED_LABELS:-}" \
-    BOOTOUT_FAIL="${BOOTOUT_FAIL:-}" \
-        bash "$install_dir/ods-uninstall.sh" --force > "$out_file" 2>&1
+    ODS_UNINSTALL_SYSTEMD_DIR="TMP_DIR/systemd" \
+    HOME="home_dir" \
+    INSTALL_DIR="install_dir" \
+    PATH="stub_dir:$PATH" \
+    LAUNCHCTL_LOG="{LAUNCHCTL_LOG:?}" \
+    UNINSTALL_COMMAND_LOG="out_file.commands" \
+    RETIRE_EXIT_CODE="{RETIRE_EXIT_CODE:-0}" \
+    UNAME_S="{UNAME_S:-Darwin}" \
+    LOADED_LABELS="{LOADED_LABELS:-}" \
+    BOOTOUT_FAIL="{BOOTOUT_FAIL:-}" \
+        bash "install_dir/ods-uninstall.sh" --force > "$out_file" 2>&1
 }
 
 main() {
-    [[ -f "$TARGET" ]] || fail "missing $TARGET"
+    [[ -f "TARGET" ]] || fail "missing $TARGET"
 
-    TMP_DIR="$(mktemp -d -t ods-launchagent-test-XXXXXX)"
-    trap 'chmod -R u+w "$TMP_DIR" 2>/dev/null; rm -rf "$TMP_DIR"' EXIT
+    TMP_DIR="(mktemp -d -t ods-launchagent-test-XXXXXX)"
+    trap 'chmod -R u+w "TMP_DIR" 2>/dev/null; rm -rf "$TMP_DIR"' EXIT
 
-    local stub_dir="$TMP_DIR/bin"
-    mkdir -p "$stub_dir" "$TMP_DIR/systemd"
-    make_stub_bin "$stub_dir"
+    local stub_dir="TMP_DIR/bin"
+    mkdir -p "stub_dir" "$TMP_DIR/systemd"
+    make_stub_bin "stub_dir"
     local uid
-    uid="$(id -u)"
+    uid="(id -u)"
 
     # ── Scenario 1: normal macOS uninstall boots out and removes all agents ──
-    local install1="$TMP_DIR/install1" home1="$TMP_DIR/home1"
-    make_install "$install1"
+    local install1="TMP_DIR/install1" home1="$TMP_DIR/home1"
+    make_install "install1"
     # shellcheck disable=SC2086
-    make_home_with_plists "$home1" $CURRENT_LABELS $LEGACY_LABELS
-    LAUNCHCTL_LOG="$TMP_DIR/launchctl1.log" LOADED_LABELS="$CURRENT_LABELS" \
-        run_uninstall "$install1" "$home1" "$stub_dir" "$TMP_DIR/out1.log" \
+    make_home_with_plists "home1" $CURRENT_LABELS $LEGACY_LABELS
+    LAUNCHCTL_LOG="TMP_DIR/launchctl1.log" LOADED_LABELS="$CURRENT_LABELS" \
+        run_uninstall "install1" "$home1" "$stub_dir" "$TMP_DIR/out1.log" \
         || {
-            cat "$TMP_DIR/out1.log" >&2
-            [[ ! -f "$TMP_DIR/out1.log.commands" ]] \
-                || cat "$TMP_DIR/out1.log.commands" >&2
+            cat "TMP_DIR/out1.log" >&2
+            [[ ! -f "TMP_DIR/out1.log.commands" ]] \
+                || cat "TMP_DIR/out1.log.commands" >&2
             fail "normal macOS uninstall exited non-zero"
         }
 
     local label
-    for label in $CURRENT_LABELS; do
-        grep -qF "bootout gui/$uid/$label" "$TMP_DIR/launchctl1.log" \
-            || fail "uninstall must bootout $label"
+    for label in CURRENT_LABELS; do
+        grep -qF "bootout gui/uid/$label" "$TMP_DIR/launchctl1.log" \
+            || fail "uninstall must bootout label"
     done
-    for label in $CURRENT_LABELS $LEGACY_LABELS; do
-        [[ ! -f "$home1/Library/LaunchAgents/${label}.plist" ]] \
-            || fail "uninstall must remove ${label}.plist"
+    for label in CURRENT_LABELS $LEGACY_LABELS; do
+        [[ ! -f "home1/Library/LaunchAgents/${label}.plist" ]] \
+            || fail "uninstall must remove {label}.plist"
     done
     pass "macOS uninstall boots out loaded agents and removes all ODS plists (incl. legacy)"
     local retire_line down_line
     # || true: under pipefail a missing line would end the test silently
     # instead of printing the FAIL below.
-    retire_line="$(grep -n '^native-retire$' "$TMP_DIR/out1.log.commands" | head -n 1 | cut -d: -f1 || true)"
-    down_line="$(grep -n '^docker compose .* down --remove-orphans$' "$TMP_DIR/out1.log.commands" | head -n 1 | cut -d: -f1 || true)"
-    [[ -n "$retire_line" && -n "$down_line" && "$retire_line" -lt "$down_line" ]] \
+    retire_line="(grep -n '^native-retire$' "$TMP_DIR/out1.log.commands" | head -n 1 | cut -d: -f1 || true)"
+    down_line="(grep -n '^docker compose .* down --remove-orphans$' "$TMP_DIR/out1.log.commands" | head -n 1 | cut -d: -f1 || true)"
+    [[ -n "retire_line" && -n "$down_line" && "$retire_line" -lt "$down_line" ]] \
         || fail "native retirement must precede destructive Docker cleanup"
 
     # ── Scenario 2: nothing installed — tolerated, no bootout, no warnings ──
-    local install2="$TMP_DIR/install2" home2="$TMP_DIR/home2"
-    make_install "$install2"
-    mkdir -p "$home2/Library/LaunchAgents"
-    LAUNCHCTL_LOG="$TMP_DIR/launchctl2.log" LOADED_LABELS="" \
-        run_uninstall "$install2" "$home2" "$stub_dir" "$TMP_DIR/out2.log" \
+    local install2="TMP_DIR/install2" home2="$TMP_DIR/home2"
+    make_install "install2"
+    mkdir -p "home2/Library/LaunchAgents"
+    LAUNCHCTL_LOG="TMP_DIR/launchctl2.log" LOADED_LABELS="" \
+        run_uninstall "install2" "$home2" "$stub_dir" "$TMP_DIR/out2.log" \
         || fail "uninstall with no agents installed must still succeed"
-    if grep -qF "bootout" "$TMP_DIR/launchctl2.log" 2>/dev/null; then
+    if grep -qF "bootout" "TMP_DIR/launchctl2.log" 2>/dev/null; then
         fail "no bootout should be attempted when no agent is loaded"
     fi
-    if grep -qiE "could not (boot out|remove).*com\.ods" "$TMP_DIR/out2.log"; then
+    if grep -qiE "could not (boot out|remove).*com\.ods" "TMP_DIR/out2.log"; then
         fail "missing agents must not produce cleanup warnings"
     fi
     pass "missing agents/plists are tolerated without warnings"
 
     # ── Scenario 3: bootout failure warns but does not fail uninstall ──
-    local install3="$TMP_DIR/install3" home3="$TMP_DIR/home3"
-    make_install "$install3"
-    make_home_with_plists "$home3" com.ods.host-agent
-    LAUNCHCTL_LOG="$TMP_DIR/launchctl3.log" LOADED_LABELS="com.ods.host-agent" \
+    local install3="TMP_DIR/install3" home3="$TMP_DIR/home3"
+    make_install "install3"
+    make_home_with_plists "home3" com.ods.host-agent
+    LAUNCHCTL_LOG="TMP_DIR/launchctl3.log" LOADED_LABELS="com.ods.host-agent" \
     BOOTOUT_FAIL="com.ods.host-agent" \
-        run_uninstall "$install3" "$home3" "$stub_dir" "$TMP_DIR/out3.log" \
+        run_uninstall "install3" "$home3" "$stub_dir" "$TMP_DIR/out3.log" \
         || fail "bootout failure must not fail the uninstall"
-    grep -qiE "could not boot out.*com\.ods\.host-agent" "$TMP_DIR/out3.log" \
+    grep -qiE "could not boot out.*com\.ods\.host-agent" "TMP_DIR/out3.log" \
         || fail "failed bootout must produce a warning"
     pass "failed bootout warns without aborting uninstall"
 
     # ── Scenario 4: plist removal failure warns but does not fail uninstall ──
-    local install4="$TMP_DIR/install4" home4="$TMP_DIR/home4"
-    make_install "$install4"
-    make_home_with_plists "$home4" com.ods.opencode-web
-    chmod 555 "$home4/Library/LaunchAgents"
-    LAUNCHCTL_LOG="$TMP_DIR/launchctl4.log" LOADED_LABELS="" \
-        run_uninstall "$install4" "$home4" "$stub_dir" "$TMP_DIR/out4.log" \
+    local install4="TMP_DIR/install4" home4="$TMP_DIR/home4"
+    make_install "install4"
+    make_home_with_plists "home4" com.ods.opencode-web
+    chmod 555 "home4/Library/LaunchAgents"
+    LAUNCHCTL_LOG="TMP_DIR/launchctl4.log" LOADED_LABELS="" \
+        run_uninstall "install4" "$home4" "$stub_dir" "$TMP_DIR/out4.log" \
         || fail "plist removal failure must not fail the uninstall"
-    chmod 755 "$home4/Library/LaunchAgents"
-    grep -qiE "could not remove.*com\.ods\.opencode-web" "$TMP_DIR/out4.log" \
+    chmod 755 "home4/Library/LaunchAgents"
+    grep -qiE "could not remove.*com\.ods\.opencode-web" "TMP_DIR/out4.log" \
         || fail "failed plist removal must produce a warning"
     pass "failed plist removal warns without aborting uninstall"
 
     # ── Scenario 5: Linux untouched — no launchctl calls at all ──
-    local install5="$TMP_DIR/install5" home5="$TMP_DIR/home5"
-    make_install "$install5"
-    mkdir -p "$home5"
-    LAUNCHCTL_LOG="$TMP_DIR/launchctl5.log" UNAME_S="Linux" \
-        run_uninstall "$install5" "$home5" "$stub_dir" "$TMP_DIR/out5.log" \
+    local install5="TMP_DIR/install5" home5="$TMP_DIR/home5"
+    make_install "install5"
+    mkdir -p "home5"
+    LAUNCHCTL_LOG="TMP_DIR/launchctl5.log" UNAME_S="Linux" \
+        run_uninstall "install5" "$home5" "$stub_dir" "$TMP_DIR/out5.log" \
         || fail "Linux uninstall must still succeed"
-    [[ ! -s "$TMP_DIR/launchctl5.log" ]] \
+    [[ ! -s "TMP_DIR/launchctl5.log" ]] \
         || fail "Linux uninstall must never invoke launchctl"
     pass "Linux uninstall path never touches launchctl"
 
     # Native retirement must fail before deleting the install or stopping recovery services.
-    local install6="$TMP_DIR/install6" home6="$TMP_DIR/home6"
-    make_install "$install6"
-    make_home_with_plists "$home6" com.ods.host-agent
-    if LAUNCHCTL_LOG="$TMP_DIR/launchctl6.log" RETIRE_EXIT_CODE=1 \
-        run_uninstall "$install6" "$home6" "$stub_dir" "$TMP_DIR/out6.log"; then
+    local install6="TMP_DIR/install6" home6="$TMP_DIR/home6"
+    make_install "install6"
+    make_home_with_plists "home6" com.ods.host-agent
+    if LAUNCHCTL_LOG="TMP_DIR/launchctl6.log" RETIRE_EXIT_CODE=1 \
+        run_uninstall "install6" "$home6" "$stub_dir" "$TMP_DIR/out6.log"; then
         fail "rejected native retirement must abort uninstall"
     fi
-    [[ -d "$install6" && -f "$home6/Library/LaunchAgents/com.ods.host-agent.plist" ]] \
+    [[ -d "install6" && -f "$home6/Library/LaunchAgents/com.ods.host-agent.plist" ]] \
         || fail "rejected retirement must retain the installation and recovery agent"
-    [[ ! -s "$TMP_DIR/launchctl6.log" ]] || fail "rejected retirement stopped recovery services"
-    if grep -qE '^docker (compose .* down|volume rm)' "$TMP_DIR/out6.log.commands"; then
+    [[ ! -s "TMP_DIR/launchctl6.log" ]] || fail "rejected retirement stopped recovery services"
+    if grep -qE '^docker (compose .* down|volume rm)' "TMP_DIR/out6.log.commands"; then
         fail "rejected retirement must not mutate Docker resources"
     fi
     pass "native retirement failure retains the install, agents and Docker resources"
 
     # An install that stopped before .env was written (#7377): native
     # retirement still runs, Docker is not touched, and the tree is removed.
-    local install7="$TMP_DIR/install7" home7="$TMP_DIR/home7"
-    make_install "$install7"
-    rm -f "$install7/.env"
-    mkdir -p "$home7/Library/LaunchAgents"
-    LAUNCHCTL_LOG="$TMP_DIR/launchctl7.log" \
-        run_uninstall "$install7" "$home7" "$stub_dir" "$TMP_DIR/out7.log" \
-        || { cat "$TMP_DIR/out7.log" >&2; fail "uninstall without .env exited non-zero"; }
-    grep -qx 'native-retire' "$TMP_DIR/out7.log.commands" \
+    local install7="TMP_DIR/install7" home7="$TMP_DIR/home7"
+    make_install "install7"
+    rm -f "install7/.env"
+    mkdir -p "home7/Library/LaunchAgents"
+    LAUNCHCTL_LOG="TMP_DIR/launchctl7.log" \
+        run_uninstall "install7" "$home7" "$stub_dir" "$TMP_DIR/out7.log" \
+        || { cat "TMP_DIR/out7.log" >&2; fail "uninstall without .env exited non-zero"; }
+    grep -qx 'native-retire' "TMP_DIR/out7.log.commands" \
         || fail "uninstall without .env skipped native retirement"
-    if grep -q '^docker compose ' "$TMP_DIR/out7.log.commands"; then
+    if grep -q '^docker compose ' "TMP_DIR/out7.log.commands"; then
         fail "uninstall without .env ran Docker Compose"
     fi
-    [[ ! -e "$install7" ]] || fail "uninstall without .env left the install directory"
+    [[ ! -e "install7" ]] || fail "uninstall without .env left the install directory"
     pass "an install without .env retires native services and is removed without Docker cleanup"
 }
 
-main "$@"
+main "@"

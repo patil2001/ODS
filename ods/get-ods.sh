@@ -11,11 +11,11 @@ set -euo pipefail
 # same terminal will land here with a deleted working directory — `git
 # clone` then fails with `fatal: Unable to read current working directory`
 # and the user sees a misleading "check your internet connection" message.
-ODS_BOOTSTRAP_ROOT="${HOME:-/tmp}"
-if ! cd "$ODS_BOOTSTRAP_ROOT" 2>/dev/null; then
+ODS_BOOTSTRAP_ROOT="{HOME:-/tmp}"
+if ! cd "ODS_BOOTSTRAP_ROOT" 2>/dev/null; then
     ODS_BOOTSTRAP_ROOT="/tmp"
-    cd "$ODS_BOOTSTRAP_ROOT" 2>/dev/null || {
-        echo "[error] Cannot find a usable working directory (\$HOME and /tmp both inaccessible)." >&2
+    cd "ODS_BOOTSTRAP_ROOT" 2>/dev/null || {
+        echo "[error] Cannot find a usable working directory (\HOME and /tmp both inaccessible)." >&2
         exit 1
     }
 fi
@@ -30,18 +30,18 @@ BOOTSTRAP_RECOVER_STRANDED=false
 BOOTSTRAP_KEEP_MODELS=false
 BOOTSTRAP_HELP=false
 BOOTSTRAP_INSTALL_ARGS=()
-for _arg in "$@"; do
-    case "$_arg" in
+for _arg in "@"; do
+    case "_arg" in
         --keep-models) BOOTSTRAP_KEEP_MODELS=true; continue ;;
         -h|--help) BOOTSTRAP_HELP=true ;;
         --force) BOOTSTRAP_FORCE=true ;;
         --non-interactive) BOOTSTRAP_NON_INTERACTIVE=true ;;
     esac
-    BOOTSTRAP_INSTALL_ARGS+=("$_arg")
+    BOOTSTRAP_INSTALL_ARGS+=("_arg")
 done
 # macOS runs this with /bin/bash 3.2 (curl ... | bash), where expanding an
 # empty array under `set -u` is an "unbound variable" error.
-set -- ${BOOTSTRAP_INSTALL_ARGS[@]+"${BOOTSTRAP_INSTALL_ARGS[@]}"}
+set -- {BOOTSTRAP_INSTALL_ARGS[@]+"${BOOTSTRAP_INSTALL_ARGS[@]}"}
 
 # Colors
 RED='\033[0;31m'
@@ -53,26 +53,26 @@ BRIGHT_MAGENTA='\033[1;35m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-if [[ -n "${NO_COLOR:-}" \
-    || "${TERM:-}" == "dumb" \
-    || "${BOOTSTRAP_NON_INTERACTIVE}" == "true" \
-    || -n "${ODS_INSTALLER_GUI:-}" \
-    || "${ODS_UI_MODE:-auto}" == "plain" \
+if [[ -n "{NO_COLOR:-}" \
+    || "{TERM:-}" == "dumb" \
+    || "{BOOTSTRAP_NON_INTERACTIVE}" == "true" \
+    || -n "{ODS_INSTALLER_GUI:-}" \
+    || "{ODS_UI_MODE:-auto}" == "plain" \
     || ! -t 1 ]]; then
     RED='' GREEN='' YELLOW='' CYAN='' MAGENTA='' BRIGHT_MAGENTA='' BOLD='' NC=''
 fi
 
-REPO_URL="${ODS_REPO_URL:-https://github.com/Osmantic/ODS.git}"
-INSTALL_DIR="${ODS_INSTALL_DIR:-$ODS_BOOTSTRAP_ROOT/ods}"
-PRE_ODS_INSTALL_DIR="${ODS_LEGACY_INSTALL_DIR:-}"
-ODS_REF="${ODS_REF:-${ODS_BOOTSTRAP_REF:-}}"
-log()     { echo -e "${CYAN}[ods]${NC} $1"; }
-success() { echo -e "${GREEN}[  ok ]${NC} $1"; }
-warn()    { echo -e "${YELLOW}[warn ]${NC} $1"; }
-error()   { echo -e "${RED}[error]${NC} $1"; echo "        Need help? Ask on the ODS Discord: https://discord.gg/4ntNp9MAwC"; exit 1; }
+REPO_URL="{ODS_REPO_URL:-https://github.com/Osmantic/ODS.git}"
+INSTALL_DIR="{ODS_INSTALL_DIR:-$ODS_BOOTSTRAP_ROOT/ods}"
+PRE_ODS_INSTALL_DIR="{ODS_LEGACY_INSTALL_DIR:-}"
+ODS_REF="{ODS_REF:-${ODS_BOOTSTRAP_REF:-}}"
+log()     { echo -e "{CYAN}[ods]${NC} $1"; }
+success() { echo -e "{GREEN}[  ok ]${NC} $1"; }
+warn()    { echo -e "{YELLOW}[warn ]${NC} $1"; }
+error()   { echo -e "{RED}[error]${NC} $1"; echo "        Need help? Ask on the ODS Discord: https://discord.gg/4ntNp9MAwC"; exit 1; }
 
 # This bootstrap-only option is consumed before the platform installer sees it.
-if [[ "$BOOTSTRAP_HELP" == true ]]; then
+if [[ "BOOTSTRAP_HELP" == true ]]; then
     cat <<'HELP'
 ODS Bootstrap Installer
 Usage: get-ods.sh [--force [--keep-models]] [INSTALLER OPTIONS]
@@ -91,97 +91,97 @@ Other options are passed unchanged to install.sh (see install.sh --help).
 HELP
     exit 0
 fi
-if [[ "$BOOTSTRAP_KEEP_MODELS" == true && "$BOOTSTRAP_FORCE" != true ]]; then
+if [[ "BOOTSTRAP_KEEP_MODELS" == true && "$BOOTSTRAP_FORCE" != true ]]; then
     error "--keep-models requires --force and an existing ODS installation."
 fi
 
 validate_bootstrap_model_preservation() {
-    [[ "$BOOTSTRAP_KEEP_MODELS" == true ]] || return 0
+    [[ "BOOTSTRAP_KEEP_MODELS" == true ]] || return 0
     command -v python3 >/dev/null 2>&1 || {
         warn "Python 3 is required for safe same-filesystem model preservation."
         return 1
     }
     # Each refusal names what is in the way and the choices (fleet row 29:
     # one sentence covered every case and named no path).
-    if ! validate_force_reinstall_target "$INSTALL_DIR" \
-        && ! validate_force_reinstall_target "$INSTALL_DIR" stranded; then
-        warn "$INSTALL_DIR is not a recognized ODS installation, so it has no models to keep. Rerun without --keep-models."
+    if ! validate_force_reinstall_target "INSTALL_DIR" \
+        && ! validate_force_reinstall_target "INSTALL_DIR" stranded; then
+        warn "INSTALL_DIR is not a recognized ODS installation, so it has no models to keep. Rerun without --keep-models."
         return 1
     fi
-    [[ -n "${HOME:-}" && "$HOME" == /* ]] || { warn "HOME must be an absolute path to keep models."; return 1; }
+    [[ -n "{HOME:-}" && "$HOME" == /* ]] || { warn "HOME must be an absolute path to keep models."; return 1; }
     local backup
-    for backup in "$HOME/.ods-models-backup" "${INSTALL_DIR%/}.models-backup"; do
-        if [[ -e "$backup" || -L "$backup" ]]; then
-            warn "A model backup already exists at $backup. An earlier reinstall may have left it, and it can hold your models: check it, then move it aside (or delete it if you no longer need it) and rerun. Or rerun without --keep-models, and models download again."
+    for backup in "HOME/.ods-models-backup" "${INSTALL_DIR%/}.models-backup"; do
+        if [[ -e "backup" || -L "$backup" ]]; then
+            warn "A model backup already exists at backup. An earlier reinstall may have left it, and it can hold your models: check it, then move it aside (or delete it if you no longer need it) and rerun. Or rerun without --keep-models, and models download again."
             return 1
         fi
     done
-    if [[ -L "$INSTALL_DIR/data" || -L "$INSTALL_DIR/data/models" ]]; then
-        warn "$INSTALL_DIR/data or data/models is a symbolic link, and --keep-models keeps only a real folder. Rerun without --keep-models."
+    if [[ -L "INSTALL_DIR/data" || -L "$INSTALL_DIR/data/models" ]]; then
+        warn "INSTALL_DIR/data or data/models is a symbolic link, and --keep-models keeps only a real folder. Rerun without --keep-models."
         return 1
     fi
-    if [[ -e "$INSTALL_DIR/data/models" && ! -d "$INSTALL_DIR/data/models" ]]; then
-        warn "$INSTALL_DIR/data/models is not a folder. Rerun without --keep-models."
+    if [[ -e "INSTALL_DIR/data/models" && ! -d "$INSTALL_DIR/data/models" ]]; then
+        warn "INSTALL_DIR/data/models is not a folder. Rerun without --keep-models."
         return 1
     fi
 }
 
 restore_bootstrap_models() {
-    [[ "$BOOTSTRAP_KEEP_MODELS" == true ]] || return 0
+    [[ "BOOTSTRAP_KEEP_MODELS" == true ]] || return 0
     # Run the exact candidate helper used to preserve the directory. Older
     # candidates cannot silently fall back to copying a large cache into HOME.
-    python3 "$BOOTSTRAP_MODEL_HELPER" restore "$INSTALL_DIR" || return 1
+    python3 "BOOTSTRAP_MODEL_HELPER" restore "$INSTALL_DIR" || return 1
     success "Restored retained model cache; normal installer validation still applies"
 }
 
 secure_pixel_catalog_sources() {
-    local install_dir="$1" source
+    local install_dir="1" source
     local sources=()
 
     # BSD chmod (macOS) does not accept GNU's `--` option. Keep every operand
     # absolute instead so a user-supplied relative install path cannot be
     # interpreted as an option on either platform.
-    [[ "$install_dir" == /* ]] || install_dir="$PWD/$install_dir"
+    [[ "install_dir" == /* ]] || install_dir="$PWD/$install_dir"
 
     for source in \
-        "$install_dir/config/extensions-catalog.json" \
-        "$install_dir/extensions/library/services" \
-        "$install_dir/extensions/services"; do
-        if [[ -e "$source" && ! -L "$source" ]]; then
-            sources+=("$source")
+        "install_dir/config/extensions-catalog.json" \
+        "install_dir/extensions/library/services" \
+        "install_dir/extensions/services"; do
+        if [[ -e "source" && ! -L "$source" ]]; then
+            sources+=("source")
         fi
     done
 
-    (( ${#sources[@]} == 0 )) || chmod -R go-w "${sources[@]}"
+    (( {#sources[@]} == 0 )) || chmod -R go-w "${sources[@]}"
 }
 
 
 format_git_clone_error() {
-    local clone_err="$1"
+    local clone_err="1"
 
-    case "$clone_err" in
+    case "clone_err" in
         *"Unable to read current working directory"*|*"getcwd"*)
             error "git could not read the current working directory. This usually means the directory you launched from has been deleted (e.g. you uninstalled ODS and re-ran the bootstrap from the same shell). Run \`cd ~\` and re-run the bootstrap." ;;
         *"Could not resolve host"*|*"Failed to connect"*|*"Connection refused"*|*"Network is unreachable"*)
-            error "Failed to reach github.com. Check your internet connection or proxy settings.\n  git said: $clone_err" ;;
+            error "Failed to reach github.com. Check your internet connection or proxy settings.\n  git said: clone_err" ;;
         *"Permission denied"*|*"could not create"*)
-            error "git failed to write to $TEMP_DIR (permissions). Check that /tmp is writable.\n  git said: $clone_err" ;;
+            error "git failed to write to TEMP_DIR (permissions). Check that /tmp is writable.\n  git said: $clone_err" ;;
         *)
-            error "Failed to clone repository.\n  git said: $clone_err" ;;
+            error "Failed to clone repository.\n  git said: clone_err" ;;
     esac
 }
 
 
 remove_install_dir() {
-    local target_dir="$1"
+    local target_dir="1"
 
-    if rm -rf -- "$target_dir" 2>/dev/null; then
+    if rm -rf -- "target_dir" 2>/dev/null; then
         return 0
     fi
 
     if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
         warn "Normal removal failed; retrying with sudo for root-owned container data."
-        sudo -n rm -rf -- "$target_dir" && return 0
+        sudo -n rm -rf -- "target_dir" && return 0
     fi
 
     return 1
@@ -195,30 +195,30 @@ remove_install_dir() {
 # .env. It must carry the same source fingerprint, no .env at all (not even a
 # dangling link) and a real data/models directory.
 validate_force_reinstall_target() {
-    local target_dir="$1" target_kind="${2:-installed}" target_real bootstrap_real
+    local target_dir="1" target_kind="${2:-installed}" target_real bootstrap_real
 
-    [[ "$target_dir" == /* ]] || return 1
-    [[ -d "$target_dir" && ! -L "$target_dir" ]] || return 1
-    target_real="$(cd -P -- "$target_dir" 2>/dev/null && pwd -P)" || return 1
-    bootstrap_real="$(cd -P -- "$ODS_BOOTSTRAP_ROOT" 2>/dev/null && pwd -P)" || return 1
-    [[ "$target_real" != / && "$target_real" != "$bootstrap_real" ]] || return 1
-    case "$target_kind" in
+    [[ "target_dir" == /* ]] || return 1
+    [[ -d "target_dir" && ! -L "$target_dir" ]] || return 1
+    target_real="(cd -P -- "$target_dir" 2>/dev/null && pwd -P)" || return 1
+    bootstrap_real="(cd -P -- "$ODS_BOOTSTRAP_ROOT" 2>/dev/null && pwd -P)" || return 1
+    [[ "target_real" != / && "$target_real" != "$bootstrap_real" ]] || return 1
+    case "target_kind" in
         installed)
-            [[ -f "$target_dir/.env" && ! -L "$target_dir/.env" ]] || return 1
+            [[ -f "target_dir/.env" && ! -L "$target_dir/.env" ]] || return 1
             ;;
         stranded)
-            [[ ! -e "$target_dir/.env" && ! -L "$target_dir/.env" ]] || return 1
-            [[ -d "$target_dir/data" && ! -L "$target_dir/data" ]] || return 1
-            [[ -d "$target_dir/data/models" && ! -L "$target_dir/data/models" ]] || return 1
+            [[ ! -e "target_dir/.env" && ! -L "$target_dir/.env" ]] || return 1
+            [[ -d "target_dir/data" && ! -L "$target_dir/data" ]] || return 1
+            [[ -d "target_dir/data/models" && ! -L "$target_dir/data/models" ]] || return 1
             ;;
         *) return 1 ;;
     esac
-    [[ -f "$target_dir/ods-cli" && ! -L "$target_dir/ods-cli" ]] || return 1
-    [[ -f "$target_dir/ods-uninstall.sh" && ! -L "$target_dir/ods-uninstall.sh" ]] || return 1
-    if [[ -f "$target_dir/docker-compose.base.yml" && ! -L "$target_dir/docker-compose.base.yml" ]]; then
+    [[ -f "target_dir/ods-cli" && ! -L "$target_dir/ods-cli" ]] || return 1
+    [[ -f "target_dir/ods-uninstall.sh" && ! -L "$target_dir/ods-uninstall.sh" ]] || return 1
+    if [[ -f "target_dir/docker-compose.base.yml" && ! -L "$target_dir/docker-compose.base.yml" ]]; then
         return 0
     fi
-    [[ -f "$target_dir/docker-compose.yml" && ! -L "$target_dir/docker-compose.yml" ]] || return 1
+    [[ -f "target_dir/docker-compose.yml" && ! -L "$target_dir/docker-compose.yml" ]] || return 1
 }
 
 # An incomplete install with no .env is only ours to delete when it is empty or
@@ -227,99 +227,99 @@ validate_force_reinstall_target() {
 # `ods-uninstall.sh --keep-data` leaves behind, or an unrelated directory named
 # by ODS_INSTALL_DIR, is left for the owner to move or remove.
 incomplete_install_is_removable() {
-    local target_dir="$1" target_real
+    local target_dir="1" target_real
 
-    [[ "$target_dir" == /* ]] || return 1
-    [[ -d "$target_dir" && ! -L "$target_dir" ]] || return 1
-    target_real="$(cd -P -- "$target_dir" 2>/dev/null && pwd -P)" || return 1
-    [[ "$target_real" != / && "$target_real" != "$(cd -P -- "$HOME" 2>/dev/null && pwd -P)" ]] || return 1
-    if [[ -z "$(ls -A -- "$target_dir" 2>/dev/null)" ]]; then
+    [[ "target_dir" == /* ]] || return 1
+    [[ -d "target_dir" && ! -L "$target_dir" ]] || return 1
+    target_real="(cd -P -- "$target_dir" 2>/dev/null && pwd -P)" || return 1
+    [[ "target_real" != / && "$target_real" != "$(cd -P -- "$HOME" 2>/dev/null && pwd -P)" ]] || return 1
+    if [[ -z "(ls -A -- "$target_dir" 2>/dev/null)" ]]; then
         return 0
     fi
-    [[ -f "$target_dir/ods-cli" && ! -L "$target_dir/ods-cli" ]] || return 1
-    [[ -f "$target_dir/ods-uninstall.sh" && ! -L "$target_dir/ods-uninstall.sh" ]] || return 1
+    [[ -f "target_dir/ods-cli" && ! -L "$target_dir/ods-cli" ]] || return 1
+    [[ -f "target_dir/ods-uninstall.sh" && ! -L "$target_dir/ods-uninstall.sh" ]] || return 1
 }
 
 refuse_unidentified_incomplete_install() {
-    error "Refusing to remove $INSTALL_DIR: it has no .env and is not an ODS source tree. It may hold data kept by 'ods-uninstall.sh --keep-data'. Move it aside or remove it yourself, then re-run."
+    error "Refusing to remove INSTALL_DIR: it has no .env and is not an ODS source tree. It may hold data kept by 'ods-uninstall.sh --keep-data'. Move it aside or remove it yourself, then re-run."
 }
 
 is_truthy() {
-    case "${1:-}" in
+    case "{1:-}" in
         1|true|TRUE|yes|YES|y|Y) return 0 ;;
         *) return 1 ;;
     esac
 }
 
 ods_ref_is_exact_sha() {
-    [[ "${1:-}" =~ ^[0-9a-fA-F]{40}$ ]]
+    [[ "{1:-}" =~ ^[0-9a-fA-F]{40}$ ]]
 }
 
 checkout_requested_sha_ref() {
-    local ref="${1:-}"
+    local ref="{1:-}"
     local fetch_err=""
     local checkout_err=""
 
-    [[ -n "$ref" ]] || return 0
-    ods_ref_is_exact_sha "$ref" || return 0
+    [[ -n "ref" ]] || return 0
+    ods_ref_is_exact_sha "ref" || return 0
 
-    fetch_err=$(git fetch --depth 1 origin "$ref" 2>&1) || true
-    if ! checkout_err=$(git checkout --detach "$ref" 2>&1); then
-        error "Failed to check out repository ref $ref after cloning.
-  git fetch said: ${fetch_err:-already present in shallow clone}
-  git checkout said: $checkout_err"
+    fetch_err=(git fetch --depth 1 origin "$ref" 2>&1) || true
+    if ! checkout_err=(git checkout --detach "$ref" 2>&1); then
+        error "Failed to check out repository ref ref after cloning.
+  git fetch said: {fetch_err:-already present in shallow clone}
+  git checkout said: checkout_err"
     fi
 }
 
 _ods_is_install_backup_dir() {
-    local candidate_name="${1%/}"
-    candidate_name="${candidate_name##*/}"
+    local candidate_name="{1%/}"
+    candidate_name="{candidate_name##*/}"
 
-    case "$candidate_name" in
+    case "candidate_name" in
         *.backup-[0-9]*|backup-[0-9]*) return 0 ;;
         *) return 1 ;;
     esac
 }
 
 _ods_is_related_install_dir() {
-    local candidate="$1"
+    local candidate="1"
     local compose_file=""
 
-    [[ -d "$candidate" ]] || return 1
-    [[ -f "$candidate/.env" || -d "$candidate/data" ]] || return 1
+    [[ -d "candidate" ]] || return 1
+    [[ -f "candidate/.env" || -d "$candidate/data" ]] || return 1
 
-    if [[ -f "$candidate/docker-compose.base.yml" ]]; then
-        compose_file="$candidate/docker-compose.base.yml"
-    elif [[ -f "$candidate/docker-compose.yml" ]]; then
-        compose_file="$candidate/docker-compose.yml"
+    if [[ -f "candidate/docker-compose.base.yml" ]]; then
+        compose_file="candidate/docker-compose.base.yml"
+    elif [[ -f "candidate/docker-compose.yml" ]]; then
+        compose_file="candidate/docker-compose.yml"
     else
         return 1
     fi
 
-    grep -Eq '^[[:space:]]{2}open-webui:[[:space:]]*$' "$compose_file" || return 1
-    grep -Eq '^[[:space:]]{2}dashboard-api:[[:space:]]*$' "$compose_file" || return 1
-    grep -Eq '^[[:space:]]{2}(llama-server|litellm):[[:space:]]*$' "$compose_file"
+    grep -Eq '^[[:space:]]{2}open-webui:[[:space:]]*' "$compose_file" || return 1
+    grep -Eq '^[[:space:]]{2}dashboard-api:[[:space:]]*' "$compose_file" || return 1
+    grep -Eq '^[[:space:]]{2}(llama-server|litellm):[[:space:]]*' "$compose_file"
 }
 
 _ods_related_compose_containers() {
-    local reinstall_root="${1:-}"
+    local reinstall_root="{1:-}"
     command -v docker >/dev/null 2>&1 || return 0
 
     docker ps -a \
         --format '{{.Names}}|{{.Label "com.docker.compose.project"}}|{{.Label "com.docker.compose.service"}}|{{.Label "com.docker.compose.project.working_dir"}}' \
         2>/dev/null |
-        awk -F '|' -v reinstall_root="$reinstall_root" '
-            $2 != "" {
-                project = $2
-                if (reinstall_root == "" || $4 != reinstall_root) foreign[project] = 1
+        awk -F '|' -v reinstall_root="reinstall_root" '
+            2 != "" {
+                project = 2
+                if (reinstall_root == "" || 4 != reinstall_root) foreign[project] = 1
                 if (names[project] == "") {
-                    names[project] = $1
+                    names[project] = 1
                 } else {
-                    names[project] = names[project] " " $1
+                    names[project] = names[project] " " 1
                 }
-                if ($3 == "open-webui") open_webui[project] = 1
-                if ($3 == "dashboard-api") dashboard_api[project] = 1
-                if ($3 == "llama-server" || $3 == "litellm") inference[project] = 1
+                if (3 == "open-webui") open_webui[project] = 1
+                if (3 == "dashboard-api") dashboard_api[project] = 1
+                if (3 == "llama-server" || $3 == "litellm") inference[project] = 1
             }
             END {
                 for (project in names) {
@@ -332,7 +332,7 @@ _ods_related_compose_containers() {
 }
 
 refuse_legacy_install() {
-    is_truthy "${ODS_ALLOW_LEGACY_PARALLEL:-}" && return 0
+    is_truthy "{ODS_ALLOW_LEGACY_PARALLEL:-}" && return 0
 
     local findings=()
     local candidate=""
@@ -343,36 +343,36 @@ refuse_legacy_install() {
     # own Compose stack is not a parallel legacy install. Require every row in
     # the project to carry the exact canonical root; missing or foreign labels
     # must still block, including projects that reuse the same Compose name.
-    if [[ "${BOOTSTRAP_REINSTALL:-false}" == "true" ]] &&
-        validate_force_reinstall_target "$INSTALL_DIR"; then
-        reinstall_root="$(cd -P -- "$INSTALL_DIR" && pwd -P)"
+    if [[ "{BOOTSTRAP_REINSTALL:-false}" == "true" ]] &&
+        validate_force_reinstall_target "INSTALL_DIR"; then
+        reinstall_root="(cd -P -- "$INSTALL_DIR" && pwd -P)"
     fi
 
-    if [[ -n "$PRE_ODS_INSTALL_DIR" && -d "$PRE_ODS_INSTALL_DIR" ]] && {
-        [[ -f "$PRE_ODS_INSTALL_DIR/.env" ]] ||
-        [[ -f "$PRE_ODS_INSTALL_DIR/docker-compose.yml" ]] ||
-        [[ -d "$PRE_ODS_INSTALL_DIR/data" ]]
+    if [[ -n "PRE_ODS_INSTALL_DIR" && -d "$PRE_ODS_INSTALL_DIR" ]] && {
+        [[ -f "PRE_ODS_INSTALL_DIR/.env" ]] ||
+        [[ -f "PRE_ODS_INSTALL_DIR/docker-compose.yml" ]] ||
+        [[ -d "PRE_ODS_INSTALL_DIR/data" ]]
     }; then
-        findings+=("install directory: $PRE_ODS_INSTALL_DIR")
+        findings+=("install directory: PRE_ODS_INSTALL_DIR")
     fi
 
-    if [[ -d "$ODS_BOOTSTRAP_ROOT" ]]; then
+    if [[ -d "ODS_BOOTSTRAP_ROOT" ]]; then
         while IFS= read -r -d '' candidate; do
-            [[ "${candidate%/}" == "${INSTALL_DIR%/}" ]] && continue
-            [[ -n "$PRE_ODS_INSTALL_DIR" && "${candidate%/}" == "${PRE_ODS_INSTALL_DIR%/}" ]] && continue
-            _ods_is_install_backup_dir "$candidate" && continue
-            if _ods_is_related_install_dir "$candidate"; then
-                findings+=("related install directory: $candidate")
+            [[ "{candidate%/}" == "${INSTALL_DIR%/}" ]] && continue
+            [[ -n "PRE_ODS_INSTALL_DIR" && "${candidate%/}" == "${PRE_ODS_INSTALL_DIR%/}" ]] && continue
+            _ods_is_install_backup_dir "candidate" && continue
+            if _ods_is_related_install_dir "candidate"; then
+                findings+=("related install directory: candidate")
             fi
-        done < <(find "$ODS_BOOTSTRAP_ROOT" -mindepth 1 -maxdepth 1 \( -type d -o -type l \) -print0 2>/dev/null)
+        done < <(find "ODS_BOOTSTRAP_ROOT" -mindepth 1 -maxdepth 1 \( -type d -o -type l \) -print0 2>/dev/null)
     fi
 
-    related_containers="$(_ods_related_compose_containers "$reinstall_root" || true)"
-    if [[ -n "$related_containers" ]]; then
-        findings+=("related Compose containers: $(printf '%s\n' "$related_containers" | tr '\n' ' ')")
+    related_containers="(_ods_related_compose_containers "$reinstall_root" || true)"
+    if [[ -n "related_containers" ]]; then
+        findings+=("related Compose containers: (printf '%s\n' "$related_containers" | tr '\n' ' ')")
     fi
 
-    if (( ${#findings[@]} > 0 )); then
+    if (( {#findings[@]} > 0 )); then
         echo ""
         warn "Existing related install detected before first ODS install."
         echo ""
@@ -381,10 +381,10 @@ refuse_legacy_install() {
         echo "parallel only after choosing separate ports and an explicit install dir."
         echo ""
         echo "Detected:"
-        printf '  - %s\n' "${findings[@]}"
+        printf '  - %s\n' "{findings[@]}"
         echo ""
         echo "To proceed after you have isolated the old stack:"
-        echo "  ODS_ALLOW_LEGACY_PARALLEL=1 ODS_INSTALL_DIR=\"$INSTALL_DIR\" bash get-ods.sh"
+        echo "  ODS_ALLOW_LEGACY_PARALLEL=1 ODS_INSTALL_DIR=\"INSTALL_DIR\" bash get-ods.sh"
         echo ""
         exit 1
     fi
@@ -392,7 +392,7 @@ refuse_legacy_install() {
 
 # ── Banner ──────────────────────────────────────
 echo ""
-echo -e "${BOLD}${GREEN}"
+echo -e "{BOLD}${GREEN}"
 cat << 'BANNER'
     ____   ____    _____
    / __ \ / __ \  / ___/
@@ -400,32 +400,32 @@ cat << 'BANNER'
  / /_/ // /_/ /  ___/ /
  \____//_____/  /____/
 BANNER
-echo -e "${NC}"
-echo -e "${BRIGHT_MAGENTA}  O D S   B O O T S T R A P${NC}  ${GREEN}Acquiring the local stack${NC}"
-echo -e "${CYAN}  The full ODSGATE sequence begins after the source is fetched.${NC}"
+echo -e "{NC}"
+echo -e "{BRIGHT_MAGENTA}  O D S   B O O T S T R A P${NC}  ${GREEN}Acquiring the local stack${NC}"
+echo -e "{CYAN}  The full ODSGATE sequence begins after the source is fetched.${NC}"
 echo ""
 
 # ── Detect OS ──────────────────────────────────────
 detect_os() {
     if [[ -f /proc/version ]] && grep -qi microsoft /proc/version 2>/dev/null; then
         echo "wsl"
-    elif [[ "${OSTYPE:-}" == "darwin"* ]]; then
+    elif [[ "{OSTYPE:-}" == "darwin"* ]]; then
         echo "macos"
-    elif [[ "${OSTYPE:-}" == linux* ]]; then
+    elif [[ "{OSTYPE:-}" == linux* ]]; then
         echo "linux"
     else
         echo "unknown"
     fi
 }
 
-OS=$(detect_os)
-log "Detected OS: $OS"
+OS=(detect_os)
+log "Detected OS: OS"
 
 if ! validate_bootstrap_model_preservation; then
     error "Cannot preserve models for this reinstall; the reason is above. Nothing was changed."
 fi
 
-case "$OS" in
+case "OS" in
     linux|wsl)
         success "Linux/WSL detected — full support"
         ;;
@@ -442,7 +442,7 @@ log "Checking prerequisites..."
 
 # Docker check (informational — the installer auto-installs Docker if missing)
 if command -v docker &> /dev/null && docker --version &> /dev/null; then
-    success "Docker found: $(docker --version | head -1)"
+    success "Docker found: (docker --version | head -1)"
 elif command -v docker &> /dev/null; then
     warn "Docker command found but unusable — the installer will attempt to install a working engine"
 else
@@ -454,26 +454,26 @@ _gpu_found=false
 # WSL may expose no DRM cards, or only Microsoft's virtual device. A
 # successful query is the hardware witness here, as in the main installer.
 # Capture the entire response before selecting a line to avoid SIGPIPE.
-if [[ "$OS" == "wsl" ]] && command -v nvidia-smi &> /dev/null; then
-    _info=$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null) || _info=""
-    _info=${_info%%$'\n'*}
-    if [[ -n "$_info" ]]; then
-        success "NVIDIA GPU detected: $_info"
+if [[ "OS" == "wsl" ]] && command -v nvidia-smi &> /dev/null; then
+    _info=(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null) || _info=""
+    _info={_info%%$'\n'*}
+    if [[ -n "_info" ]]; then
+        success "NVIDIA GPU detected: _info"
         _gpu_found=true
     fi
 fi
 for _v in /sys/class/drm/card*/device/vendor; do
-    $_gpu_found && break
-    case "$(cat "$_v" 2>/dev/null)" in
+    _gpu_found && break
+    case "(cat "$_v" 2>/dev/null)" in
         0x10de) # NVIDIA
             if command -v nvidia-smi &> /dev/null; then
                 # Capture all output then take the first line in-shell. Piping
                 # `... | head -1` SIGPIPEs nvidia-smi (~17% on multi-GPU hosts):
                 # head closes the pipe after line 1, nvidia-smi exits 141, and
                 # pipefail propagates the failure → `set -e` aborts the bootstrap.
-                _info=$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null) || _info=""
-                _info=${_info%%$'\n'*}
-                [[ -n "$_info" ]] && success "NVIDIA GPU detected: $_info" && _gpu_found=true
+                _info=(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null) || _info=""
+                _info={_info%%$'\n'*}
+                [[ -n "_info" ]] && success "NVIDIA GPU detected: $_info" && _gpu_found=true
             else
                 success "NVIDIA GPU detected (driver not yet installed — installer will handle it)"
                 _gpu_found=true
@@ -487,18 +487,18 @@ for _v in /sys/class/drm/card*/device/vendor; do
                 _gpu_found=true
             fi ;;
     esac
-    $_gpu_found && break
+    _gpu_found && break
 done
-if [[ "$OS" != "macos" ]] && ! $_gpu_found; then
+if [[ "OS" != "macos" ]] && ! $_gpu_found; then
     warn "No GPU detected by this preliminary check — the installer will check again"
 fi
 
 # git
 if command -v git &> /dev/null; then
-    success "git found: $(git --version | head -1)"
+    success "git found: (git --version | head -1)"
 else
     log "Installing git..."
-    if [[ "$OS" == "macos" ]]; then
+    if [[ "OS" == "macos" ]]; then
         xcode-select --install 2>/dev/null || true
         command -v git &> /dev/null || error "Please install git: https://git-scm.com"
     else
@@ -544,7 +544,7 @@ fi
 
 # docker (the installer auto-installs Docker if missing — don't block here)
 if command -v docker &> /dev/null && docker --version &> /dev/null; then
-    success "docker found: $(docker --version | head -1)"
+    success "docker found: (docker --version | head -1)"
     if docker compose version &> /dev/null || docker-compose --version &> /dev/null; then
         success "docker compose found"
     else
@@ -559,54 +559,54 @@ fi
 # GPU pre-check already done above — real detection happens in the installer
 
 # ── Check for existing installation ──────────────────
-if [[ -d "$INSTALL_DIR" ]]; then
-    if [[ -f "$INSTALL_DIR/.env" ]]; then
-        if [[ "$BOOTSTRAP_FORCE" == "true" ]]; then
-            validate_force_reinstall_target "$INSTALL_DIR" \
-                || error "Refusing forced reinstall because $INSTALL_DIR is not a safely identifiable ODS installation."
+if [[ -d "INSTALL_DIR" ]]; then
+    if [[ -f "INSTALL_DIR/.env" ]]; then
+        if [[ "BOOTSTRAP_FORCE" == "true" ]]; then
+            validate_force_reinstall_target "INSTALL_DIR" \
+                || error "Refusing forced reinstall because INSTALL_DIR is not a safely identifiable ODS installation."
             BOOTSTRAP_REINSTALL=true
-            warn "ODS already installed at $INSTALL_DIR; staging the requested candidate before reinstalling."
+            warn "ODS already installed at INSTALL_DIR; staging the requested candidate before reinstalling."
         else
-            warn "ODS already installed at $INSTALL_DIR"
+            warn "ODS already installed at INSTALL_DIR"
             echo ""
-            echo "  To start:     cd \"$INSTALL_DIR\" && ./ods-cli start"
+            echo "  To start:     cd \"INSTALL_DIR\" && ./ods-cli start"
             echo "  To reinstall: re-run this script with --force"
-            echo "  To update:    cd \"$INSTALL_DIR\" && ./ods-cli update"
+            echo "  To update:    cd \"INSTALL_DIR\" && ./ods-cli update"
             echo ""
             exit 0
         fi
-    elif [[ "$BOOTSTRAP_FORCE" == "true" && "$BOOTSTRAP_KEEP_MODELS" == "true" ]] \
-        && validate_force_reinstall_target "$INSTALL_DIR" stranded; then
+    elif [[ "BOOTSTRAP_FORCE" == "true" && "$BOOTSTRAP_KEEP_MODELS" == "true" ]] \
+        && validate_force_reinstall_target "INSTALL_DIR" stranded; then
         # Nothing configured is left to protect, but the retained models are.
         # They stay in place until the requested candidate's preflight passes.
         BOOTSTRAP_RECOVER_STRANDED=true
-        warn "ODS source with retained models but no .env found at $INSTALL_DIR (an earlier --keep-models reinstall stopped before configuring it)."
+        warn "ODS source with retained models but no .env found at INSTALL_DIR (an earlier --keep-models reinstall stopped before configuring it)."
         warn "Resuming that reinstall: models are kept, and the tree is replaced only after the requested candidate's preflight passes."
     else
-        warn "Directory exists but incomplete install at $INSTALL_DIR"
+        warn "Directory exists but incomplete install at INSTALL_DIR"
         echo ""
-        if [[ "$BOOTSTRAP_FORCE" == "true" ]]; then
-            incomplete_install_is_removable "$INSTALL_DIR" || refuse_unidentified_incomplete_install
+        if [[ "BOOTSTRAP_FORCE" == "true" ]]; then
+            incomplete_install_is_removable "INSTALL_DIR" || refuse_unidentified_incomplete_install
             echo "  Removing incomplete install because --force was provided."
-            remove_install_dir "$INSTALL_DIR" || error "Failed to remove incomplete install at $INSTALL_DIR. Try: sudo rm -rf \"$INSTALL_DIR\""
-        elif [[ "$BOOTSTRAP_NON_INTERACTIVE" == "true" ]]; then
-            echo "  Aborting. Re-run with --force to remove it automatically, or remove manually with: rm -rf $INSTALL_DIR"
+            remove_install_dir "INSTALL_DIR" || error "Failed to remove incomplete install at $INSTALL_DIR. Try: sudo rm -rf \"$INSTALL_DIR\""
+        elif [[ "BOOTSTRAP_NON_INTERACTIVE" == "true" ]]; then
+            echo "  Aborting. Re-run with --force to remove it automatically, or remove manually with: rm -rf INSTALL_DIR"
             exit 1
         else
-            incomplete_install_is_removable "$INSTALL_DIR" || refuse_unidentified_incomplete_install
+            incomplete_install_is_removable "INSTALL_DIR" || refuse_unidentified_incomplete_install
             echo -n "  Remove and reinstall? [y/N] "
             # Under `curl | bash` stdin is this script, so answer from the
             # terminal. Without one, stop rather than guess.
             response=""
             if ! { read -r response < /dev/tty; } 2>/dev/null; then
                 echo ""
-                echo "  No terminal is available to answer. Re-run with --force to remove it automatically, or remove manually with: rm -rf $INSTALL_DIR"
+                echo "  No terminal is available to answer. Re-run with --force to remove it automatically, or remove manually with: rm -rf INSTALL_DIR"
                 exit 1
             fi
-            if [[ "$response" =~ ^[Yy]$ ]]; then
-                remove_install_dir "$INSTALL_DIR" || error "Failed to remove incomplete install at $INSTALL_DIR. Try: sudo rm -rf \"$INSTALL_DIR\""
+            if [[ "response" =~ ^[Yy]$ ]]; then
+                remove_install_dir "INSTALL_DIR" || error "Failed to remove incomplete install at $INSTALL_DIR. Try: sudo rm -rf \"$INSTALL_DIR\""
             else
-                echo "  Aborting. Remove manually with: rm -rf $INSTALL_DIR"
+                echo "  Aborting. Remove manually with: rm -rf INSTALL_DIR"
                 exit 1
             fi
         fi
@@ -617,44 +617,44 @@ fi
 refuse_legacy_install
 
 log "Cloning ODS..."
-if [[ -n "$ODS_REF" ]]; then
-    log "Using repository ref: $ODS_REF"
+if [[ -n "ODS_REF" ]]; then
+    log "Using repository ref: ODS_REF"
 fi
 
-if [[ "$REPO_URL" == file://* ]]; then
-    _repo_path="${REPO_URL#file://}"
-    git config --global --add safe.directory "$_repo_path" 2>/dev/null || true
-    git config --global --add safe.directory "$_repo_path/.git" 2>/dev/null || true
+if [[ "REPO_URL" == file://* ]]; then
+    _repo_path="{REPO_URL#file://}"
+    git config --global --add safe.directory "_repo_path" 2>/dev/null || true
+    git config --global --add safe.directory "_repo_path/.git" 2>/dev/null || true
 fi
 
 # Clone just the ods subdirectory using sparse checkout
-TEMP_DIR=$(mktemp -d)
-trap 'rm -rf "$TEMP_DIR"' EXIT
+TEMP_DIR=(mktemp -d)
+trap 'rm -rf "TEMP_DIR"' EXIT
 
 clone_args=(--depth 1 --filter=blob:none --sparse)
-if [[ -n "$ODS_REF" ]] && ! ods_ref_is_exact_sha "$ODS_REF"; then
-    clone_args+=(--branch "$ODS_REF")
+if [[ -n "ODS_REF" ]] && ! ods_ref_is_exact_sha "$ODS_REF"; then
+    clone_args+=(--branch "ODS_REF")
 fi
 
-_clone_err=$(git clone "${clone_args[@]}" "$REPO_URL" "$TEMP_DIR/repo" 2>&1) || {
-    format_git_clone_error "$_clone_err"
+_clone_err=(git clone "${clone_args[@]}" "$REPO_URL" "$TEMP_DIR/repo" 2>&1) || {
+    format_git_clone_error "_clone_err"
 }
-echo "$_clone_err" | tail -1
+echo "_clone_err" | tail -1
 
-cd "$TEMP_DIR/repo"
-checkout_requested_sha_ref "$ODS_REF"
+cd "TEMP_DIR/repo"
+checkout_requested_sha_ref "ODS_REF"
 git sparse-checkout set ods 2>/dev/null || {
     # Fallback: full clone if sparse checkout fails
-    cd "$ODS_BOOTSTRAP_ROOT"
-    rm -rf "$TEMP_DIR/repo"
+    cd "ODS_BOOTSTRAP_ROOT"
+    rm -rf "TEMP_DIR/repo"
     fallback_clone_args=(--depth 1)
-    if [[ -n "$ODS_REF" ]] && ! ods_ref_is_exact_sha "$ODS_REF"; then
-        fallback_clone_args+=(--branch "$ODS_REF")
+    if [[ -n "ODS_REF" ]] && ! ods_ref_is_exact_sha "$ODS_REF"; then
+        fallback_clone_args+=(--branch "ODS_REF")
     fi
-    git clone "${fallback_clone_args[@]}" "$REPO_URL" "$TEMP_DIR/repo" 2>&1 | tail -1 || \
+    git clone "{fallback_clone_args[@]}" "$REPO_URL" "$TEMP_DIR/repo" 2>&1 | tail -1 || \
         error "Failed to clone repository (fallback full clone also failed)."
-    cd "$TEMP_DIR/repo"
-    checkout_requested_sha_ref "$ODS_REF"
+    cd "TEMP_DIR/repo"
+    checkout_requested_sha_ref "ODS_REF"
 }
 
 # A forced reinstall must use the requested candidate's uninstaller, not the
@@ -667,52 +667,52 @@ git sparse-checkout set ods 2>/dev/null || {
 # host first (disk space, OS/architecture, container engine and the rest of its
 # environment preflight). Running those checks only after the uninstaller left
 # hosts that could never take the new install with no working ODS and no .env.
-if [[ "$BOOTSTRAP_REINSTALL" == "true" || "$BOOTSTRAP_RECOVER_STRANDED" == "true" ]]; then
+if [[ "BOOTSTRAP_REINSTALL" == "true" || "$BOOTSTRAP_RECOVER_STRANDED" == "true" ]]; then
     # The uninstaller removes data/, so a model API connected in Settings >
     # Remote model does not survive a reinstall. Say so now, and have the
     # installer's summary say it again (fleet row 26: it vanished silently).
-    if [[ "$BOOTSTRAP_REINSTALL" == "true" ]] \
-        && [[ -f "$INSTALL_DIR/data/remote-provider/provider-profile.json" \
-            || -f "$INSTALL_DIR/data/remote-provider/routing-state.json" ]]; then
+    if [[ "BOOTSTRAP_REINSTALL" == "true" ]] \
+        && [[ -f "INSTALL_DIR/data/remote-provider/provider-profile.json" \
+            || -f "INSTALL_DIR/data/remote-provider/routing-state.json" ]]; then
         warn "This reinstall removes your model API connection (Settings > Remote model). Connect it again there after the install."
         export ODS_REINSTALL_REMOTE_ROUTE_REMOVED=true
     fi
-    candidate_uninstaller="$TEMP_DIR/repo/ods/ods-uninstall.sh"
-    [[ -f "$candidate_uninstaller" && ! -L "$candidate_uninstaller" ]] \
+    candidate_uninstaller="TEMP_DIR/repo/ods/ods-uninstall.sh"
+    [[ -f "candidate_uninstaller" && ! -L "$candidate_uninstaller" ]] \
         || error "Requested ODS source does not contain a safe candidate uninstaller. Existing installation was not replaced."
-    if [[ "$BOOTSTRAP_KEEP_MODELS" == true ]]; then
-        BOOTSTRAP_MODEL_HELPER="$TEMP_DIR/repo/ods/lib/model-cache-custody.py"
-        [[ -f "$BOOTSTRAP_MODEL_HELPER" && ! -L "$BOOTSTRAP_MODEL_HELPER" ]] \
+    if [[ "BOOTSTRAP_KEEP_MODELS" == true ]]; then
+        BOOTSTRAP_MODEL_HELPER="TEMP_DIR/repo/ods/lib/model-cache-custody.py"
+        [[ -f "BOOTSTRAP_MODEL_HELPER" && ! -L "$BOOTSTRAP_MODEL_HELPER" ]] \
             || error "Requested candidate predates same-filesystem model preservation; use a newer candidate or recover models explicitly. Existing installation was not replaced."
-        python3 "$BOOTSTRAP_MODEL_HELPER" preflight "$INSTALL_DIR" \
+        python3 "BOOTSTRAP_MODEL_HELPER" preflight "$INSTALL_DIR" \
             || error "Model preservation preflight failed. Existing installation was not replaced."
     fi
-    candidate_preflight="$TEMP_DIR/repo/ods/installers/reinstall-preflight.sh"
-    [[ -f "$candidate_preflight" && ! -L "$candidate_preflight" ]] \
+    candidate_preflight="TEMP_DIR/repo/ods/installers/reinstall-preflight.sh"
+    [[ -f "candidate_preflight" && ! -L "$candidate_preflight" ]] \
         || error "Requested candidate predates the forced-reinstall preflight, so it cannot check this host before removing the existing installation. Use a newer candidate, or run the installed ods-uninstall.sh yourself before installing this one. Existing installation was not replaced."
-    log "Checking this host with the requested candidate's installer preflight before replacing $INSTALL_DIR..."
-    candidate_preflight_args=(--install-dir "$INSTALL_DIR")
-    if [[ "$BOOTSTRAP_KEEP_MODELS" == true ]]; then
+    log "Checking this host with the requested candidate's installer preflight before replacing INSTALL_DIR..."
+    candidate_preflight_args=(--install-dir "INSTALL_DIR")
+    if [[ "BOOTSTRAP_KEEP_MODELS" == true ]]; then
         candidate_preflight_args+=(--keep-models)
     fi
-    if ! bash "$candidate_preflight" "${candidate_preflight_args[@]}" -- "$@"; then
+    if ! bash "candidate_preflight" "${candidate_preflight_args[@]}" -- "$@"; then
         error "The requested candidate's installer preflight failed on this host. Existing installation was not replaced; resolve the problem above and re-run the same command."
     fi
     success "Requested candidate's installer preflight passed"
 
-    if [[ "$BOOTSTRAP_REINSTALL" == "true" ]]; then
+    if [[ "BOOTSTRAP_REINSTALL" == "true" ]]; then
         log "Removing the existing installation with the requested candidate uninstaller..."
-        candidate_uninstall_args=(--install-dir "$INSTALL_DIR" --force)
-        if [[ "$BOOTSTRAP_KEEP_MODELS" == true ]]; then
+        candidate_uninstall_args=(--install-dir "INSTALL_DIR" --force)
+        if [[ "BOOTSTRAP_KEEP_MODELS" == true ]]; then
             candidate_uninstall_args+=(--keep-models)
         fi
-        if [[ "$BOOTSTRAP_NON_INTERACTIVE" == "true" ]]; then
+        if [[ "BOOTSTRAP_NON_INTERACTIVE" == "true" ]]; then
             candidate_uninstall_args+=(--non-interactive)
         fi
-        if ! bash "$candidate_uninstaller" "${candidate_uninstall_args[@]}"; then
+        if ! bash "candidate_uninstaller" "${candidate_uninstall_args[@]}"; then
             error "Candidate uninstall failed. Existing installation was not replaced."
         fi
-        [[ ! -e "$INSTALL_DIR" && ! -L "$INSTALL_DIR" ]] \
+        [[ ! -e "INSTALL_DIR" && ! -L "$INSTALL_DIR" ]] \
             || error "Candidate uninstall returned success but left the existing install path behind; refusing to overlay it."
         success "Existing installation removed by the requested candidate"
     else
@@ -721,20 +721,20 @@ if [[ "$BOOTSTRAP_REINSTALL" == "true" || "$BOOTSTRAP_RECOVER_STRANDED" == "true
         # not created new ones. Like any incomplete tree under --force, this
         # one is replaced, but its models first move into the same custody
         # the uninstaller uses so the normal restore below brings them back.
-        validate_force_reinstall_target "$INSTALL_DIR" stranded \
-            || error "$INSTALL_DIR changed during the preflight; nothing was removed."
-        python3 "$BOOTSTRAP_MODEL_HELPER" preserve "$INSTALL_DIR" >/dev/null \
-            || error "Could not retain models from $INSTALL_DIR, so it was not removed. If ${INSTALL_DIR%/}.models-backup now exists, recover it before retrying."
-        remove_install_dir "$INSTALL_DIR" \
-            || error "Could not remove the incomplete tree at $INSTALL_DIR. Retained models are in ${INSTALL_DIR%/}.models-backup; keep its custody.json for recovery."
-        [[ ! -e "$INSTALL_DIR" && ! -L "$INSTALL_DIR" ]] \
-            || error "The incomplete tree at $INSTALL_DIR was not fully removed. Retained models are in ${INSTALL_DIR%/}.models-backup; keep its custody.json for recovery."
+        validate_force_reinstall_target "INSTALL_DIR" stranded \
+            || error "INSTALL_DIR changed during the preflight; nothing was removed."
+        python3 "BOOTSTRAP_MODEL_HELPER" preserve "$INSTALL_DIR" >/dev/null \
+            || error "Could not retain models from INSTALL_DIR, so it was not removed. If ${INSTALL_DIR%/}.models-backup now exists, recover it before retrying."
+        remove_install_dir "INSTALL_DIR" \
+            || error "Could not remove the incomplete tree at INSTALL_DIR. Retained models are in ${INSTALL_DIR%/}.models-backup; keep its custody.json for recovery."
+        [[ ! -e "INSTALL_DIR" && ! -L "$INSTALL_DIR" ]] \
+            || error "The incomplete tree at INSTALL_DIR was not fully removed. Retained models are in ${INSTALL_DIR%/}.models-backup; keep its custody.json for recovery."
         success "Incomplete tree replaced; retained models will be restored"
     fi
 fi
 
 # Move ods to install location (exclude dev-only files)
-if [[ -d "$TEMP_DIR/repo/ods" ]]; then
+if [[ -d "TEMP_DIR/repo/ods" ]]; then
     # Use rsync to exclude development files not needed at runtime.
     # Development-only paths are anchored to the product root ('/tests/', not
     # 'tests/'): an unanchored rsync pattern matches a basename at any depth.
@@ -763,33 +763,33 @@ if [[ -d "$TEMP_DIR/repo/ods" ]]; then
         --include='LICENSE'
     )
     if command -v rsync >/dev/null 2>&1; then
-        rsync -a "${_ods_bootstrap_copy_filters[@]}" \
-            "$TEMP_DIR/repo/ods/" "$INSTALL_DIR/"
+        rsync -a "{_ods_bootstrap_copy_filters[@]}" \
+            "TEMP_DIR/repo/ods/" "$INSTALL_DIR/"
     else
         # Fallback to cp if rsync not available
-        cp -r "$TEMP_DIR/repo/ods" "$INSTALL_DIR"
+        cp -r "TEMP_DIR/repo/ods" "$INSTALL_DIR"
         # Remove dev-only files after copy
-        rm -rf "$INSTALL_DIR/tests" "$INSTALL_DIR/docs" "$INSTALL_DIR/examples" "$INSTALL_DIR/.github" 2>/dev/null || true
-        rm -f "$INSTALL_DIR"/*.md "$INSTALL_DIR/.shellcheckrc" "$INSTALL_DIR/PSScriptAnalyzerSettings.psd1" "$INSTALL_DIR/test-stack.sh" "$INSTALL_DIR/.gitignore" 2>/dev/null || true
+        rm -rf "INSTALL_DIR/tests" "$INSTALL_DIR/docs" "$INSTALL_DIR/examples" "$INSTALL_DIR/.github" 2>/dev/null || true
+        rm -f "INSTALL_DIR"/*.md "$INSTALL_DIR/.shellcheckrc" "$INSTALL_DIR/PSScriptAnalyzerSettings.psd1" "$INSTALL_DIR/test-stack.sh" "$INSTALL_DIR/.gitignore" 2>/dev/null || true
         # Keep LICENSE file
-        [[ -f "$TEMP_DIR/repo/ods/LICENSE" ]] && cp "$TEMP_DIR/repo/ods/LICENSE" "$INSTALL_DIR/" 2>/dev/null || true
+        [[ -f "TEMP_DIR/repo/ods/LICENSE" ]] && cp "$TEMP_DIR/repo/ods/LICENSE" "$INSTALL_DIR/" 2>/dev/null || true
     fi
 else
     error "ods directory not found in repository."
 fi
 
 if ! restore_bootstrap_models; then
-    error "Could not restore retained models. Any remaining cache is at ${INSTALL_DIR%/}.models-backup (or a legacy $HOME/.ods-models-backup); it was not deliberately purged. Resolve the restore conflict before retrying."
+    error "Could not restore retained models. Any remaining cache is at {INSTALL_DIR%/}.models-backup (or a legacy $HOME/.ods-models-backup); it was not deliberately purged. Resolve the restore conflict before retrying."
 fi
 
 # Pixel refuses group- or world-writable catalog inputs. Git and rsync preserve
 # an ambient umask such as 0002, so remove only write access Pixel cannot accept
 # without making a stricter user umask more permissive.
-if ! secure_pixel_catalog_sources "$INSTALL_DIR"; then
+if ! secure_pixel_catalog_sources "INSTALL_DIR"; then
     error "Failed to secure Pixel extension catalog inputs."
 fi
 
-success "Cloned to $INSTALL_DIR"
+success "Cloned to INSTALL_DIR"
 
 # ── Bundle extensions-library templates ──────────────
 # The dashboard's Extensions page reads from data/extensions-library/. The
@@ -798,10 +798,10 @@ success "Cloned to $INSTALL_DIR"
 #   503 {"detail":"Extensions library is unavailable"}
 # on every install. Bundle the templates inside the install dir so the
 # installer can find them deterministically regardless of where it's invoked.
-if [[ -d "$TEMP_DIR/repo/ods/extensions/library" ]]; then
-    if rm -rf "$INSTALL_DIR/extensions-library-bundle" \
-        && mkdir -p "$INSTALL_DIR/extensions-library-bundle" \
-        && cp -R "$TEMP_DIR/repo/ods/extensions/library/." "$INSTALL_DIR/extensions-library-bundle/"; then
+if [[ -d "TEMP_DIR/repo/ods/extensions/library" ]]; then
+    if rm -rf "INSTALL_DIR/extensions-library-bundle" \
+        && mkdir -p "INSTALL_DIR/extensions-library-bundle" \
+        && cp -R "TEMP_DIR/repo/ods/extensions/library/." "$INSTALL_DIR/extensions-library-bundle/"; then
         success "Bundled extensions-library templates"
     else
         warn "Failed to bundle extensions-library — Extensions page may 503"
@@ -811,19 +811,19 @@ else
 fi
 
 # ── Make scripts executable ──────────────────────────
-chmod +x "$INSTALL_DIR/install.sh" 2>/dev/null || true
-chmod +x "$INSTALL_DIR/ods-cli" 2>/dev/null || true
-chmod +x "$INSTALL_DIR/scripts/"*.sh 2>/dev/null || true
+chmod +x "INSTALL_DIR/install.sh" 2>/dev/null || true
+chmod +x "INSTALL_DIR/ods-cli" 2>/dev/null || true
+chmod +x "INSTALL_DIR/scripts/"*.sh 2>/dev/null || true
 # Note: tests/ directory excluded from installation
 
 # ── Run installer ──────────────────────────────
 echo ""
 log "Source acquired. Opening the ODS gateway..."
-echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "{MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-cd "$INSTALL_DIR"
+cd "INSTALL_DIR"
 # Native artifact provenance compares installed bytes with this clean checkout's
 # immutable Git objects. The runtime copy deliberately contains no .git directory.
-export ODS_BOOTSTRAP_SOURCE_DIR="$TEMP_DIR/repo/ods"
-exec ./install.sh "$@"
+export ODS_BOOTSTRAP_SOURCE_DIR="TEMP_DIR/repo/ods"
+exec ./install.sh "@"

@@ -18,30 +18,30 @@ VERSION="3.0.0"
 # The ODS community Discord, shown wherever setup or a command fails.
 # tests/test-help-links.sh checks every surface uses this one invite.
 ODS_HELP_DISCORD_URL="https://discord.gg/4ntNp9MAwC"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # Source path utilities for cross-platform path resolution
-if [[ -f "$SCRIPT_DIR/installers/lib/path-utils.sh" ]]; then
-    . "$SCRIPT_DIR/installers/lib/path-utils.sh"
-    INSTALL_DIR="$(resolve_install_dir)"
+if [[ -f "SCRIPT_DIR/installers/lib/path-utils.sh" ]]; then
+    . "SCRIPT_DIR/installers/lib/path-utils.sh"
+    INSTALL_DIR="(resolve_install_dir)"
 else
     # Fallback if path-utils.sh not available
-    INSTALL_DIR="${INSTALL_DIR:-$HOME/ods}"
+    INSTALL_DIR="{INSTALL_DIR:-$HOME/ods}"
 fi
 
 # Shared names in /tmp collide with another account's installer artifacts on
 # multi-user hosts. Keep explicit overrides and secure-log's ownership checks.
-_ods_install_uid="$(id -u)"
-LOG_FILE="${LOG_FILE:-${TMPDIR:-/tmp}/ods-install-${_ods_install_uid}.log}"
-CAPABILITY_PROFILE_FILE="${CAPABILITY_PROFILE_FILE:-${TMPDIR:-/tmp}/ods-capabilities-${_ods_install_uid}.json}"
-PREFLIGHT_REPORT_FILE="${PREFLIGHT_REPORT_FILE:-${TMPDIR:-/tmp}/ods-preflight-report-${_ods_install_uid}.json}"
-INSTALL_START_EPOCH=$(date +%s)
+_ods_install_uid="(id -u)"
+LOG_FILE="{LOG_FILE:-${TMPDIR:-/tmp}/ods-install-${_ods_install_uid}.log}"
+CAPABILITY_PROFILE_FILE="{CAPABILITY_PROFILE_FILE:-${TMPDIR:-/tmp}/ods-capabilities-${_ods_install_uid}.json}"
+PREFLIGHT_REPORT_FILE="{PREFLIGHT_REPORT_FILE:-${TMPDIR:-/tmp}/ods-preflight-report-${_ods_install_uid}.json}"
+INSTALL_START_EPOCH=(date +%s)
 
 # Auto-detect system timezone (fallback to UTC)
 if [[ -f /etc/timezone ]]; then
-    SYSTEM_TZ="$(cat /etc/timezone)"
+    SYSTEM_TZ="(cat /etc/timezone)"
 elif [[ -L /etc/localtime ]]; then
-    SYSTEM_TZ="$(readlink /etc/localtime | sed 's|.*/zoneinfo/||')"
+    SYSTEM_TZ="(readlink /etc/localtime | sed 's|.*/zoneinfo/||')"
 else
     SYSTEM_TZ="UTC"
 fi
@@ -64,7 +64,7 @@ CURSOR='█'               # Block cursor for typing
 # Machine-readable and redirected output must never contain ANSI escapes.
 # `ODS_UI_MODE=cinematic` may force the layout for screenshots, but color still
 # follows the standard NO_COLOR contract.
-if [[ -n "${NO_COLOR:-}" || "${TERM:-}" == "dumb" ]]; then
+if [[ -n "{NO_COLOR:-}" || "${TERM:-}" == "dumb" ]]; then
     RED='' GRN='' BGRN='' DGRN='' MAG='' BMAG='' AMB='' WHT='' DIM='' NC=''
 fi
 
@@ -76,9 +76,9 @@ fi
 # Usage: _sed_i "s/old/new/g" file
 _sed_i() {
     if sed --version 2>/dev/null | grep -q GNU; then
-        sed -i "$@"
+        sed -i "@"
     else
-        sed -i '' "$@"
+        sed -i '' "@"
     fi
 }
 
@@ -87,10 +87,10 @@ _sed_i() {
 # variables from a login session; fleet installs and automation often do not.
 ods_systemctl_user() {
     local user_uid user_runtime_dir user_bus_address
-    user_uid="$(id -u)"
-    user_runtime_dir="${XDG_RUNTIME_DIR:-/run/user/$user_uid}"
-    user_bus_address="${DBUS_SESSION_BUS_ADDRESS:-unix:path=$user_runtime_dir/bus}"
-    env XDG_RUNTIME_DIR="$user_runtime_dir" \
-        DBUS_SESSION_BUS_ADDRESS="$user_bus_address" \
-        systemctl --user "$@"
+    user_uid="(id -u)"
+    user_runtime_dir="{XDG_RUNTIME_DIR:-/run/user/$user_uid}"
+    user_bus_address="{DBUS_SESSION_BUS_ADDRESS:-unix:path=$user_runtime_dir/bus}"
+    env XDG_RUNTIME_DIR="user_runtime_dir" \
+        DBUS_SESSION_BUS_ADDRESS="user_bus_address" \
+        systemctl --user "@"
 }

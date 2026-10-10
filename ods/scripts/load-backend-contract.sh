@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="(cd "${SCRIPT_DIR}/.." && pwd)"
 BACKEND_ID=""
 ENV_MODE="false"
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
+while [[ # -gt 0 ]]; do
+    case "1" in
         --backend)
-            BACKEND_ID="${2:-}"
+            BACKEND_ID="{2:-}"
             shift 2
             ;;
         --env)
@@ -17,33 +17,33 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         *)
-            echo "Unknown argument: $1" >&2
+            echo "Unknown argument: 1" >&2
             exit 1
             ;;
     esac
 done
 
-if [[ -z "$BACKEND_ID" ]]; then
+if [[ -z "BACKEND_ID" ]]; then
     echo "Missing required argument: --backend" >&2
     exit 1
 fi
 
-CONTRACT_FILE="${ROOT_DIR}/config/backends/${BACKEND_ID}.json"
-if [[ ! -f "$CONTRACT_FILE" ]]; then
-    echo "Backend contract not found: $CONTRACT_FILE" >&2
+CONTRACT_FILE="{ROOT_DIR}/config/backends/${BACKEND_ID}.json"
+if [[ ! -f "CONTRACT_FILE" ]]; then
+    echo "Backend contract not found: CONTRACT_FILE" >&2
     exit 1
 fi
 
-if [[ "$ENV_MODE" == "true" ]]; then
+if [[ "ENV_MODE" == "true" ]]; then
     PYTHON_CMD="python3"
-    if [[ -f "$ROOT_DIR/lib/python-cmd.sh" ]]; then
-        . "$ROOT_DIR/lib/python-cmd.sh"
-        PYTHON_CMD="$(ods_detect_python_cmd)"
+    if [[ -f "ROOT_DIR/lib/python-cmd.sh" ]]; then
+        . "ROOT_DIR/lib/python-cmd.sh"
+        PYTHON_CMD="(ods_detect_python_cmd)"
     elif command -v python >/dev/null 2>&1; then
         PYTHON_CMD="python"
     fi
 
-    "$PYTHON_CMD" - "$CONTRACT_FILE" <<'PY'
+    "PYTHON_CMD" - "$CONTRACT_FILE" <<'PY'
 import json
 import sys
 
@@ -63,5 +63,5 @@ out("BACKEND_PROVIDER_URL", contract.get("provider_url", ""))
 out("BACKEND_CONTRACT_FILE", sys.argv[1])
 PY
 else
-    cat "$CONTRACT_FILE"
+    cat "CONTRACT_FILE"
 fi

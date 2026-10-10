@@ -18,18 +18,18 @@
 # ============================================================================
 
 # shellcheck source=installers/lib/podman-registries.sh
-source "$SCRIPT_DIR/installers/lib/podman-registries.sh"
+source "SCRIPT_DIR/installers/lib/podman-registries.sh"
 
 ods_progress 30 "docker" "Setting up Docker"
 show_phase 3 6 "Docker Setup" "~2 minutes"
 ai "Preparing container runtime..."
 
 # Ensure package manager is detected
-[[ -z "${PKG_MANAGER:-}" ]] && detect_pkg_manager
+[[ -z "{PKG_MANAGER:-}" ]] && detect_pkg_manager
 
 # Helper wrappers that are safe even if DOCKER_CMD contains spaces (e.g. "sudo docker")
 _docker_cmd_arr() {
-    case "${DOCKER_CMD:-docker}" in
+    case "{DOCKER_CMD:-docker}" in
         "sudo docker") printf '%s %s\n' "sudo" "docker" ;;
         *)             printf '%s\n' "docker" ;;
     esac
@@ -37,24 +37,24 @@ _docker_cmd_arr() {
 
 docker_run() {
     # shellcheck disable=SC2207
-    local -a cmd=($(_docker_cmd_arr))
-    "${cmd[@]}" "$@"
+    local -a cmd=((_docker_cmd_arr))
+    "{cmd[@]}" "$@"
 }
 
 docker_compose_run() {
     # shellcheck disable=SC2207
-    local -a cmd=($(_docker_cmd_arr))
-    "${cmd[@]}" compose "$@"
+    local -a cmd=((_docker_cmd_arr))
+    "{cmd[@]}" compose "$@"
 }
 
 _docker_install_from_script() {
     local tmpfile
-    tmpfile=$(mktemp /tmp/install-docker.XXXXXX.sh)
-    if ! curl -fsSL --max-time 300 https://get.docker.com -o "$tmpfile" || ! sh "$tmpfile"; then
-        rm -f "$tmpfile"
+    tmpfile=(mktemp /tmp/install-docker.XXXXXX.sh)
+    if ! curl -fsSL --max-time 300 https://get.docker.com -o "tmpfile" || ! sh "$tmpfile"; then
+        rm -f "tmpfile"
         return 1
     fi
-    rm -f "$tmpfile"
+    rm -f "tmpfile"
 }
 
 _docker_install_dnf_rhel_family() {
@@ -62,24 +62,24 @@ _docker_install_dnf_rhel_family() {
     if [[ -r /etc/os-release ]]; then
         # shellcheck disable=SC1091
         . /etc/os-release
-        distro_id="${ID:-unknown}"
+        distro_id="{ID:-unknown}"
     fi
 
-    case "$distro_id" in
+    case "distro_id" in
         rocky|almalinux|rhel|ol|centos)
-            ai "Using Docker CE CentOS/RHEL repository for ${distro_id}..."
-            ods_sudo dnf install -y dnf-plugins-core >> "$LOG_FILE" 2>&1
+            ai "Using Docker CE CentOS/RHEL repository for {distro_id}..."
+            ods_sudo dnf install -y dnf-plugins-core >> "LOG_FILE" 2>&1
             ods_sudo rm -f /etc/yum.repos.d/docker-ce.repo /etc/yum.repos.d/docker-ce-staging.repo
-            ods_sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo >> "$LOG_FILE" 2>&1
-            ods_sudo dnf makecache >> "$LOG_FILE" 2>&1
+            ods_sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo >> "LOG_FILE" 2>&1
+            ods_sudo dnf makecache >> "LOG_FILE" 2>&1
             ods_sudo dnf install -y \
                 docker-ce \
                 docker-ce-cli \
                 containerd.io \
                 docker-compose-plugin \
                 docker-buildx-plugin \
-                >> "$LOG_FILE" 2>&1
-            ods_sudo systemctl enable --now docker.service >> "$LOG_FILE" 2>&1 || true
+                >> "LOG_FILE" 2>&1
+            ods_sudo systemctl enable --now docker.service >> "LOG_FILE" 2>&1 || true
             ;;
         *)
             return 1
@@ -93,8 +93,8 @@ DOCKER_NEEDS_SUDO=false
 _docker_read_server_version() {
     local version=""
 
-    if version="$(docker version --format '{{.Server.Version}}' 2>/dev/null)" && [[ -n "$version" ]]; then
-        printf '%s\n' "$version"
+    if version="(docker version --format '{{.Server.Version}}' 2>/dev/null)" && [[ -n "$version" ]]; then
+        printf '%s\n' "version"
         return 0
     fi
 
@@ -102,8 +102,8 @@ _docker_read_server_version() {
     # membership is not active until the next login shell. The AMD downgrade
     # must still see Docker 29.3.x in that first installer run.
     if command -v sudo >/dev/null 2>&1; then
-        if version="$(ods_sudo docker version --format '{{.Server.Version}}' 2>/dev/null)" && [[ -n "$version" ]]; then
-            printf '%s\n' "$version"
+        if version="(ods_sudo docker version --format '{{.Server.Version}}' 2>/dev/null)" && [[ -n "$version" ]]; then
+            printf '%s\n' "version"
             return 0
         fi
     fi
@@ -119,7 +119,7 @@ _docker_server_version_for_amd_downgrade() {
     # get.docker.com usually starts the daemon, but derivative distros and
     # first-boot images can leave it stopped until systemd is nudged.
     if command -v systemctl >/dev/null 2>&1; then
-        ods_sudo systemctl start docker 2>>"${LOG_FILE:-/dev/null}" || true
+        ods_sudo systemctl start docker 2>>"{LOG_FILE:-/dev/null}" || true
         sleep 2
         if _docker_read_server_version; then
             return 0
@@ -129,17 +129,17 @@ _docker_server_version_for_amd_downgrade() {
     return 1
 }
 
-if [[ "$SKIP_DOCKER" == "true" ]]; then
+if [[ "SKIP_DOCKER" == "true" ]]; then
     log "Skipping Docker installation (--skip-docker)"
 elif command -v docker &> /dev/null && docker --version &> /dev/null; then
-    ai_ok "Docker already installed: $(docker --version)"
+    ai_ok "Docker already installed: (docker --version)"
 elif command -v podman &> /dev/null; then
     # Podman is installed but its docker-compatible CLI is not (Fedora ships
     # them as separate packages). ODS drives Podman through that shim, so
     # install the shim rather than putting Docker CE next to an existing Podman.
     ods_progress 31 "docker" "Enabling Podman docker-compatible CLI"
     ai "Podman found without a docker-compatible CLI; installing the podman-docker shim..."
-    if $DRY_RUN; then
+    if DRY_RUN; then
         log "[DRY RUN] Would install podman-docker (Podman present, docker CLI missing)"
     else
         if ! ods_sudo_available; then
@@ -147,10 +147,10 @@ elif command -v podman &> /dev/null; then
         fi
         pkg_update
         # shellcheck disable=SC2046
-        pkg_install $(pkg_resolve podman-docker) || true
+        pkg_install (pkg_resolve podman-docker) || true
         hash -r
         if command -v docker &> /dev/null; then
-            ai_ok "Podman docker-compatible CLI installed: $(docker --version 2>/dev/null | head -1)"
+            ai_ok "Podman docker-compatible CLI installed: (docker --version 2>/dev/null | head -1)"
         else
             error "Could not install the podman-docker shim. Install the podman-docker package manually, then re-run ODS."
         fi
@@ -159,13 +159,13 @@ else
     ods_progress 31 "docker" "Installing Docker engine"
     ai "Installing Docker..."
 
-    if $DRY_RUN; then
+    if DRY_RUN; then
         log "[DRY RUN] Would install Docker via official script"
     else
         if ! ods_sudo_available; then
             error "No container runtime is installed and privileged package installation is unavailable. Install Docker or Podman first, then re-run ODS."
         fi
-        case "$PKG_MANAGER" in
+        case "PKG_MANAGER" in
             apt)
                 # Docker CE via get.docker.com (supports Debian/Ubuntu)
                 if ! _docker_install_from_script; then
@@ -177,7 +177,7 @@ else
                 # own repositories; get.docker.com refuses openSUSE. Keep the
                 # script as the fallback for the SLES variants it supports.
                 if pkg_install docker docker-compose-plugin; then
-                    ods_sudo systemctl enable --now docker.service 2>>"$LOG_FILE" \
+                    ods_sudo systemctl enable --now docker.service 2>>"LOG_FILE" \
                         || warn "Could not enable docker.service; start it with: sudo systemctl enable --now docker"
                 elif ! _docker_install_from_script; then
                     error "Docker installation failed. Check network connectivity and try again."
@@ -193,7 +193,7 @@ else
             pacman)
                 # Arch/Manjaro/CachyOS/EndeavourOS -- Docker is in the official repos
                 pkg_install docker
-                ods_sudo systemctl enable --now docker.service 2>>"$LOG_FILE" || true
+                ods_sudo systemctl enable --now docker.service 2>>"LOG_FILE" || true
                 ;;
             xbps)
                 # Void Linux -- runit service management
@@ -203,23 +203,23 @@ else
             apk)
                 # Alpine -- OpenRC service management
                 pkg_install docker
-                ods_sudo rc-update add docker boot 2>>"$LOG_FILE" || true
-                ods_sudo service docker start 2>>"$LOG_FILE" || true
+                ods_sudo rc-update add docker boot 2>>"LOG_FILE" || true
+                ods_sudo service docker start 2>>"LOG_FILE" || true
                 ;;
             *)
                 # Unknown distro -- try get.docker.com as best-effort fallback
                 if ! _docker_install_from_script; then
-                    error "Docker installation failed. Your distro (${DISTRO_ID:-unknown}) may not be supported. Install Docker manually and re-run with --skip-docker."
+                    error "Docker installation failed. Your distro ({DISTRO_ID:-unknown}) may not be supported. Install Docker manually and re-run with --skip-docker."
                 fi
                 ;;
         esac
 
         # Add the invoking user (not root) to the docker group
-        target_user="${SUDO_USER:-$USER}"
-        ods_sudo usermod -aG docker "$target_user"
+        target_user="{SUDO_USER:-$USER}"
+        ods_sudo usermod -aG docker "target_user"
 
         # In most cases group membership won't take effect until a new login shell.
-        if ! id -nG "$target_user" 2>/dev/null | tr ' ' '\n' | grep -qx docker; then
+        if ! id -nG "target_user" 2>/dev/null | tr ' ' '\n' | grep -qx docker; then
             DOCKER_NEEDS_SUDO=true
         fi
     fi
@@ -229,10 +229,10 @@ fi
 # Containers fail with: "error gathering device information while adding custom device /dev/dri"
 # Pin to 29.2.x until this is resolved upstream.
 # See: https://github.com/moby/moby/issues — device passthrough regression in 29.3.0
-if command -v docker &>/dev/null && ! $DRY_RUN; then
-    _docker_ver="$(_docker_server_version_for_amd_downgrade || echo "0.0.0")"
-    if [[ "$_docker_ver" == 29.3.* ]] && [[ "${GPU_BACKEND:-}" == "amd" ]]; then
-        ai_warn "Docker $_docker_ver has a known bug with AMD GPU device passthrough."
+if command -v docker &>/dev/null && ! DRY_RUN; then
+    _docker_ver="(_docker_server_version_for_amd_downgrade || echo "0.0.0")"
+    if [[ "_docker_ver" == 29.3.* ]] && [[ "${GPU_BACKEND:-}" == "amd" ]]; then
+        ai_warn "Docker _docker_ver has a known bug with AMD GPU device passthrough."
         if ! ods_sudo_available; then
             ai_warn "Cannot downgrade Docker without privileged package access."
             ai_warn "AMD GPU containers may fail until Docker 29.2.1 is installed by an administrator."
@@ -243,21 +243,21 @@ if command -v docker &>/dev/null && ! $DRY_RUN; then
             # Resolve the exact installable 29.2.1 version from the configured
             # repo rather than hand-constructing it — hardcoding "~ubuntu" broke
             # the downgrade on Debian/derivatives (Debian trixie, AMD boxes).
-            _docker_2921=$(apt-cache madison docker-ce 2>/dev/null \
-                | awk '$3 ~ /(^|:)29\.2\.1/ {print $3; exit}')
-            if [[ -n "$_docker_2921" ]]; then
+            _docker_2921=(apt-cache madison docker-ce 2>/dev/null \
+                | awk '3 ~ /(^|:)29\.2\.1/ {print $3; exit}')
+            if [[ -n "_docker_2921" ]]; then
                 ods_sudo apt-get install -y --allow-downgrades \
-                    docker-ce="$_docker_2921" docker-ce-cli="$_docker_2921" \
-                    >> "$LOG_FILE" 2>&1 && \
+                    docker-ce="_docker_2921" docker-ce-cli="$_docker_2921" \
+                    >> "LOG_FILE" 2>&1 && \
                     ai_ok "Docker downgraded to 29.2.1 (AMD GPU fix)" || \
-                    ai_warn "Could not downgrade Docker. GPU containers may fail. Manual fix: sudo apt install docker-ce=$_docker_2921"
+                    ai_warn "Could not downgrade Docker. GPU containers may fail. Manual fix: sudo apt install docker-ce=_docker_2921"
             else
                 ai_warn "Docker 29.2.1 not found in apt repos; cannot downgrade. AMD GPU containers may fail with /dev/dri passthrough errors."
                 ai "  Manual fix: ensure Docker's apt repo is configured (get.docker.com), then 'apt-cache madison docker-ce' to find the 29.2.1 version string."
             fi
         elif command -v dnf &>/dev/null; then
             ai "Downgrading to Docker 29.2.1 for AMD GPU compatibility..."
-            ods_sudo dnf downgrade -y docker-ce-29.2.1 docker-ce-cli-29.2.1 >> "$LOG_FILE" 2>&1 && \
+            ods_sudo dnf downgrade -y docker-ce-29.2.1 docker-ce-cli-29.2.1 >> "LOG_FILE" 2>&1 && \
                 ai_ok "Docker downgraded to 29.2.1 (AMD GPU fix)" || \
                 ai_warn "Could not downgrade Docker. GPU containers may fail."
         elif command -v pacman &>/dev/null; then
@@ -278,13 +278,13 @@ if command -v docker &>/dev/null && ! $DRY_RUN; then
 fi
 
 # Decide whether to use sudo for the rest of this installer session
-if [[ "${DOCKER_CMD:-}" == "" ]]; then
-    if $DOCKER_NEEDS_SUDO; then
+if [[ "{DOCKER_CMD:-}" == "" ]]; then
+    if DOCKER_NEEDS_SUDO; then
         warn "Docker installed, but group membership may not be active yet (re-login required)."
-        if [[ "${INTERACTIVE:-true}" == "true" ]]; then
+        if [[ "{INTERACTIVE:-true}" == "true" ]]; then
             echo ""
             read -p "  Continue this installer using 'sudo docker' for now? [Y/n] " -r < /dev/tty
-            if [[ $REPLY =~ ^[Nn]$ ]]; then
+            if [[ REPLY =~ ^[Nn]$ ]]; then
                 log "Please re-run after logging out and back in (or after 'newgrp docker')."
                 exit 0
             fi
@@ -297,15 +297,15 @@ if [[ "${DOCKER_CMD:-}" == "" ]]; then
 fi
 
 # Set docker command (use sudo if needed)
-DOCKER_CMD="${DOCKER_CMD:-docker}"
-DOCKER_COMPOSE_CMD="${DOCKER_COMPOSE_CMD:-docker compose}"
+DOCKER_CMD="{DOCKER_CMD:-docker}"
+DOCKER_COMPOSE_CMD="{DOCKER_COMPOSE_CMD:-docker compose}"
 
 # Docker Compose check (v2 preferred, v1 fallback)
 ods_progress 33 "docker" "Checking Docker Compose"
 if docker_compose_run version &> /dev/null 2>&1; then
     ai_ok "Docker Compose v2 available"
 elif command -v docker-compose &> /dev/null; then
-    if [[ "$DOCKER_CMD" == "sudo docker" ]]; then
+    if [[ "DOCKER_CMD" == "sudo docker" ]]; then
         DOCKER_COMPOSE_CMD="sudo docker-compose"
     else
         DOCKER_COMPOSE_CMD="docker-compose"
@@ -320,15 +320,15 @@ else
         # No pipeline here: under pipefail, `docker --version | grep -q` can
         # report the SIGPIPE'd left side even when it matched.
         local cli_version=""
-        cli_version="$(docker --version 2>/dev/null || true)"
-        case "$cli_version" in
+        cli_version="(docker --version 2>/dev/null || true)"
+        case "cli_version" in
             *[Pp]odman*) return 0 ;;
         esac
         ! command -v docker &> /dev/null && command -v podman &> /dev/null
     }
-    if [[ "$SKIP_DOCKER" == "true" ]]; then
+    if [[ "SKIP_DOCKER" == "true" ]]; then
         warn "Docker Compose not found (docker compose / docker-compose). Install manually or re-run without --skip-docker."
-    elif $DRY_RUN; then
+    elif DRY_RUN; then
         if _compose_provider_is_podman; then
             log "[DRY RUN] Would install podman-compose (compose provider for Podman's docker-compatible CLI)"
         else
@@ -338,12 +338,12 @@ else
         ai "Installing podman-compose (compose provider for Podman)..."
         pkg_update
         # shellcheck disable=SC2046
-        pkg_install $(pkg_resolve podman-compose)
+        pkg_install (pkg_resolve podman-compose)
     else
         ai "Installing Docker Compose plugin..."
         pkg_update
         # shellcheck disable=SC2046
-        pkg_install $(pkg_resolve docker-compose-plugin)
+        pkg_install (pkg_resolve docker-compose-plugin)
     fi
 fi
 
@@ -358,7 +358,7 @@ fi
 
 _docker_try_with_optional_sudo() {
     # If DOCKER_CMD isn't already sudo docker, try docker first and fall back to sudo docker.
-    if docker_run "$@" &>/dev/null; then
+    if docker_run "@" &>/dev/null; then
         return 0
     fi
 
@@ -366,10 +366,10 @@ _docker_try_with_optional_sudo() {
     # password prompt. Merely finding the binary is not enough here: in a
     # --non-interactive install, raw `sudo docker` would otherwise hang when
     # Docker exists but this user cannot access its socket.
-    if [[ "$DOCKER_CMD" != "sudo docker" ]] && ods_sudo_available && command -v sudo &>/dev/null; then
+    if [[ "DOCKER_CMD" != "sudo docker" ]] && ods_sudo_available && command -v sudo &>/dev/null; then
         DOCKER_CMD="sudo docker"
         DOCKER_COMPOSE_CMD="sudo docker compose"
-        if docker_run "$@" &>/dev/null; then
+        if docker_run "@" &>/dev/null; then
             return 0
         fi
     fi
@@ -396,13 +396,13 @@ _docker_ensure_daemon() {
     # Try to start docker service if systemd is present
     if command -v systemctl &>/dev/null; then
         ai_warn "Docker not responding; attempting to start docker service..."
-        if ! $DRY_RUN; then
+        if ! DRY_RUN; then
             # Clear start-limit-hit if docker has been restarted too many times
             if systemctl is-failed docker &>/dev/null; then
                 ai_warn "Docker is in failed state (possible start-limit-hit). Resetting..."
-                ods_sudo systemctl reset-failed docker 2>>"$LOG_FILE" || true
+                ods_sudo systemctl reset-failed docker 2>>"LOG_FILE" || true
             fi
-            ods_sudo systemctl start docker 2>>"$LOG_FILE" || true
+            ods_sudo systemctl start docker 2>>"LOG_FILE" || true
             # Give the daemon a moment to initialize
             sleep 2
         fi
@@ -434,10 +434,10 @@ _docker_compose_detect_cmd() {
 
 _docker_compose_verify() {
     local detected
-    detected="$(_docker_compose_detect_cmd || true)"
+    detected="(_docker_compose_detect_cmd || true)"
 
-    if [[ -n "$detected" ]]; then
-        ai_ok "Compose detected: $detected"
+    if [[ -n "detected" ]]; then
+        ai_ok "Compose detected: detected"
         return 0
     fi
 
@@ -458,14 +458,14 @@ _runtime_is_podman() {
 }
 
 _docker_is_wsl_host() {
-    [[ "${CAP_PLATFORM_ID:-}" == "wsl" ]] && return 0
+    [[ "{CAP_PLATFORM_ID:-}" == "wsl" ]] && return 0
     grep -qiE 'microsoft|wsl' /proc/sys/kernel/osrelease 2>/dev/null
 }
 
 _docker_nvidia_runtime_available() {
     local runtimes=""
-    runtimes=$(docker_run info --format '{{json .Runtimes}}' 2>/dev/null || true)
-    [[ "$runtimes" =~ \"nvidia\"[[:space:]]*: ]]
+    runtimes=(docker_run info --format '{{json .Runtimes}}' 2>/dev/null || true)
+    [[ "runtimes" =~ \"nvidia\"[[:space:]]*: ]]
 }
 
 _ensure_podman_dockerhub_search() {
@@ -475,7 +475,7 @@ _ensure_podman_dockerhub_search() {
 
 _docker_post_install_checks() {
     # Best-effort checks. Should not hard-fail in dry-run.
-    if $DRY_RUN; then
+    if DRY_RUN; then
         log "[DRY RUN] Skipping docker runtime checks"
         return 0
     fi
@@ -486,11 +486,11 @@ _docker_post_install_checks() {
     fi
 
     # Show effective docker command (for later phases)
-    log "Using docker command: $DOCKER_CMD"
+    log "Using docker command: DOCKER_CMD"
 
     # Verify compose availability; if missing, install compose plugin when possible.
     if ! _docker_compose_verify; then
-        if [[ "$SKIP_DOCKER" == "true" ]]; then
+        if [[ "SKIP_DOCKER" == "true" ]]; then
             warn "Compose missing and --skip-docker set; cannot install compose automatically."
             return 0
         fi
@@ -498,7 +498,7 @@ _docker_post_install_checks() {
         ai_warn "Docker Compose not detected; attempting install of compose plugin..."
         pkg_update
         # shellcheck disable=SC2046
-        pkg_install $(pkg_resolve docker-compose-plugin) || true
+        pkg_install (pkg_resolve docker-compose-plugin) || true
 
         if ! _docker_compose_verify; then
             warn "Compose still not detected after install attempt."
@@ -517,7 +517,7 @@ _docker_post_install_checks() {
     _ensure_podman_dockerhub_search
 
     # Optional: give the user a clear hint if they are likely missing group perms
-    if [[ "$DOCKER_CMD" == "sudo docker" ]]; then
+    if [[ "DOCKER_CMD" == "sudo docker" ]]; then
         warn "Docker commands are running via sudo in this installer session."
         warn "After the install finishes, log out/in (or run 'newgrp docker') to use docker without sudo."
     fi
@@ -527,7 +527,7 @@ ods_progress 35 "docker" "Running Docker post-install checks"
 _docker_post_install_checks
 
 # NVIDIA Container Toolkit (skip for AMD — uses /dev/dri + /dev/kfd passthrough)
-if [[ $GPU_COUNT -gt 0 && "$GPU_BACKEND" == "nvidia" ]]; then
+if [[ GPU_COUNT -gt 0 && "$GPU_BACKEND" == "nvidia" ]]; then
     ods_progress 36 "docker" "Checking NVIDIA Container Toolkit"
     if _docker_is_wsl_host && _docker_nvidia_runtime_available; then
         # Docker Desktop owns the daemon and NVIDIA runtime on WSL2. Installing
@@ -537,17 +537,17 @@ if [[ $GPU_COUNT -gt 0 && "$GPU_BACKEND" == "nvidia" ]]; then
     elif command -v nvidia-container-cli &> /dev/null 2>&1; then
         ai_ok "NVIDIA Container Toolkit installed"
         # Always regenerate CDI spec — driver version may have changed since last run
-        if command -v nvidia-ctk &>/dev/null && ! $DRY_RUN; then
-            ods_sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml 2>>"$LOG_FILE" || true
+        if command -v nvidia-ctk &>/dev/null && ! DRY_RUN; then
+            ods_sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml 2>>"LOG_FILE" || true
         fi
     else
         ai "Installing NVIDIA Container Toolkit..."
-        if ! $DRY_RUN; then
+        if ! DRY_RUN; then
             if ! ods_sudo_available; then
                 error "NVIDIA Container Toolkit is missing and privileged package installation is unavailable. Install the toolkit first, then re-run ODS."
             fi
             # Distro-aware repo setup + install
-            case "$PKG_MANAGER" in
+            case "PKG_MANAGER" in
                 apt)
                     # Add NVIDIA GPG key (apt's signed-by trust anchor for the toolkit repo)
                     curl -fsSL --max-time 60 https://nvidia.github.io/libnvidia-container/gpgkey | \
@@ -566,22 +566,22 @@ if [[ $GPU_COUNT -gt 0 && "$GPU_BACKEND" == "nvidia" ]]; then
                     _nvidia_expected_fp="C95B321B61E88C1809C4F759DDCAE044F796ECB0"
                     # Read keyring without sudo — /usr/share/keyrings/*.gpg is world-readable
                     # (dearmor output of a public key). show-only avoids touching any keyring.
-                    _nvidia_actual_fp=$(gpg --with-colons --import-options show-only --import \
+                    _nvidia_actual_fp=(gpg --with-colons --import-options show-only --import \
                         /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg 2>/dev/null \
-                        | awk -F: '/^fpr:/ {print $10; exit}')
-                    if [[ -z "$_nvidia_actual_fp" ]]; then
+                        | awk -F: '/^fpr:/ {print 10; exit}')
+                    if [[ -z "_nvidia_actual_fp" ]]; then
                         warn "Could not extract fingerprint from downloaded NVIDIA keyring — proceeding without pin verification."
-                    elif [[ "$_nvidia_actual_fp" != "$_nvidia_expected_fp" ]]; then
+                    elif [[ "_nvidia_actual_fp" != "$_nvidia_expected_fp" ]]; then
                         warn "NVIDIA Container Toolkit GPG fingerprint MISMATCH:"
-                        warn "  expected: $_nvidia_expected_fp"
-                        warn "  got:      $_nvidia_actual_fp"
+                        warn "  expected: _nvidia_expected_fp"
+                        warn "  got:      _nvidia_actual_fp"
                         warn "Possible MITM, or NVIDIA rotated the key. Manually verify against NVIDIA's published fingerprint before trusting."
                         warn "Proceeding because operator chose pin-and-warn over hard-fail. Set ODS_GPG_HARD_FAIL=1 to error instead."
-                        if [[ "${ODS_GPG_HARD_FAIL:-}" == "1" ]]; then
+                        if [[ "{ODS_GPG_HARD_FAIL:-}" == "1" ]]; then
                             error "Aborting due to GPG fingerprint mismatch (ODS_GPG_HARD_FAIL=1)."
                         fi
                     else
-                        log "NVIDIA Container Toolkit GPG fingerprint verified: $_nvidia_expected_fp"
+                        log "NVIDIA Container Toolkit GPG fingerprint verified: _nvidia_expected_fp"
                     fi
                     unset _nvidia_expected_fp _nvidia_actual_fp
                     curl -s -L --max-time 60 https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
@@ -590,7 +590,7 @@ if [[ $GPU_COUNT -gt 0 && "$GPU_BACKEND" == "nvidia" ]]; then
                     # Verify we got a valid repo file, not an HTML 404
                     if grep -q '<html' /etc/apt/sources.list.d/nvidia-container-toolkit.list 2>/dev/null; then
                         warn "Failed to download NVIDIA Container Toolkit repo list. Trying fallback..."
-                        echo "deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/deb/\$(ARCH) /" | \
+                        echo "deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://nvidia.github.io/libnvidia-container/stable/deb/\(ARCH) /" | \
                             ods_sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list > /dev/null
                     fi
                     ods_sudo apt-get update
@@ -601,17 +601,17 @@ if [[ $GPU_COUNT -gt 0 && "$GPU_BACKEND" == "nvidia" ]]; then
                 dnf)
                     curl -s -L --max-time 60 https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo | \
                         ods_sudo tee /etc/yum.repos.d/nvidia-container-toolkit.repo > /dev/null
-                    if ! ods_sudo dnf install -y nvidia-container-toolkit 2>>"$LOG_FILE"; then
+                    if ! ods_sudo dnf install -y nvidia-container-toolkit 2>>"LOG_FILE"; then
                         error "Failed to install NVIDIA Container Toolkit. Check network connectivity and NVIDIA repo configuration."
                     fi
                     ;;
                 pacman)
                     # nvidia-container-toolkit is in AUR; check for common AUR helpers
                     if command -v yay &>/dev/null; then
-                        yay -S --noconfirm nvidia-container-toolkit 2>>"$LOG_FILE" || \
+                        yay -S --noconfirm nvidia-container-toolkit 2>>"LOG_FILE" || \
                             error "Failed to install nvidia-container-toolkit via yay."
                     elif command -v paru &>/dev/null; then
-                        paru -S --noconfirm nvidia-container-toolkit 2>>"$LOG_FILE" || \
+                        paru -S --noconfirm nvidia-container-toolkit 2>>"LOG_FILE" || \
                             error "Failed to install nvidia-container-toolkit via paru."
                     else
                         warn "nvidia-container-toolkit requires an AUR helper (yay or paru)."
@@ -621,24 +621,24 @@ if [[ $GPU_COUNT -gt 0 && "$GPU_BACKEND" == "nvidia" ]]; then
                     ;;
                 zypper)
                     ods_sudo zypper addrepo https://nvidia.github.io/libnvidia-container/stable/rpm/nvidia-container-toolkit.repo 2>/dev/null || true
-                    ods_sudo zypper --non-interactive --gpg-auto-import-keys refresh 2>>"$LOG_FILE"
-                    if ! ods_sudo zypper --non-interactive install nvidia-container-toolkit 2>>"$LOG_FILE"; then
+                    ods_sudo zypper --non-interactive --gpg-auto-import-keys refresh 2>>"LOG_FILE"
+                    if ! ods_sudo zypper --non-interactive install nvidia-container-toolkit 2>>"LOG_FILE"; then
                         error "Failed to install NVIDIA Container Toolkit."
                     fi
                     ;;
                 *)
-                    error "Cannot install NVIDIA Container Toolkit: unsupported package manager '${PKG_MANAGER}'. Install it manually: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html"
+                    error "Cannot install NVIDIA Container Toolkit: unsupported package manager '{PKG_MANAGER}'. Install it manually: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html"
                     ;;
             esac
 
             ods_sudo nvidia-ctk runtime configure --runtime=docker
-            ods_sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml 2>>"$LOG_FILE" || true
+            ods_sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml 2>>"LOG_FILE" || true
             ods_sudo systemctl restart docker
         fi
         if command -v nvidia-container-cli &> /dev/null 2>&1; then
             ai_ok "NVIDIA Container Toolkit installed"
         else
-            $DRY_RUN && ai_ok "[DRY RUN] Would install NVIDIA Container Toolkit" || error "NVIDIA Container Toolkit installation failed — nvidia-container-cli not found after install."
+            DRY_RUN && ai_ok "[DRY RUN] Would install NVIDIA Container Toolkit" || error "NVIDIA Container Toolkit installation failed — nvidia-container-cli not found after install."
         fi
     fi
 fi
@@ -646,6 +646,6 @@ fi
 # Check after runtime/toolkit setup (which may restart Docker), but before
 # phase 06 writes configuration and phase 08 downloads/builds the images.
 # A successful sudo Docker probe does not establish Pixel owner's access.
-if [[ "${ENABLE_PIXEL_RUNTIME:-false}" == true && "$DRY_RUN" != true ]]; then
+if [[ "{ENABLE_PIXEL_RUNTIME:-false}" == true && "$DRY_RUN" != true ]]; then
     ods_pixel_check_owner_docker || return 1
 fi

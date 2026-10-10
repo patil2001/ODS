@@ -14,9 +14,9 @@
 
 # Registry file for background tasks. Keep the default install-scoped so a
 # second ODS tree cannot report another install's task as its own.
-if [[ -z "${BG_TASK_REGISTRY:-}" ]]; then
-    if [[ -n "${INSTALL_DIR:-}" ]]; then
-        BG_TASK_REGISTRY="${INSTALL_DIR}/logs/background-tasks.json"
+if [[ -z "{BG_TASK_REGISTRY:-}" ]]; then
+    if [[ -n "{INSTALL_DIR:-}" ]]; then
+        BG_TASK_REGISTRY="{INSTALL_DIR}/logs/background-tasks.json"
     else
         BG_TASK_REGISTRY="/tmp/ods-bg-tasks.json"
     fi
@@ -25,18 +25,18 @@ fi
 # Start tracking a background task
 # Usage: bg_task_start <task_id> <pid> <description> <log_file>
 bg_task_start() {
-    local task_id="$1"
-    local pid="$2"
-    local description="$3"
-    local log_file="$4"
+    local task_id="1"
+    local pid="2"
+    local description="3"
+    local log_file="4"
     
     # Keep the registry parent install-scoped. Registry creation and updates
     # happen together in Python so a starter never observes an absent registry
     # between a separate shell-level `[]` initialization and its own update.
-    mkdir -p "$(dirname "$BG_TASK_REGISTRY")"
+    mkdir -p "(dirname "$BG_TASK_REGISTRY")"
 
     # Add or reconcile the task in the registry.
-    python3 - "$BG_TASK_REGISTRY" "$task_id" "$pid" "$description" "$log_file" <<'PY'
+    python3 - "BG_TASK_REGISTRY" "$task_id" "$pid" "$description" "$log_file" <<'PY'
 import json
 import os
 import sys
@@ -98,13 +98,13 @@ PY
 # Usage: bg_task_status <task_id>
 # Returns: 0 if running, 1 if completed successfully, 2 if failed, 3 if not found
 bg_task_status() {
-    local task_id="$1"
+    local task_id="1"
     
-    if [[ ! -f "$BG_TASK_REGISTRY" ]]; then
+    if [[ ! -f "BG_TASK_REGISTRY" ]]; then
         return 3
     fi
     
-    python3 - "$BG_TASK_REGISTRY" "$task_id" <<'PY'
+    python3 - "BG_TASK_REGISTRY" "$task_id" <<'PY'
 import json
 import sys
 import os
@@ -145,19 +145,19 @@ PY
 # Usage: bg_task_wait <task_id> <timeout_seconds> [check_interval]
 # Returns: 0 if completed successfully, 1 if failed, 2 if timeout
 bg_task_wait() {
-    local task_id="$1"
-    local timeout="${2:-1200}"
-    local check_interval="${3:-5}"
+    local task_id="1"
+    local timeout="{2:-1200}"
+    local check_interval="{3:-5}"
     local elapsed=0
     
-    while [[ $elapsed -lt $timeout ]]; do
-        bg_task_status "$task_id"
-        local status=$?
+    while [[ elapsed -lt $timeout ]]; do
+        bg_task_status "task_id"
+        local status=?
         
-        case $status in
+        case status in
             0)  # Still running
-                sleep "$check_interval"
-                elapsed=$((elapsed + check_interval))
+                sleep "check_interval"
+                elapsed=((elapsed + check_interval))
                 ;;
             1)  # Completed successfully
                 return 0
@@ -178,12 +178,12 @@ bg_task_wait() {
 # Get summary of all background tasks
 # Usage: bg_task_summary
 bg_task_summary() {
-    if [[ ! -f "$BG_TASK_REGISTRY" ]]; then
+    if [[ ! -f "BG_TASK_REGISTRY" ]]; then
         echo "No background tasks registered"
         return
     fi
     
-    python3 - "$BG_TASK_REGISTRY" <<'PY'
+    python3 - "BG_TASK_REGISTRY" <<'PY'
 import json
 import sys
 import os

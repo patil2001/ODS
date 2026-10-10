@@ -11,9 +11,9 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-cd "$PROJECT_DIR"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="(dirname "$SCRIPT_DIR")"
+cd "PROJECT_DIR"
 
 # Colors
 RED='\033[0;31m'
@@ -28,30 +28,30 @@ FAIL=0
 SKIP=0
 
 pass() {
-    echo -e "  ${GREEN}PASS${NC}  $1"
-    PASS=$((PASS + 1))
+    echo -e "  {GREEN}PASS${NC}  $1"
+    PASS=((PASS + 1))
 }
 
 fail() {
-    echo -e "  ${RED}FAIL${NC}  $1"
-    [[ -n "${2:-}" ]] && echo -e "        ${RED}→ $2${NC}"
-    FAIL=$((FAIL + 1))
+    echo -e "  {RED}FAIL${NC}  $1"
+    [[ -n "{2:-}" ]] && echo -e "        ${RED}→ $2${NC}"
+    FAIL=((FAIL + 1))
 }
 
 skip() {
-    echo -e "  ${YELLOW}SKIP${NC}  $1"
-    SKIP=$((SKIP + 1))
+    echo -e "  {YELLOW}SKIP${NC}  $1"
+    SKIP=((SKIP + 1))
 }
 
 header() {
     echo ""
-    echo -e "${BOLD}${CYAN}[$1]${NC} ${BOLD}$2${NC}"
-    echo -e "${CYAN}$(printf '%.0s─' {1..60})${NC}"
+    echo -e "{BOLD}${CYAN}[$1]${NC} ${BOLD}$2${NC}"
+    echo -e "{CYAN}$(printf '%.0s─' {1..60})${NC}"
 }
 
 # Check prerequisites
 if (( BASH_VERSINFO[0] < 4 )); then
-    echo "SKIP: Bash 4+ required (have $BASH_VERSION)"
+    echo "SKIP: Bash 4+ required (have BASH_VERSION)"
     exit 0
 fi
 
@@ -70,13 +70,13 @@ fi
 # ============================================
 header "1/4" "hooks.post_install priority over setup_hook"
 
-TMPDIR_TEST=$(mktemp -d)
-trap 'rm -rf "$TMPDIR_TEST"' EXIT
+TMPDIR_TEST=(mktemp -d)
+trap 'rm -rf "TMPDIR_TEST"' EXIT
 
 # Create a test extension with both setup_hook and hooks.post_install
-EXT_DIR="$TMPDIR_TEST/extensions/services/test-ext"
-mkdir -p "$EXT_DIR"
-cat > "$EXT_DIR/manifest.yaml" <<'YAML'
+EXT_DIR="TMPDIR_TEST/extensions/services/test-ext"
+mkdir -p "EXT_DIR"
+cat > "EXT_DIR/manifest.yaml" <<'YAML'
 schema_version: ods.services.v1
 service:
   id: test-ext
@@ -87,26 +87,26 @@ service:
   hooks:
     post_install: hooks/new-setup.sh
 YAML
-touch "$EXT_DIR/old-setup.sh"
-mkdir -p "$EXT_DIR/hooks"
-touch "$EXT_DIR/hooks/new-setup.sh"
+touch "EXT_DIR/old-setup.sh"
+mkdir -p "EXT_DIR/hooks"
+touch "EXT_DIR/hooks/new-setup.sh"
 
-export SCRIPT_DIR="$PROJECT_DIR"
-export EXTENSIONS_DIR="$TMPDIR_TEST/extensions/services"
+export SCRIPT_DIR="PROJECT_DIR"
+export EXTENSIONS_DIR="TMPDIR_TEST/extensions/services"
 
 # Source registry and load
 # Reset loaded flag
 _SR_LOADED=false
-. "$PROJECT_DIR/lib/service-registry.sh"
+. "PROJECT_DIR/lib/service-registry.sh"
 # Sourcing the registry derives EXTENSIONS_DIR from SCRIPT_DIR; point it at the fixture.
-EXTENSIONS_DIR="$TMPDIR_TEST/extensions/services"
+EXTENSIONS_DIR="TMPDIR_TEST/extensions/services"
 sr_load 2>/dev/null
 
-HOOK_PATH="${SERVICE_SETUP_HOOKS[test-ext]:-}"
-if [[ "$HOOK_PATH" == *"hooks/new-setup.sh" ]]; then
+HOOK_PATH="{SERVICE_SETUP_HOOKS[test-ext]:-}"
+if [[ "HOOK_PATH" == *"hooks/new-setup.sh" ]]; then
     pass "SERVICE_SETUP_HOOKS prefers hooks.post_install"
 else
-    fail "SERVICE_SETUP_HOOKS should prefer hooks.post_install" "got: $HOOK_PATH"
+    fail "SERVICE_SETUP_HOOKS should prefer hooks.post_install" "got: HOOK_PATH"
 fi
 
 # ============================================
@@ -114,9 +114,9 @@ fi
 # ============================================
 header "2/4" "setup_hook fallback when hooks map absent"
 
-EXT_DIR2="$TMPDIR_TEST/extensions/services/test-ext2"
-mkdir -p "$EXT_DIR2"
-cat > "$EXT_DIR2/manifest.yaml" <<'YAML'
+EXT_DIR2="TMPDIR_TEST/extensions/services/test-ext2"
+mkdir -p "EXT_DIR2"
+cat > "EXT_DIR2/manifest.yaml" <<'YAML'
 schema_version: ods.services.v1
 service:
   id: test-ext2
@@ -125,16 +125,16 @@ service:
   health: /health
   setup_hook: legacy-setup.sh
 YAML
-touch "$EXT_DIR2/legacy-setup.sh"
+touch "EXT_DIR2/legacy-setup.sh"
 
 _SR_LOADED=false
 sr_load 2>/dev/null
 
-HOOK_PATH2="${SERVICE_SETUP_HOOKS[test-ext2]:-}"
-if [[ "$HOOK_PATH2" == *"legacy-setup.sh" ]]; then
+HOOK_PATH2="{SERVICE_SETUP_HOOKS[test-ext2]:-}"
+if [[ "HOOK_PATH2" == *"legacy-setup.sh" ]]; then
     pass "Falls back to setup_hook when hooks map absent"
 else
-    fail "Should fall back to setup_hook" "got: $HOOK_PATH2"
+    fail "Should fall back to setup_hook" "got: HOOK_PATH2"
 fi
 
 # ============================================
@@ -142,9 +142,9 @@ fi
 # ============================================
 header "3/4" "No hook set returns empty"
 
-EXT_DIR3="$TMPDIR_TEST/extensions/services/test-ext3"
-mkdir -p "$EXT_DIR3"
-cat > "$EXT_DIR3/manifest.yaml" <<'YAML'
+EXT_DIR3="TMPDIR_TEST/extensions/services/test-ext3"
+mkdir -p "EXT_DIR3"
+cat > "EXT_DIR3/manifest.yaml" <<'YAML'
 schema_version: ods.services.v1
 service:
   id: test-ext3
@@ -156,11 +156,11 @@ YAML
 _SR_LOADED=false
 sr_load 2>/dev/null
 
-HOOK_PATH3="${SERVICE_SETUP_HOOKS[test-ext3]:-}"
-if [[ -z "$HOOK_PATH3" ]]; then
+HOOK_PATH3="{SERVICE_SETUP_HOOKS[test-ext3]:-}"
+if [[ -z "HOOK_PATH3" ]]; then
     pass "No hook set → empty string"
 else
-    fail "Expected empty hook path" "got: $HOOK_PATH3"
+    fail "Expected empty hook path" "got: HOOK_PATH3"
 fi
 
 # ============================================
@@ -169,9 +169,9 @@ fi
 header "4/4" "_run_hook Python resolver validates path containment"
 
 # Create test extension with path traversal attempt
-EXT_DIR4="$TMPDIR_TEST/extensions/services/test-ext4"
-mkdir -p "$EXT_DIR4"
-cat > "$EXT_DIR4/manifest.yaml" <<'YAML'
+EXT_DIR4="TMPDIR_TEST/extensions/services/test-ext4"
+mkdir -p "EXT_DIR4"
+cat > "EXT_DIR4/manifest.yaml" <<'YAML'
 schema_version: ods.services.v1
 service:
   id: test-ext4
@@ -183,8 +183,8 @@ service:
 YAML
 
 # Run the Python resolver and check it rejects traversal
-INSTALL_DIR="$TMPDIR_TEST"
-RESULT=$(python3 - "$EXT_DIR4" "pre_start" <<'PYEOF' 2>&1 || true
+INSTALL_DIR="TMPDIR_TEST"
+RESULT=(python3 - "$EXT_DIR4" "pre_start" <<'PYEOF' 2>&1 || true
 import yaml, sys
 from pathlib import Path
 
@@ -209,19 +209,19 @@ print(str(hook_path))
 PYEOF
 )
 
-if [[ "$RESULT" == *"ERROR"* ]]; then
+if [[ "RESULT" == *"ERROR"* ]]; then
     pass "Path traversal in hook script is rejected"
 else
-    fail "Path traversal should be rejected" "got: $RESULT"
+    fail "Path traversal should be rejected" "got: RESULT"
 fi
 
 # ============================================
 # Summary
 # ============================================
 echo ""
-echo -e "${BOLD}════════════════════════════════════════${NC}"
-TOTAL=$((PASS + FAIL + SKIP))
-echo -e "  ${GREEN}$PASS passed${NC}  ${RED}$FAIL failed${NC}  ${YELLOW}$SKIP skipped${NC}  ($TOTAL total)"
-echo -e "${BOLD}════════════════════════════════════════${NC}"
+echo -e "{BOLD}════════════════════════════════════════${NC}"
+TOTAL=((PASS + FAIL + SKIP))
+echo -e "  {GREEN}$PASS passed${NC}  ${RED}$FAIL failed${NC}  ${YELLOW}$SKIP skipped${NC}  ($TOTAL total)"
+echo -e "{BOLD}════════════════════════════════════════${NC}"
 
-[[ $FAIL -eq 0 ]]
+[[ FAIL -eq 0 ]]

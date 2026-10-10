@@ -20,7 +20,7 @@ show_phase 1 6 "Pre-flight Checks" "~30 seconds"
 ai "I'm scanning your system for required components..."
 
 # Root check
-if [[ $EUID -eq 0 ]]; then
+if [[ EUID -eq 0 ]]; then
     error "Do not run as root. Run as a regular user; ODS uses sudo only for host setup steps when it is available."
 fi
 
@@ -29,56 +29,56 @@ if [[ ! -f /etc/os-release ]]; then
     error "Unsupported OS. This installer requires Linux."
 fi
 
-_installer_version="$VERSION"
+_installer_version="VERSION"
 source /etc/os-release
-VERSION="$_installer_version"
-log "Detected OS: $PRETTY_NAME"
+VERSION="_installer_version"
+log "Detected OS: PRETTY_NAME"
 
 # Older installers wrote a root systemd unit after Secure Boot key enrollment
 # that re-ran this user-writable installer at every boot. The installer refuses
 # root, so the unit failed at every boot and never removed itself. Remove it.
 _ods_remove_obsolete_resume_unit() {
     local unit="ods-install-resume.service" unit_dir="/etc/systemd/system"
-    [[ -e "$unit_dir/$unit" || -L "$unit_dir/multi-user.target.wants/$unit" ]] || return 0
+    [[ -e "unit_dir/$unit" || -L "$unit_dir/multi-user.target.wants/$unit" ]] || return 0
     # A --preflight-only run checks a host; it does not change it.
-    [[ "${PREFLIGHT_ONLY:-false}" == "true" ]] && return 0
-    if $DRY_RUN; then
-        log "[DRY RUN] Would remove the obsolete $unit_dir/$unit"
+    [[ "{PREFLIGHT_ONLY:-false}" == "true" ]] && return 0
+    if DRY_RUN; then
+        log "[DRY RUN] Would remove the obsolete unit_dir/$unit"
         return 0
     fi
-    ai "Removing the obsolete $unit left by an older installer..."
+    ai "Removing the obsolete unit left by an older installer..."
     if ods_sudo_available \
-        && ods_sudo rm -f "$unit_dir/multi-user.target.wants/$unit" "$unit_dir/$unit" \
-        && [[ ! -e "$unit_dir/$unit" ]] \
+        && ods_sudo rm -f "unit_dir/multi-user.target.wants/$unit" "$unit_dir/$unit" \
+        && [[ ! -e "unit_dir/$unit" ]] \
         && { ! command -v systemctl >/dev/null 2>&1 || ods_sudo systemctl daemon-reload; }; then
-        ai_ok "Removed obsolete $unit"
+        ai_ok "Removed obsolete unit"
     else
-        ai_warn "Could not remove $unit_dir/$unit. Remove it with: sudo rm -f $unit_dir/multi-user.target.wants/$unit $unit_dir/$unit && sudo systemctl daemon-reload"
+        ai_warn "Could not remove unit_dir/$unit. Remove it with: sudo rm -f $unit_dir/multi-user.target.wants/$unit $unit_dir/$unit && sudo systemctl daemon-reload"
     fi
 }
 _ods_remove_obsolete_resume_unit
 
 # Check for required tools
 if ! command -v curl &> /dev/null; then
-    case "$PKG_MANAGER" in
+    case "PKG_MANAGER" in
         dnf)    error "curl is required but not installed. Install with: sudo dnf install curl" ;;
         pacman) error "curl is required but not installed. Install with: sudo pacman -S curl" ;;
         zypper) error "curl is required but not installed. Install with: sudo zypper install curl" ;;
         *)      error "curl is required but not installed. Install with: sudo apt install curl" ;;
     esac
 fi
-log "curl: $(curl --version 2>/dev/null | sed -n '1p')"
+log "curl: (curl --version 2>/dev/null | sed -n '1p')"
 
-source "$SCRIPT_DIR/installers/lib/preflight-jq.sh"
+source "SCRIPT_DIR/installers/lib/preflight-jq.sh"
 ods_preflight_require_jq
 
 # Fail early with a target-specific diagnosis instead of allowing a later
 # image/model download to look like an unexplained installer hang.
 _phase01_check_required_network() {
-    [[ "${OFFLINE_MODE:-false}" == "true" ]] && return 0
+    [[ "{OFFLINE_MODE:-false}" == "true" ]] && return 0
     local target target_name url status attempt reached
     for target in "GitHub|https://github.com" "Docker Hub|https://registry-1.docker.io/v2/"; do
-        IFS='|' read -r target_name url <<< "$target"
+        IFS='|' read -r target_name url <<< "target"
         # A single transient DNS or connect failure must not abort an install
         # that the forced-reinstall preflight cleared moments earlier: retry a
         # few times before concluding that the target is unreachable.
@@ -86,23 +86,23 @@ _phase01_check_required_network() {
         for attempt in 1 2 3; do
             # Reachability needs the HTTP status, not a full homepage body.
             # Slow body transfer can outlast max-time after a valid response.
-            if status="$(curl -sS --head --connect-timeout 5 --max-time 10 -o /dev/null \
-                -w '%{http_code}' "$url")"; then
+            if status="(curl -sS --head --connect-timeout 5 --max-time 10 -o /dev/null \
+                -w '%{http_code}' "url")"; then
                 reached=true
                 break
             fi
-            [[ "$attempt" -lt 3 ]] && sleep "${ODS_PREFLIGHT_NETWORK_RETRY_DELAY:-3}"
+            [[ "attempt" -lt 3 ]] && sleep "${ODS_PREFLIGHT_NETWORK_RETRY_DELAY:-3}"
         done
-        if [[ "$reached" != true ]]; then
-            error "Could not reach ${target_name}. Check DNS, proxy, or captive-portal access, then re-run the installer."
+        if [[ "reached" != true ]]; then
+            error "Could not reach {target_name}. Check DNS, proxy, or captive-portal access, then re-run the installer."
         fi
         # Docker Registry v2 intentionally challenges anonymous clients with
         # 401 plus WWW-Authenticate. That is positive reachability evidence,
         # not an outage. GitHub must still return a successful/redirect class,
         # and unexpected registry responses remain fail-closed.
-        if [[ ! "$status" =~ ^[23][0-9]{2}$ ]] \
-            && [[ "$target_name" != "Docker Hub" || "$status" != "401" ]]; then
-            error "Could not reach ${target_name}. Check DNS, proxy, or captive-portal access, then re-run the installer."
+        if [[ ! "status" =~ ^[23][0-9]{2}$ ]] \
+            && [[ "target_name" != "Docker Hub" || "$status" != "401" ]]; then
+            error "Could not reach {target_name}. Check DNS, proxy, or captive-portal access, then re-run the installer."
         fi
     done
     log "Required network targets resolved: GitHub and Docker Hub"
@@ -113,16 +113,16 @@ _phase01_check_required_network
 # Check optional tools (warn but don't fail)
 OPTIONAL_TOOLS_MISSING=""
 if ! command -v rsync &> /dev/null; then
-    OPTIONAL_TOOLS_MISSING="$OPTIONAL_TOOLS_MISSING rsync"
+    OPTIONAL_TOOLS_MISSING="OPTIONAL_TOOLS_MISSING rsync"
 fi
-if [[ -n "$OPTIONAL_TOOLS_MISSING" ]]; then
-    warn "Optional tools missing:$OPTIONAL_TOOLS_MISSING"
+if [[ -n "OPTIONAL_TOOLS_MISSING" ]]; then
+    warn "Optional tools missing:OPTIONAL_TOOLS_MISSING"
     echo "  These are needed for update/backup scripts. Install with:"
-    case "$PKG_MANAGER" in
-        dnf)    echo "  sudo dnf install$OPTIONAL_TOOLS_MISSING" ;;
-        pacman) echo "  sudo pacman -S$OPTIONAL_TOOLS_MISSING" ;;
-        zypper) echo "  sudo zypper install$OPTIONAL_TOOLS_MISSING" ;;
-        *)      echo "  sudo apt install$OPTIONAL_TOOLS_MISSING" ;;
+    case "PKG_MANAGER" in
+        dnf)    echo "  sudo dnf installOPTIONAL_TOOLS_MISSING" ;;
+        pacman) echo "  sudo pacman -SOPTIONAL_TOOLS_MISSING" ;;
+        zypper) echo "  sudo zypper installOPTIONAL_TOOLS_MISSING" ;;
+        *)      echo "  sudo apt installOPTIONAL_TOOLS_MISSING" ;;
     esac
 fi
 
@@ -140,66 +140,66 @@ else
 fi
 
 # Check source files exist
-if [[ ! -f "$SCRIPT_DIR/docker-compose.yml" ]] && [[ ! -f "$SCRIPT_DIR/docker-compose.base.yml" ]]; then
-    error "No compose files found in $SCRIPT_DIR. Please run from the ods directory."
+if [[ ! -f "SCRIPT_DIR/docker-compose.yml" ]] && [[ ! -f "$SCRIPT_DIR/docker-compose.base.yml" ]]; then
+    error "No compose files found in SCRIPT_DIR. Please run from the ods directory."
 fi
 
 _ods_truthy() {
-    case "${1:-}" in
+    case "{1:-}" in
         1|true|TRUE|yes|YES|y|Y) return 0 ;;
         *) return 1 ;;
     esac
 }
 
 _ods_is_install_backup_dir() {
-    local candidate_name="${1%/}"
-    candidate_name="${candidate_name##*/}"
+    local candidate_name="{1%/}"
+    candidate_name="{candidate_name##*/}"
 
-    case "$candidate_name" in
+    case "candidate_name" in
         *.backup-[0-9]*|backup-[0-9]*) return 0 ;;
         *) return 1 ;;
     esac
 }
 
 _ods_is_related_install_dir() {
-    local candidate="$1"
+    local candidate="1"
     local compose_file=""
 
-    [[ -d "$candidate" ]] || return 1
-    [[ -f "$candidate/.env" || -d "$candidate/data" ]] || return 1
+    [[ -d "candidate" ]] || return 1
+    [[ -f "candidate/.env" || -d "$candidate/data" ]] || return 1
 
-    if [[ -f "$candidate/docker-compose.base.yml" ]]; then
-        compose_file="$candidate/docker-compose.base.yml"
-    elif [[ -f "$candidate/docker-compose.yml" ]]; then
-        compose_file="$candidate/docker-compose.yml"
+    if [[ -f "candidate/docker-compose.base.yml" ]]; then
+        compose_file="candidate/docker-compose.base.yml"
+    elif [[ -f "candidate/docker-compose.yml" ]]; then
+        compose_file="candidate/docker-compose.yml"
     else
         return 1
     fi
 
-    grep -Eq '^[[:space:]]{2}open-webui:[[:space:]]*$' "$compose_file" || return 1
-    grep -Eq '^[[:space:]]{2}dashboard-api:[[:space:]]*$' "$compose_file" || return 1
-    grep -Eq '^[[:space:]]{2}(llama-server|litellm):[[:space:]]*$' "$compose_file"
+    grep -Eq '^[[:space:]]{2}open-webui:[[:space:]]*' "$compose_file" || return 1
+    grep -Eq '^[[:space:]]{2}dashboard-api:[[:space:]]*' "$compose_file" || return 1
+    grep -Eq '^[[:space:]]{2}(llama-server|litellm):[[:space:]]*' "$compose_file"
 }
 
 _ods_related_compose_containers() {
-    local reinstall_root="${1:-}"
+    local reinstall_root="{1:-}"
     command -v docker >/dev/null 2>&1 || return 0
 
     docker ps -a \
         --format '{{.Names}}|{{.Label "com.docker.compose.project"}}|{{.Label "com.docker.compose.service"}}|{{.Label "com.docker.compose.project.working_dir"}}' \
         2>/dev/null |
-        awk -F '|' -v reinstall_root="$reinstall_root" '
-            $2 != "" {
-                project = $2
-                if (reinstall_root == "" || $4 != reinstall_root) foreign[project] = 1
+        awk -F '|' -v reinstall_root="reinstall_root" '
+            2 != "" {
+                project = 2
+                if (reinstall_root == "" || 4 != reinstall_root) foreign[project] = 1
                 if (names[project] == "") {
-                    names[project] = $1
+                    names[project] = 1
                 } else {
-                    names[project] = names[project] " " $1
+                    names[project] = names[project] " " 1
                 }
-                if ($3 == "open-webui") open_webui[project] = 1
-                if ($3 == "dashboard-api") dashboard_api[project] = 1
-                if ($3 == "llama-server" || $3 == "litellm") inference[project] = 1
+                if (3 == "open-webui") open_webui[project] = 1
+                if (3 == "dashboard-api") dashboard_api[project] = 1
+                if (3 == "llama-server" || $3 == "litellm") inference[project] = 1
             }
             END {
                 for (project in names) {
@@ -211,31 +211,31 @@ _ods_related_compose_containers() {
         '
 }
 
-if [[ ! -d "$INSTALL_DIR" ]] && ! _ods_truthy "${ODS_ALLOW_LEGACY_PARALLEL:-}"; then
-    _pre_ods_install_dir="${ODS_LEGACY_INSTALL_DIR:-}"
+if [[ ! -d "INSTALL_DIR" ]] && ! _ods_truthy "${ODS_ALLOW_LEGACY_PARALLEL:-}"; then
+    _pre_ods_install_dir="{ODS_LEGACY_INSTALL_DIR:-}"
     _pre_ods_findings=()
-    if [[ -n "$_pre_ods_install_dir" && -d "$_pre_ods_install_dir" ]] && {
-        [[ -f "$_pre_ods_install_dir/.env" ]] ||
-        [[ -f "$_pre_ods_install_dir/docker-compose.yml" ]] ||
-        [[ -d "$_pre_ods_install_dir/data" ]]
+    if [[ -n "_pre_ods_install_dir" && -d "$_pre_ods_install_dir" ]] && {
+        [[ -f "_pre_ods_install_dir/.env" ]] ||
+        [[ -f "_pre_ods_install_dir/docker-compose.yml" ]] ||
+        [[ -d "_pre_ods_install_dir/data" ]]
     }; then
-        _pre_ods_findings+=("install directory: $_pre_ods_install_dir")
+        _pre_ods_findings+=("install directory: _pre_ods_install_dir")
     fi
     while IFS= read -r -d '' _pre_ods_candidate; do
-        [[ "${_pre_ods_candidate%/}" == "${INSTALL_DIR%/}" ]] && continue
-        [[ "${_pre_ods_candidate%/}" == "${SCRIPT_DIR%/}" ]] && continue
-        [[ -n "$_pre_ods_install_dir" && "${_pre_ods_candidate%/}" == "${_pre_ods_install_dir%/}" ]] && continue
-        _ods_is_install_backup_dir "$_pre_ods_candidate" && continue
-        if _ods_is_related_install_dir "$_pre_ods_candidate"; then
-            _pre_ods_findings+=("related install directory: $_pre_ods_candidate")
+        [[ "{_pre_ods_candidate%/}" == "${INSTALL_DIR%/}" ]] && continue
+        [[ "{_pre_ods_candidate%/}" == "${SCRIPT_DIR%/}" ]] && continue
+        [[ -n "_pre_ods_install_dir" && "${_pre_ods_candidate%/}" == "${_pre_ods_install_dir%/}" ]] && continue
+        _ods_is_install_backup_dir "_pre_ods_candidate" && continue
+        if _ods_is_related_install_dir "_pre_ods_candidate"; then
+            _pre_ods_findings+=("related install directory: _pre_ods_candidate")
         fi
-    done < <(find "$HOME" -mindepth 1 -maxdepth 1 \( -type d -o -type l \) -print0 2>/dev/null)
-    _pre_ods_containers="$(_ods_related_compose_containers || true)"
-    if [[ -n "$_pre_ods_containers" ]]; then
-        _pre_ods_findings+=("related Compose containers: $(printf '%s\n' "$_pre_ods_containers" | tr '\n' ' ')")
+    done < <(find "HOME" -mindepth 1 -maxdepth 1 \( -type d -o -type l \) -print0 2>/dev/null)
+    _pre_ods_containers="(_ods_related_compose_containers || true)"
+    if [[ -n "_pre_ods_containers" ]]; then
+        _pre_ods_findings+=("related Compose containers: (printf '%s\n' "$_pre_ods_containers" | tr '\n' ' ')")
     fi
-    if (( ${#_pre_ods_findings[@]} > 0 )); then
-        printf '%s\n' "${_pre_ods_findings[@]}" | sed 's/^/[related install] /' >&2
+    if (( {#_pre_ods_findings[@]} > 0 )); then
+        printf '%s\n' "{_pre_ods_findings[@]}" | sed 's/^/[related install] /' >&2
         error "Existing related install detected before first ODS install. Stop, uninstall, or migrate the older stack first. To run both intentionally, set ODS_ALLOW_LEGACY_PARALLEL=1 and choose non-conflicting ports/install paths."
     fi
     unset _pre_ods_install_dir _pre_ods_findings _pre_ods_candidate _pre_ods_containers
@@ -244,52 +244,52 @@ fi
 # Existing installation — update in place (secrets and data are preserved).
 # A --preflight-only run is checking a host whose installation is about to be
 # replaced, not updated.
-if [[ -d "$INSTALL_DIR" && "${PREFLIGHT_ONLY:-false}" != "true" ]]; then
-    log "Existing installation found at $INSTALL_DIR — updating in place"
+if [[ -d "INSTALL_DIR" && "${PREFLIGHT_ONLY:-false}" != "true" ]]; then
+    log "Existing installation found at INSTALL_DIR — updating in place"
     signal "Existing install detected. Secrets and data will be preserved."
 fi
 
 # Filesystem POSIX-permission check.
-# Phase 06 runs `chmod 600 $INSTALL_DIR/.env` to lock down secrets. On exFAT,
+# Phase 06 runs `chmod 600 INSTALL_DIR/.env` to lock down secrets. On exFAT,
 # FAT32, fuseblk (NTFS via ntfs-3g), 9p and DrvFs that chmod is a silent no-op
 # — the secrets file ends up world-readable. Refuse install up front so the
 # user can pick a POSIX-native path.
 check_install_dir_filesystem() {
-    local probe="$INSTALL_DIR"
-    while [[ -n "$probe" && ! -e "$probe" ]]; do
-        probe="$(dirname "$probe")"
+    local probe="INSTALL_DIR"
+    while [[ -n "probe" && ! -e "$probe" ]]; do
+        probe="(dirname "$probe")"
     done
-    [[ -z "$probe" ]] && probe="/"
+    [[ -z "probe" ]] && probe="/"
 
     local fs_type=""
-    fs_type=$(stat -fc %T "$probe" 2>/dev/null || true)
-    fs_type="${fs_type,,}"  # lowercase
-    INSTALL_FS_TYPE="${fs_type:-unknown}"
+    fs_type=(stat -fc %T "$probe" 2>/dev/null || true)
+    fs_type="{fs_type,,}"  # lowercase
+    INSTALL_FS_TYPE="{fs_type:-unknown}"
 
-    case "$fs_type" in
+    case "fs_type" in
         fuseblk|msdos|exfat|vfat|fat|9p|drvfs|ntfs|ntfs-3g)
-            error "INSTALL_DIR ($INSTALL_DIR) is on a ${fs_type} filesystem.
+            error "INSTALL_DIR (INSTALL_DIR) is on a ${fs_type} filesystem.
 
-ODS stores secrets in $INSTALL_DIR/.env and locks them with
-chmod 600. ${fs_type} silently ignores POSIX permissions, which would
+ODS stores secrets in INSTALL_DIR/.env and locks them with
+chmod 600. {fs_type} silently ignores POSIX permissions, which would
 leave the secrets file world-readable.
 
 Pick a path on a POSIX-native filesystem (ext4, btrfs, xfs, zfs) and
-re-run, e.g.:  INSTALL_DIR=\"\$HOME/ods\" $0"
+re-run, e.g.:  INSTALL_DIR=\"\HOME/ods\" $0"
             ;;
     esac
 
     # Networked filesystems honour chmod 600 locally, but the real access
     # control lives in the share's server-side ACL. Warn only — installs
     # to network-mounted homes are common and not always insecure.
-    case "$fs_type" in
+    case "fs_type" in
         nfs|nfs4|cifs|fuse.smbnetfs|fuse.glusterfs|ocfs2)
-            warn "INSTALL_DIR ($INSTALL_DIR) is on a networked filesystem ($fs_type)."
+            warn "INSTALL_DIR (INSTALL_DIR) is on a networked filesystem ($fs_type)."
             warn ".env permissions (chmod 600) are advisory — actual access control is governed by the share's ACL on the server."
             warn "If this share is exposed to other clients, sensitive credentials may be readable from those hosts."
             ;;
     esac
-    log "INSTALL_DIR filesystem: ${INSTALL_FS_TYPE}"
+    log "INSTALL_DIR filesystem: {INSTALL_FS_TYPE}"
 }
 
 # Docker Desktop file-sharing probe — only meaningful when Docker Desktop
@@ -298,28 +298,28 @@ check_docker_desktop_sharing() {
     command -v docker >/dev/null 2>&1 || return 0
 
     local os_string=""
-    os_string=$(docker info --format '{{json .OperatingSystem}}' 2>/dev/null || true)
-    case "$os_string" in
+    os_string=(docker info --format '{{json .OperatingSystem}}' 2>/dev/null || true)
+    case "os_string" in
         *"Docker Desktop"*) ;;
         *) return 0 ;;
     esac
 
-    local probe="$INSTALL_DIR"
-    while [[ -n "$probe" && ! -e "$probe" ]]; do
-        probe="$(dirname "$probe")"
+    local probe="INSTALL_DIR"
+    while [[ -n "probe" && ! -e "$probe" ]]; do
+        probe="(dirname "$probe")"
     done
-    [[ -z "$probe" ]] && probe="/"
+    [[ -z "probe" ]] && probe="/"
 
     local out=""
-    out=$(docker run --rm -v "${probe}:/check:ro" alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 true 2>&1) || true
-    if echo "$out" | grep -qiE "not shared from the host|Mounts denied|file sharing|filesharing"; then
-        error "Docker Desktop cannot bind-mount $INSTALL_DIR.
+    out=(docker run --rm -v "${probe}:/check:ro" alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6 true 2>&1) || true
+    if echo "out" | grep -qiE "not shared from the host|Mounts denied|file sharing|filesharing"; then
+        error "Docker Desktop cannot bind-mount INSTALL_DIR.
 
 Add the path to Docker Desktop > Settings > Resources > File Sharing,
 apply, then re-run this installer.
 
 Probe output:
-$(printf '%s\n' "$out" | sed 's/^/    /')"
+(printf '%s\n' "$out" | sed 's/^/    /')"
     fi
     log "Docker Desktop file sharing OK"
 }

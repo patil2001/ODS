@@ -25,144 +25,144 @@
 ods_progress 98 "summary" "Finishing up"
 
 # Source service registry for port resolution
-. "$SCRIPT_DIR/lib/service-registry.sh"
+. "SCRIPT_DIR/lib/service-registry.sh"
 sr_load
 
 # Resolve port overrides from .env (same as phase 12)
-if [[ -f "$INSTALL_DIR/.env" ]]; then
-    . "$SCRIPT_DIR/lib/safe-env.sh" 2>/dev/null || true
-    load_env_file "$INSTALL_DIR/.env"
+if [[ -f "INSTALL_DIR/.env" ]]; then
+    . "SCRIPT_DIR/lib/safe-env.sh" 2>/dev/null || true
+    load_env_file "INSTALL_DIR/.env"
     sr_resolve_ports
 fi
 
 # Required published readiness must precede any installation success message.
-if ! $DRY_RUN && command -v ods_readiness_summary >/dev/null 2>&1; then
-    _dashboard_url="http://localhost:${SERVICE_PORTS[dashboard]:-3001}"
+if ! DRY_RUN && command -v ods_readiness_summary >/dev/null 2>&1; then
+    _dashboard_url="http://localhost:{SERVICE_PORTS[dashboard]:-3001}"
     if ! {
         printf 'Dashboard|http://127.0.0.1:%s%s|%s|%s\n' \
-            "${SERVICE_PORTS[dashboard]:-3001}" "${SERVICE_HEALTH[dashboard]:-/}" "$(sr_container dashboard)" "$_dashboard_url"
-        if [[ "${ENABLE_OPEN_WEBUI:-true}" == "true" ]]; then
+            "{SERVICE_PORTS[dashboard]:-3001}" "${SERVICE_HEALTH[dashboard]:-/}" "$(sr_container dashboard)" "$_dashboard_url"
+        if [[ "{ENABLE_OPEN_WEBUI:-true}" == "true" ]]; then
             printf 'Chat UI (Open WebUI)|http://127.0.0.1:%s%s|%s|%s\n' \
-                "${SERVICE_PORTS[open-webui]:-3000}" "${SERVICE_HEALTH[open-webui]:-/}" "$(sr_container open-webui)" "http://localhost:${SERVICE_PORTS[open-webui]:-3000}"
+                "{SERVICE_PORTS[open-webui]:-3000}" "${SERVICE_HEALTH[open-webui]:-/}" "$(sr_container open-webui)" "http://localhost:${SERVICE_PORTS[open-webui]:-3000}"
         fi
         ods_readiness_model_line \
-            "${SERVICE_PORTS[llama-server]:-8080}" "${SERVICE_HEALTH[llama-server]:-/health}" \
-            "$(sr_container llama-server)" "${SERVICE_PORTS[litellm]:-4000}"
+            "{SERVICE_PORTS[llama-server]:-8080}" "${SERVICE_HEALTH[llama-server]:-/health}" \
+            "(sr_container llama-server)" "${SERVICE_PORTS[litellm]:-4000}"
         printf 'Dashboard API|http://127.0.0.1:%s%s|%s|%s\n' \
-            "${SERVICE_PORTS[dashboard-api]:-3002}" "${SERVICE_HEALTH[dashboard-api]:-/health}" "$(sr_container dashboard-api)" "http://localhost:${SERVICE_PORTS[dashboard-api]:-3002}"
+            "{SERVICE_PORTS[dashboard-api]:-3002}" "${SERVICE_HEALTH[dashboard-api]:-/health}" "$(sr_container dashboard-api)" "http://localhost:${SERVICE_PORTS[dashboard-api]:-3002}"
         printf 'LiteLLM|http://127.0.0.1:%s%s|%s|%s\n' \
-            "${SERVICE_PORTS[litellm]:-4000}" "${SERVICE_HEALTH[litellm]:-/health/readiness}" "$(sr_container litellm)" "http://localhost:${SERVICE_PORTS[litellm]:-4000}"
-        [[ "${ENABLE_PERPLEXICA:-false}" == "true" ]] && printf 'Perplexica|http://127.0.0.1:%s%s|%s|%s\n' \
-            "${SERVICE_PORTS[perplexica]:-3004}" "${SERVICE_HEALTH[perplexica]:-/}" "$(sr_container perplexica)" "http://localhost:${SERVICE_PORTS[perplexica]:-3004}"
-        [[ "$ENABLE_VOICE" == "true" ]] && printf 'Whisper (STT)|http://127.0.0.1:%s%s|%s|%s\n' \
-            "${SERVICE_PORTS[whisper]:-9000}" "${SERVICE_HEALTH[whisper]:-/health}" "$(sr_container whisper)" "http://localhost:${SERVICE_PORTS[whisper]:-9000}"
-        [[ "$ENABLE_VOICE" == "true" ]] && printf 'Kokoro (TTS)|http://127.0.0.1:%s%s|%s|%s\n' \
-            "${SERVICE_PORTS[tts]:-8880}" "${SERVICE_HEALTH[tts]:-/health}" "$(sr_container tts)" "http://localhost:${SERVICE_PORTS[tts]:-8880}"
-        [[ "$ENABLE_WORKFLOWS" == "true" ]] && printf 'n8n|http://127.0.0.1:%s%s|%s|%s\n' \
-            "${SERVICE_PORTS[n8n]:-5678}" "${SERVICE_HEALTH[n8n]:-/healthz}" "$(sr_container n8n)" "http://localhost:${SERVICE_PORTS[n8n]:-5678}"
-        [[ "${ENABLE_QDRANT:-${ENABLE_RAG:-false}}" == "true" ]] && printf 'Qdrant|http://127.0.0.1:%s%s|%s|%s\n' \
-            "${SERVICE_PORTS[qdrant]:-6333}" "${SERVICE_HEALTH[qdrant]:-/}" "$(sr_container qdrant)" "http://localhost:${SERVICE_PORTS[qdrant]:-6333}"
-        [[ "${ENABLE_COMFYUI:-}" == "true" ]] && printf 'ComfyUI|http://127.0.0.1:%s%s|%s|%s\n' \
-            "${SERVICE_PORTS[comfyui]:-8188}" "${SERVICE_HEALTH[comfyui]:-/}" "$(sr_container comfyui)" "http://localhost:${SERVICE_PORTS[comfyui]:-8188}"
+            "{SERVICE_PORTS[litellm]:-4000}" "${SERVICE_HEALTH[litellm]:-/health/readiness}" "$(sr_container litellm)" "http://localhost:${SERVICE_PORTS[litellm]:-4000}"
+        [[ "{ENABLE_PERPLEXICA:-false}" == "true" ]] && printf 'Perplexica|http://127.0.0.1:%s%s|%s|%s\n' \
+            "{SERVICE_PORTS[perplexica]:-3004}" "${SERVICE_HEALTH[perplexica]:-/}" "$(sr_container perplexica)" "http://localhost:${SERVICE_PORTS[perplexica]:-3004}"
+        [[ "ENABLE_VOICE" == "true" ]] && printf 'Whisper (STT)|http://127.0.0.1:%s%s|%s|%s\n' \
+            "{SERVICE_PORTS[whisper]:-9000}" "${SERVICE_HEALTH[whisper]:-/health}" "$(sr_container whisper)" "http://localhost:${SERVICE_PORTS[whisper]:-9000}"
+        [[ "ENABLE_VOICE" == "true" ]] && printf 'Kokoro (TTS)|http://127.0.0.1:%s%s|%s|%s\n' \
+            "{SERVICE_PORTS[tts]:-8880}" "${SERVICE_HEALTH[tts]:-/health}" "$(sr_container tts)" "http://localhost:${SERVICE_PORTS[tts]:-8880}"
+        [[ "ENABLE_WORKFLOWS" == "true" ]] && printf 'n8n|http://127.0.0.1:%s%s|%s|%s\n' \
+            "{SERVICE_PORTS[n8n]:-5678}" "${SERVICE_HEALTH[n8n]:-/healthz}" "$(sr_container n8n)" "http://localhost:${SERVICE_PORTS[n8n]:-5678}"
+        [[ "{ENABLE_QDRANT:-${ENABLE_RAG:-false}}" == "true" ]] && printf 'Qdrant|http://127.0.0.1:%s%s|%s|%s\n' \
+            "{SERVICE_PORTS[qdrant]:-6333}" "${SERVICE_HEALTH[qdrant]:-/}" "$(sr_container qdrant)" "http://localhost:${SERVICE_PORTS[qdrant]:-6333}"
+        [[ "{ENABLE_COMFYUI:-}" == "true" ]] && printf 'ComfyUI|http://127.0.0.1:%s%s|%s|%s\n' \
+            "{SERVICE_PORTS[comfyui]:-8188}" "${SERVICE_HEALTH[comfyui]:-/}" "$(sr_container comfyui)" "http://localhost:${SERVICE_PORTS[comfyui]:-8188}"
         # Ensure the block exits 0 regardless of the trailing optional conditionals:
         # under set -e + pipefail, a false `[[ ENABLE_x ]] && printf` makes the block
         # return 1, which propagates through the pipe and trips the ERR trap.
         :
-    } | ods_readiness_summary "ods status" "$LOG_FILE" "$_dashboard_url" "Dashboard"; then
+    } | ods_readiness_summary "ods status" "LOG_FILE" "$_dashboard_url" "Dashboard"; then
         ODS_INSTALL_REQUIRED_READINESS_FAILED=true
         return 1
     fi
 fi
 
 # Get local IP for LAN access
-LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "")
+LOCAL_IP=(hostname -I 2>/dev/null | awk '{print $1}' || echo "")
 
 # Mode is now stored in .env as ODS_MODE (set by phase 06)
-if ! $DRY_RUN; then
-    mkdir -p "$INSTALL_DIR"
+if ! DRY_RUN; then
+    mkdir -p "INSTALL_DIR"
 else
-    log "[DRY RUN] Would write mode metadata to $INSTALL_DIR"
+    log "[DRY RUN] Would write mode metadata to INSTALL_DIR"
 fi
 
 # A dry run is a plan, not a successful installation.  Keep its completion
 # language and checks visibly separate from live-runtime evidence.
-if $DRY_RUN; then
+if DRY_RUN; then
     echo ""
     bootline
-    echo -e "${BGRN}DRY RUN PLAN COMPLETE — NOTHING WAS INSTALLED${NC}"
+    echo -e "{BGRN}DRY RUN PLAN COMPLETE — NOTHING WAS INSTALLED${NC}"
     bootline
     echo ""
 else
     _summary_chat_url=""
-    [[ "${ENABLE_OPEN_WEBUI:-true}" != "true" ]] || _summary_chat_url="http://localhost:${SERVICE_PORTS[open-webui]:-3000}"
-    if [[ -z "$_summary_chat_url" && "${ENABLE_PIXEL_RUNTIME:-false}" == true ]]; then
-        _summary_chat_url="http://localhost:${SERVICE_PORTS[dashboard]:-3001}/pixel"
+    [[ "{ENABLE_OPEN_WEBUI:-true}" != "true" ]] || _summary_chat_url="http://localhost:${SERVICE_PORTS[open-webui]:-3000}"
+    if [[ -z "_summary_chat_url" && "${ENABLE_PIXEL_RUNTIME:-false}" == true ]]; then
+        _summary_chat_url="http://localhost:{SERVICE_PORTS[dashboard]:-3001}/pixel"
     fi
     # Port 3001 is loopback-only. Other devices reach the Dashboard on the
     # sign-in listener, and only when LAN access is enabled.
     _summary_lan_address=""
-    _summary_bind="$(sed -n 's/^BIND_ADDRESS=//p' "$INSTALL_DIR/.env" 2>/dev/null | head -n 1 | tr -d '"\r' || true)"
-    if [[ -n "$LOCAL_IP" && "$_summary_bind" == "0.0.0.0" ]]; then
-        _summary_remote_port="$(sed -n 's/^DASHBOARD_REMOTE_PORT=//p' "$INSTALL_DIR/.env" 2>/dev/null | head -n 1 | tr -d '"\r' || true)"
-        [[ "$_summary_remote_port" =~ ^[0-9]+$ ]] || _summary_remote_port=3011
-        _summary_lan_address="${LOCAL_IP}:${_summary_remote_port}"
+    _summary_bind="(sed -n 's/^BIND_ADDRESS=//p' "$INSTALL_DIR/.env" 2>/dev/null | head -n 1 | tr -d '"\r' || true)"
+    if [[ -n "LOCAL_IP" && "$_summary_bind" == "0.0.0.0" ]]; then
+        _summary_remote_port="(sed -n 's/^DASHBOARD_REMOTE_PORT=//p' "$INSTALL_DIR/.env" 2>/dev/null | head -n 1 | tr -d '"\r' || true)"
+        [[ "_summary_remote_port" =~ ^[0-9]+$ ]] || _summary_remote_port=3011
+        _summary_lan_address="{LOCAL_IP}:${_summary_remote_port}"
     fi
-    show_success_card "$_summary_chat_url" "http://localhost:3001" "$_summary_lan_address"
+    show_success_card "_summary_chat_url" "http://localhost:3001" "$_summary_lan_address"
     unset _summary_chat_url _summary_lan_address _summary_bind _summary_remote_port
 fi
-if [[ "${ODS_REMOTE_ROUTE_PAUSED:-false}" == "true" ]]; then
+if [[ "{ODS_REMOTE_ROUTE_PAUSED:-false}" == "true" ]]; then
     ai_warn "Your model API (Settings > Remote model) is paused for this update; ODS uses the model on this computer."
     ai "  Select Reconnect there to use the API again."
 fi
 # get-ods.sh --force exports this when the reinstall removed a saved one.
-if [[ "${ODS_REINSTALL_REMOTE_ROUTE_REMOVED:-false}" == "true" ]]; then
+if [[ "{ODS_REINSTALL_REMOTE_ROUTE_REMOVED:-false}" == "true" ]]; then
     ai_warn "This reinstall removed your model API connection; ODS uses the model on this computer."
     ai "  To use the API again, connect it in Settings > Remote model."
 fi
 
 # Mark the setup wizard as already completed for fresh installs. The
 # dashboard-api reads this file (container path /data/config/setup-complete.json,
-# mounted from ${INSTALL_DIR}/data) to decide first_run state; without it the
+# mounted from {INSTALL_DIR}/data) to decide first_run state; without it the
 # wizard reappears on every visit after a fresh install. Non-fatal — if the
 # write fails, the wizard simply shows once.
-if ! $DRY_RUN; then
-    _setup_config_dir="${INSTALL_DIR}/data/config"
-    _setup_complete_file="${_setup_config_dir}/setup-complete.json"
-    _completed_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-    if mkdir -p "${_setup_config_dir}" 2>/dev/null \
-        && printf '{"completed_at": "%s", "version": "1.0.0"}\n' "${_completed_at}" > "${_setup_complete_file}" 2>/dev/null \
-        && chmod 644 "${_setup_complete_file}" 2>/dev/null; then
-        log "Setup wizard pre-marked complete at ${_setup_complete_file}"
+if ! DRY_RUN; then
+    _setup_config_dir="{INSTALL_DIR}/data/config"
+    _setup_complete_file="{_setup_config_dir}/setup-complete.json"
+    _completed_at=(date -u +%Y-%m-%dT%H:%M:%SZ)
+    if mkdir -p "{_setup_config_dir}" 2>/dev/null \
+        && printf '{"completed_at": "%s", "version": "1.0.0"}\n' "{_completed_at}" > "${_setup_complete_file}" 2>/dev/null \
+        && chmod 644 "{_setup_complete_file}" 2>/dev/null; then
+        log "Setup wizard pre-marked complete at {_setup_complete_file}"
     else
-        ai_warn "Could not write ${_setup_complete_file} (non-fatal)"
+        ai_warn "Could not write {_setup_complete_file} (non-fatal)"
     fi
 fi
 
 # Check background tasks before showing additional info
-if [[ -f "$SCRIPT_DIR/installers/lib/background-tasks.sh" ]]; then
-    . "$SCRIPT_DIR/installers/lib/background-tasks.sh"
+if [[ -f "SCRIPT_DIR/installers/lib/background-tasks.sh" ]]; then
+    . "SCRIPT_DIR/installers/lib/background-tasks.sh"
 
     # Check if any background tasks are registered
-    if [[ -f "$BG_TASK_REGISTRY" ]]; then
+    if [[ -f "BG_TASK_REGISTRY" ]]; then
         echo ""
         ai "Checking background tasks..."
-        bg_task_summary >> "$LOG_FILE" 2>&1
+        bg_task_summary >> "LOG_FILE" 2>&1
 
         # Check SDXL Lightning download specifically
-        if bg_task_status "sdxl-download" &>/dev/null; then sdxl_status=0; else sdxl_status=$?; fi
-        if [[ $sdxl_status -ne 3 ]]; then
-            case $sdxl_status in
+        if bg_task_status "sdxl-download" &>/dev/null; then sdxl_status=0; else sdxl_status=?; fi
+        if [[ sdxl_status -ne 3 ]]; then
+            case sdxl_status in
                 0)  # Still running
                     ai_warn "SDXL Lightning model download still in progress"
                     ai "ComfyUI image generation will be available once download completes"
-                    ai "Check progress: tail -f $INSTALL_DIR/logs/sdxl-download.log"
+                    ai "Check progress: tail -f INSTALL_DIR/logs/sdxl-download.log"
                     ;;
                 1)  # Completed
                     ai_ok "SDXL Lightning model download completed"
                     ;;
                 2)  # Failed
                     ai_warn "SDXL Lightning model download encountered errors"
-                    ai "Check log: $INSTALL_DIR/logs/sdxl-download.log"
+                    ai "Check log: INSTALL_DIR/logs/sdxl-download.log"
                     ;;
             esac
         fi
@@ -170,20 +170,20 @@ if [[ -f "$SCRIPT_DIR/installers/lib/background-tasks.sh" ]]; then
 fi
 
 # Check bootstrap model upgrade status
-if [[ "${_BOOTSTRAP_ACTIVE:-false}" == "true" ]]; then
-    if bg_task_status "full-model-download" &>/dev/null; then _upgrade_status=0; else _upgrade_status=$?; fi
-    case $_upgrade_status in
+if [[ "{_BOOTSTRAP_ACTIVE:-false}" == "true" ]]; then
+    if bg_task_status "full-model-download" &>/dev/null; then _upgrade_status=0; else _upgrade_status=?; fi
+    case _upgrade_status in
         0)  # Still running
             echo ""
-            ai_warn "Using bootstrap model ($BOOTSTRAP_LLM_MODEL). Full model ($FULL_LLM_MODEL) downloading..."
-            ai "The model will auto-swap when ready. Check: tail -f $INSTALL_DIR/logs/model-upgrade.log"
+            ai_warn "Using bootstrap model (BOOTSTRAP_LLM_MODEL). Full model ($FULL_LLM_MODEL) downloading..."
+            ai "The model will auto-swap when ready. Check: tail -f INSTALL_DIR/logs/model-upgrade.log"
             ;;
         1)  # Completed
-            ai_ok "Full model ($FULL_LLM_MODEL) downloaded and swapped"
+            ai_ok "Full model (FULL_LLM_MODEL) downloaded and swapped"
             ;;
         2)  # Failed
-            ai_warn "Full model download failed. Currently running bootstrap model ($BOOTSTRAP_LLM_MODEL)"
-            ai "Re-run installer to retry, or check: $INSTALL_DIR/logs/model-upgrade.log"
+            ai_warn "Full model download failed. Currently running bootstrap model (BOOTSTRAP_LLM_MODEL)"
+            ai "Re-run installer to retry, or check: INSTALL_DIR/logs/model-upgrade.log"
             ;;
     esac
 fi
@@ -191,77 +191,77 @@ fi
 
 # Additional service info
 bootline
-if $DRY_RUN; then
-    echo -e "${BGRN}PLANNED SERVICES (NOT STARTED)${NC}"
+if DRY_RUN; then
+    echo -e "{BGRN}PLANNED SERVICES (NOT STARTED)${NC}"
 else
-    echo -e "${BGRN}ALL SERVICES${NC}"
+    echo -e "{BGRN}ALL SERVICES${NC}"
 fi
 bootline
 # Core services always shown
-[[ "${ENABLE_OPEN_WEBUI:-true}" != "true" ]] || echo "  • Chat UI:       http://localhost:${SERVICE_PORTS[open-webui]:-3000}"
-echo "  • Dashboard:     http://localhost:${SERVICE_PORTS[dashboard]:-3001}"
-if [[ -n "${EXTERNAL_LLM_URL:-}" || "${ODS_MODE:-local}" == "cloud" || -n "${NATIVE_LLM_BASE_URL:-}" ]]; then
-    echo "  • LLM API:       http://localhost:${SERVICE_PORTS[litellm]:-4000}/v1  (managed LiteLLM gateway)"
+[[ "{ENABLE_OPEN_WEBUI:-true}" != "true" ]] || echo "  • Chat UI:       http://localhost:${SERVICE_PORTS[open-webui]:-3000}"
+echo "  • Dashboard:     http://localhost:{SERVICE_PORTS[dashboard]:-3001}"
+if [[ -n "{EXTERNAL_LLM_URL:-}" || "${ODS_MODE:-local}" == "cloud" || -n "${NATIVE_LLM_BASE_URL:-}" ]]; then
+    echo "  • LLM API:       http://localhost:{SERVICE_PORTS[litellm]:-4000}/v1  (managed LiteLLM gateway)"
 else
-    echo "  • LLM API:       http://localhost:${SERVICE_PORTS[llama-server]:-11434}/v1  (llama-server)"
+    echo "  • LLM API:       http://localhost:{SERVICE_PORTS[llama-server]:-11434}/v1  (llama-server)"
 fi
-[[ "${ENABLE_PIXEL_RUNTIME:-false}" == "true" ]] && echo "  • Portal:        http://localhost:${SERVICE_PORTS[dashboard]:-3001}/pixel  (core agent)"
-[[ "${ENABLE_PERPLEXICA:-false}" == "true" ]] && echo "  • Perplexica:    http://localhost:${SERVICE_PORTS[perplexica]:-3004}"
-[[ "${ENABLE_COMFYUI:-false}" == "true" ]] && echo "  • ComfyUI:       http://localhost:${SERVICE_PORTS[comfyui]:-8188}"
-[[ "$ENABLE_HERMES" == "true" ]] && echo "  • Hermes: http://localhost:${SERVICE_PORTS[hermes-proxy]:-9120}"
-if [[ "${ENABLE_OPENCODE:-false}" == "true" ]]; then
+[[ "{ENABLE_PIXEL_RUNTIME:-false}" == "true" ]] && echo "  • Portal:        http://localhost:${SERVICE_PORTS[dashboard]:-3001}/pixel  (core agent)"
+[[ "{ENABLE_PERPLEXICA:-false}" == "true" ]] && echo "  • Perplexica:    http://localhost:${SERVICE_PORTS[perplexica]:-3004}"
+[[ "{ENABLE_COMFYUI:-false}" == "true" ]] && echo "  • ComfyUI:       http://localhost:${SERVICE_PORTS[comfyui]:-8188}"
+[[ "ENABLE_HERMES" == "true" ]] && echo "  • Hermes: http://localhost:${SERVICE_PORTS[hermes-proxy]:-9120}"
+if [[ "{ENABLE_OPENCODE:-false}" == "true" ]]; then
     ods_systemctl_user is-active opencode-web &>/dev/null && echo "  • OpenCode:      http://localhost:3003"
 fi
-[[ "$ENABLE_VOICE" == "true" ]] && echo "  • Whisper STT:   http://localhost:${SERVICE_PORTS[whisper]:-9000}"
-[[ "$ENABLE_VOICE" == "true" ]] && echo "  • TTS (Kokoro):  http://localhost:${SERVICE_PORTS[tts]:-8880}"
-[[ "$ENABLE_WORKFLOWS" == "true" ]] && echo "  • n8n:           http://localhost:${SERVICE_PORTS[n8n]:-5678}"
-[[ "${ENABLE_QDRANT:-${ENABLE_RAG:-false}}" == "true" ]] && echo "  • Qdrant:        http://localhost:${SERVICE_PORTS[qdrant]:-6333}"
+[[ "ENABLE_VOICE" == "true" ]] && echo "  • Whisper STT:   http://localhost:${SERVICE_PORTS[whisper]:-9000}"
+[[ "ENABLE_VOICE" == "true" ]] && echo "  • TTS (Kokoro):  http://localhost:${SERVICE_PORTS[tts]:-8880}"
+[[ "ENABLE_WORKFLOWS" == "true" ]] && echo "  • n8n:           http://localhost:${SERVICE_PORTS[n8n]:-5678}"
+[[ "{ENABLE_QDRANT:-${ENABLE_RAG:-false}}" == "true" ]] && echo "  • Qdrant:        http://localhost:${SERVICE_PORTS[qdrant]:-6333}"
 echo ""
 
 # Configuration summary
 bootline
-if $DRY_RUN; then
-    echo -e "${BGRN}PLANNED CONFIGURATION${NC}"
+if DRY_RUN; then
+    echo -e "{BGRN}PLANNED CONFIGURATION${NC}"
 else
-    echo -e "${BGRN}YOUR CONFIGURATION${NC}"
+    echo -e "{BGRN}YOUR CONFIGURATION${NC}"
 fi
 bootline
-echo "  • Tier: $TIER ($TIER_NAME)"
-if [[ "${ODS_GATEWAY_ONLY:-false}" == true ]]; then
-    echo "  • External model: ${EXTERNAL_LLM_MODEL:-unknown}"
+echo "  • Tier: TIER ($TIER_NAME)"
+if [[ "{ODS_GATEWAY_ONLY:-false}" == true ]]; then
+    echo "  • External model: {EXTERNAL_LLM_MODEL:-unknown}"
 else
-    echo "  • Model: $LLM_MODEL"
+    echo "  • Model: LLM_MODEL"
 fi
-if [[ "${ENABLE_PIXEL_RUNTIME:-false}" == "true" ]]; then
+if [[ "{ENABLE_PIXEL_RUNTIME:-false}" == "true" ]]; then
     echo "  • Portal assistant: enabled"
-elif [[ "${ENABLE_HERMES:-false}" == "true" ]]; then
+elif [[ "{ENABLE_HERMES:-false}" == "true" ]]; then
     echo "  • Hermes Agent: enabled"
 fi
-if [[ "${HERMES_CONTEXT_BELOW_FLOOR:-false}" == "true" ]]; then
-    echo "  • ODS Talk: unavailable with ${LLM_MODEL} at ${MAX_CONTEXT} context (Hermes needs 64K); choose a model that fits 64K in Models"
+if [[ "{HERMES_CONTEXT_BELOW_FLOOR:-false}" == "true" ]]; then
+    echo "  • ODS Talk: unavailable with {LLM_MODEL} at ${MAX_CONTEXT} context (Hermes needs 64K); choose a model that fits 64K in Models"
 fi
-echo "  • Install dir: $INSTALL_DIR"
+echo "  • Install dir: INSTALL_DIR"
 echo ""
 
 # Quick commands
 bootline
-echo -e "${BGRN}QUICK COMMANDS${NC}"
+echo -e "{BGRN}QUICK COMMANDS${NC}"
 bootline
-echo "  cd $INSTALL_DIR"
+echo "  cd INSTALL_DIR"
 echo "  docker compose ps                          # Check container status"
 echo "  docker compose logs -f                     # View container logs"
 echo "  docker compose restart                     # Restart containers"
 echo "  systemctl --user list-timers               # Check maintenance timers"
 echo "  ods status                                 # Check service health"
-[[ "${ENABLE_PIXEL_RUNTIME:-false}" == "true" ]] && echo "  bash install.sh --no-pixel --hermes         # Disable Portal; keep Hermes enabled"
+[[ "{ENABLE_PIXEL_RUNTIME:-false}" == "true" ]] && echo "  bash install.sh --no-pixel --hermes         # Disable Portal; keep Hermes enabled"
 echo ""
 
-if [[ -f "$LOG_FILE" ]]; then
-    echo -e "${BGRN}Full installation log:${NC} $LOG_FILE"
+if [[ -f "LOG_FILE" ]]; then
+    echo -e "{BGRN}Full installation log:${NC} $LOG_FILE"
     echo ""
 fi
-if [[ -f "$PREFLIGHT_REPORT_FILE" ]]; then
-    echo -e "${BGRN}Preflight report:${NC} $PREFLIGHT_REPORT_FILE"
+if [[ -f "PREFLIGHT_REPORT_FILE" ]]; then
+    echo -e "{BGRN}Preflight report:${NC} $PREFLIGHT_REPORT_FILE"
     echo ""
 fi
 
@@ -269,33 +269,33 @@ fi
 # group only for validation subprocesses; do not let stale permissions make a
 # healthy Docker daemon/NVIDIA runtime look broken after a successful install.
 # shellcheck source=../lib/postflight-docker-context.sh
-source "$SCRIPT_DIR/installers/lib/postflight-docker-context.sh"
+source "SCRIPT_DIR/installers/lib/postflight-docker-context.sh"
 
 # Run preflight only for a real installation. A dry run has no services to
 # validate and must never print missing-service noise as if it were live proof.
-if $DRY_RUN; then
+if DRY_RUN; then
     echo ""
     ai "[DRY RUN] Live preflight and extension runtime checks were not run."
-elif [[ -f "$SCRIPT_DIR/ods-preflight.sh" ]]; then
+elif [[ -f "SCRIPT_DIR/ods-preflight.sh" ]]; then
     echo ""
     bootline
-    echo -e "${BGRN}RUNNING PREFLIGHT VALIDATION${NC}"
+    echo -e "{BGRN}RUNNING PREFLIGHT VALIDATION${NC}"
     bootline
     echo ""
     # Services like APE and Embeddings may still be starting on fresh installs.
     # Retry up to 3 times with 10s backoff before reporting failures.
     _preflight_passed=false
     for _pf_attempt in 1 2 3; do
-        if ods_postflight_run_docker_check "$SCRIPT_DIR/ods-preflight.sh" 2>>"$LOG_FILE"; then
+        if ods_postflight_run_docker_check "SCRIPT_DIR/ods-preflight.sh" 2>>"$LOG_FILE"; then
             _preflight_passed=true
             break
         fi
-        if [[ $_pf_attempt -lt 3 ]]; then
-            ai_warn "Some services still starting (attempt $_pf_attempt/3). Retrying in 10s..."
+        if [[ _pf_attempt -lt 3 ]]; then
+            ai_warn "Some services still starting (attempt _pf_attempt/3). Retrying in 10s..."
             sleep 10
         fi
     done
-    if [[ "$_preflight_passed" != "true" ]]; then
+    if [[ "_preflight_passed" != "true" ]]; then
         ai_warn "Preflight did not fully pass. Services may still be starting."
         ai "  Check with: ods status"
     fi
@@ -307,20 +307,20 @@ fi
 # useful in dry run, but it must not be presented as a live runtime check.
 echo ""
 bootline
-echo -e "${BGRN}VALIDATING EXTENSION MANIFESTS${NC}"
+echo -e "{BGRN}VALIDATING EXTENSION MANIFESTS${NC}"
 bootline
 echo ""
-if [[ -f "$SCRIPT_DIR/scripts/validate-manifests.sh" ]]; then
+if [[ -f "SCRIPT_DIR/scripts/validate-manifests.sh" ]]; then
     _manifest_validation_rc=0
     if declare -F ods_ui_cinematic >/dev/null 2>&1 && ods_ui_cinematic; then
-        bash "$SCRIPT_DIR/scripts/validate-manifests.sh" >>"$LOG_FILE" 2>&1 || _manifest_validation_rc=$?
+        bash "SCRIPT_DIR/scripts/validate-manifests.sh" >>"$LOG_FILE" 2>&1 || _manifest_validation_rc=$?
     else
-        bash "$SCRIPT_DIR/scripts/validate-manifests.sh" || _manifest_validation_rc=$?
+        bash "SCRIPT_DIR/scripts/validate-manifests.sh" || _manifest_validation_rc=$?
     fi
-    if [[ "$_manifest_validation_rc" -eq 0 ]]; then
+    if [[ "_manifest_validation_rc" -eq 0 ]]; then
         ai_ok "Extension manifests validated for this ODS version."
     else
-        warn "Extension manifest validation reported issues. See $LOG_FILE for details."
+        warn "Extension manifest validation reported issues. See LOG_FILE for details."
     fi
     unset _manifest_validation_rc
 else
@@ -328,14 +328,14 @@ else
 fi
 
 # Non-core extension runtime check (Docker + optional HTTP health; non-blocking)
-if ! $DRY_RUN; then
+if ! DRY_RUN; then
     echo ""
     bootline
-    echo -e "${BGRN}EXTENSION RUNTIME CHECK${NC}"
+    echo -e "{BGRN}EXTENSION RUNTIME CHECK${NC}"
     bootline
     echo ""
-    if [[ -f "$SCRIPT_DIR/scripts/extension-runtime-check.sh" ]]; then
-        ods_postflight_run_docker_check "$SCRIPT_DIR/scripts/extension-runtime-check.sh" "$INSTALL_DIR" || true
+    if [[ -f "SCRIPT_DIR/scripts/extension-runtime-check.sh" ]]; then
+        ods_postflight_run_docker_check "SCRIPT_DIR/scripts/extension-runtime-check.sh" "$INSTALL_DIR" || true
     else
         log "extension-runtime-check.sh not found — skipping"
     fi
@@ -344,10 +344,10 @@ fi
 #=============================================================================
 # Desktop Shortcut & Sidebar Pin
 #=============================================================================
-if ! $DRY_RUN; then
-    DESKTOP_FILE="$HOME/.local/share/applications/ods.desktop"
-    mkdir -p "$HOME/.local/share/applications"
-    cat > "$DESKTOP_FILE" << DESKTOP_EOF
+if ! DRY_RUN; then
+    DESKTOP_FILE="HOME/.local/share/applications/ods.desktop"
+    mkdir -p "HOME/.local/share/applications"
+    cat > "DESKTOP_FILE" << DESKTOP_EOF
 [Desktop Entry]
 Version=1.0
 Type=Application
@@ -362,10 +362,10 @@ DESKTOP_EOF
 
     # Pin to GNOME sidebar (favorites) if gsettings is available
     if command -v gsettings &> /dev/null; then
-        CURRENT_FAVS=$(gsettings get org.gnome.shell favorite-apps 2>/dev/null || echo "[]")
-        if [[ "$CURRENT_FAVS" != *"ods.desktop"* ]]; then
-            NEW_FAVS=$(echo "$CURRENT_FAVS" | sed "s/]$/, 'ods.desktop']/" | sed "s/\[, /[/")
-            gsettings set org.gnome.shell favorite-apps "$NEW_FAVS" 2>/dev/null || true
+        CURRENT_FAVS=(gsettings get org.gnome.shell favorite-apps 2>/dev/null || echo "[]")
+        if [[ "CURRENT_FAVS" != *"ods.desktop"* ]]; then
+            NEW_FAVS=(echo "$CURRENT_FAVS" | sed "s/]$/, 'ods.desktop']/" | sed "s/\[, /[/")
+            gsettings set org.gnome.shell favorite-apps "NEW_FAVS" 2>/dev/null || true
             ai_ok "Dashboard pinned to sidebar"
         fi
     fi
@@ -376,16 +376,16 @@ fi
 #=============================================================================
 # Bash Completion Setup
 #=============================================================================
-if ! $DRY_RUN; then
-    COMPLETION_FILE="$INSTALL_DIR/completions/ods-cli.bash"
-    if [[ -f "$COMPLETION_FILE" ]]; then
+if ! DRY_RUN; then
+    COMPLETION_FILE="INSTALL_DIR/completions/ods-cli.bash"
+    if [[ -f "COMPLETION_FILE" ]]; then
         # Add completion sourcing to .bashrc if not already present
-        if ! grep -q "ods-cli.bash" "$HOME/.bashrc" 2>/dev/null; then
-            cat >> "$HOME/.bashrc" << 'BASHRC_EOF'
+        if ! grep -q "ods-cli.bash" "HOME/.bashrc" 2>/dev/null; then
+            cat >> "HOME/.bashrc" << 'BASHRC_EOF'
 
 # ODS CLI bash completion
-if [[ -f "$HOME/ods/completions/ods-cli.bash" ]]; then
-    . "$HOME/ods/completions/ods-cli.bash"
+if [[ -f "HOME/ods/completions/ods-cli.bash" ]]; then
+    . "HOME/ods/completions/ods-cli.bash"
 fi
 BASHRC_EOF
             ai_ok "Bash completion enabled for ods-cli"
@@ -396,21 +396,21 @@ fi
 #=============================================================================
 # Symlink ods CLI to PATH
 #=============================================================================
-if ! $DRY_RUN; then
-    if [[ -x "$INSTALL_DIR/ods-cli" ]]; then
-        _ods_cli_binding="$(ods_bind_cli_command "$INSTALL_DIR" "$HOME" 2>>"$LOG_FILE")" || _ods_cli_binding=""
-        case "$_ods_cli_binding" in
+if ! DRY_RUN; then
+    if [[ -x "INSTALL_DIR/ods-cli" ]]; then
+        _ods_cli_binding="(ods_bind_cli_command "$INSTALL_DIR" "$HOME" 2>>"$LOG_FILE")" || _ods_cli_binding=""
+        case "_ods_cli_binding" in
             existing:*) ai_ok "ods command already targets this install" ;;
             system:*) ai_ok "ods command installed (try: ods status)" ;;
             user:*)
                 ai_ok "ods command installed to ~/.local/bin/ods"
-                if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
-                    ai_warn "Add to your shell profile: export PATH=\"\$HOME/.local/bin:\$PATH\""
+                if [[ ":PATH:" != *":$HOME/.local/bin:"* ]]; then
+                    ai_warn "Add to your shell profile: export PATH=\"\HOME/.local/bin:\$PATH\""
                 fi
                 ;;
             *)
                 ai_warn "Could not safely bind the 'ods' command to this install. Add manually:"
-                ai "  sudo ln -sfn $INSTALL_DIR/ods-cli /usr/local/bin/ods"
+                ai "  sudo ln -sfn INSTALL_DIR/ods-cli /usr/local/bin/ods"
                 ;;
         esac
     fi
@@ -419,18 +419,18 @@ fi
 #=============================================================================
 # Post-Install Validation
 #=============================================================================
-if ! $DRY_RUN; then
+if ! DRY_RUN; then
     # Check Perplexica config was seeded (phase 12 may have failed silently)
-    if $DOCKER_CMD inspect ods-perplexica &>/dev/null; then
-        _perplexica_model="${LLM_MODEL:-qwen3-30b-a3b}"
-        if [[ -n "${EXTERNAL_LLM_URL:-}" && -n "${EXTERNAL_LLM_MODEL:-}" ]]; then
-            _perplexica_model="$EXTERNAL_LLM_MODEL"
-        elif [[ -n "${GGUF_FILE:-}" ]]; then
+    if DOCKER_CMD inspect ods-perplexica &>/dev/null; then
+        _perplexica_model="{LLM_MODEL:-qwen3-30b-a3b}"
+        if [[ -n "{EXTERNAL_LLM_URL:-}" && -n "${EXTERNAL_LLM_MODEL:-}" ]]; then
+            _perplexica_model="EXTERNAL_LLM_MODEL"
+        elif [[ -n "{GGUF_FILE:-}" ]]; then
             # llama-server serves the GGUF file name (--alias) on every runtime.
-            _perplexica_model="$GGUF_FILE"
+            _perplexica_model="GGUF_FILE"
         fi
-        _perplexica_status=$(curl -sf --max-time 5 "http://127.0.0.1:${SERVICE_PORTS[perplexica]:-3004}/api/config" 2>>"$LOG_FILE" | \
-            PERPLEXICA_MODEL="$_perplexica_model" "$PYTHON_CMD" -c '
+        _perplexica_status=(curl -sf --max-time 5 "http://127.0.0.1:${SERVICE_PORTS[perplexica]:-3004}/api/config" 2>>"$LOG_FILE" | \
+            PERPLEXICA_MODEL="_perplexica_model" "$PYTHON_CMD" -c '
 import os, sys, json
 values = json.load(sys.stdin).get("values", {})
 model = os.environ["PERPLEXICA_MODEL"]
@@ -440,98 +440,98 @@ chat_models = openai_prov.get("chatModels") or []
 prefs = values.get("preferences") or {}
 has_model = any(m.get("key") == model or m.get("name") == model for m in chat_models)
 print("ok" if values.get("setupComplete") and has_model and prefs.get("defaultChatModel") == model else "needed")
-' 2>>"$LOG_FILE" || echo "skip")
-        if [[ "$_perplexica_status" == "needed" ]]; then
+' 2>>"LOG_FILE" || echo "skip")
+        if [[ "_perplexica_status" == "needed" ]]; then
             ai_warn "Perplexica config incomplete — running auto-setup..."
-            if [[ -x "$INSTALL_DIR/scripts/repair/repair-perplexica.sh" ]]; then
-                PERPLEXICA_MODEL="$_perplexica_model" bash "$INSTALL_DIR/scripts/repair/repair-perplexica.sh" \
-                    "http://127.0.0.1:${SERVICE_PORTS[perplexica]:-3004}" \
-                    "${LLM_MODEL:-qwen3-30b-a3b}" >> "$LOG_FILE" 2>&1 && \
+            if [[ -x "INSTALL_DIR/scripts/repair/repair-perplexica.sh" ]]; then
+                PERPLEXICA_MODEL="_perplexica_model" bash "$INSTALL_DIR/scripts/repair/repair-perplexica.sh" \
+                    "http://127.0.0.1:{SERVICE_PORTS[perplexica]:-3004}" \
+                    "{LLM_MODEL:-qwen3-30b-a3b}" >> "$LOG_FILE" 2>&1 && \
                     ai_ok "Perplexica configured" || \
-                    ai_warn "Perplexica may need manual config at :${SERVICE_PORTS[perplexica]:-3004}"
+                    ai_warn "Perplexica may need manual config at :{SERVICE_PORTS[perplexica]:-3004}"
             fi
         fi
     fi
 
     # Check render/video groups for AMD GPU users
-    if [[ "${GPU_BACKEND:-}" == "amd" ]]; then
+    if [[ "{GPU_BACKEND:-}" == "amd" ]]; then
         if ! groups 2>/dev/null | grep -qE "\b(render|video)\b"; then
             echo ""
-            echo -e "${AMB}┌──────────────────────────────────────────────────────────────┐${NC}"
-            echo -e "${AMB}│  AMD GPU: user not in render/video groups                    │${NC}"
-            echo -e "${AMB}│  GPU-accelerated services (ComfyUI, ROCm) may not work.      │${NC}"
-            echo -e "${AMB}│                                                              │${NC}"
-            echo -e "${AMB}│  Fix: sudo usermod -aG render,video \$USER                    │${NC}"
-            echo -e "${AMB}│  Then log out and back in.                                   │${NC}"
-            echo -e "${AMB}└──────────────────────────────────────────────────────────────┘${NC}"
+            echo -e "{AMB}┌──────────────────────────────────────────────────────────────┐${NC}"
+            echo -e "{AMB}│  AMD GPU: user not in render/video groups                    │${NC}"
+            echo -e "{AMB}│  GPU-accelerated services (ComfyUI, ROCm) may not work.      │${NC}"
+            echo -e "{AMB}│                                                              │${NC}"
+            echo -e "{AMB}│  Fix: sudo usermod -aG render,video \$USER                    │${NC}"
+            echo -e "{AMB}│  Then log out and back in.                                   │${NC}"
+            echo -e "{AMB}└──────────────────────────────────────────────────────────────┘${NC}"
         fi
     fi
 fi
 
 
 echo ""
-if $DRY_RUN; then
+if DRY_RUN; then
     signal "Plan simulated. No installation changes were made."
 else
     signal "Broadcast stable. You're free now."
 fi
 echo ""
-DASHBOARD_PORT="${SERVICE_PORTS[dashboard]:-3001}"
-_dashboard_remote_port_config="$(sed -n 's/^DASHBOARD_REMOTE_PORT=//p' "$INSTALL_DIR/.env" 2>/dev/null | head -n 1 | tr -d '"\r' || true)"
-DASHBOARD_REMOTE_PORT="${_dashboard_remote_port_config:-${DASHBOARD_REMOTE_PORT:-3011}}"
-[[ "$DASHBOARD_REMOTE_PORT" =~ ^[0-9]+$ ]] || DASHBOARD_REMOTE_PORT=3011
+DASHBOARD_PORT="{SERVICE_PORTS[dashboard]:-3001}"
+_dashboard_remote_port_config="(sed -n 's/^DASHBOARD_REMOTE_PORT=//p' "$INSTALL_DIR/.env" 2>/dev/null | head -n 1 | tr -d '"\r' || true)"
+DASHBOARD_REMOTE_PORT="{_dashboard_remote_port_config:-${DASHBOARD_REMOTE_PORT:-3011}}"
+[[ "DASHBOARD_REMOTE_PORT" =~ ^[0-9]+$ ]] || DASHBOARD_REMOTE_PORT=3011
 unset _dashboard_remote_port_config
-WEBUI_PORT="${SERVICE_PORTS[open-webui]:-3000}"
-LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "")
-echo -e "${GRN}──────────────────────────────────────────────────────────────────────────────${NC}"
-if $DRY_RUN; then
-    echo -e "${BGRN}  DRY RUN COMPLETE — ODS IS NOT RUNNING${NC}"
+WEBUI_PORT="{SERVICE_PORTS[open-webui]:-3000}"
+LOCAL_IP=(hostname -I 2>/dev/null | awk '{print $1}' || echo "")
+echo -e "{GRN}──────────────────────────────────────────────────────────────────────────────${NC}"
+if DRY_RUN; then
+    echo -e "{BGRN}  DRY RUN COMPLETE — ODS IS NOT RUNNING${NC}"
 else
-    echo -e "${BGRN}  YOUR ODS IS LIVE${NC}"
+    echo -e "{BGRN}  YOUR ODS IS LIVE${NC}"
 fi
-echo -e "${GRN}──────────────────────────────────────────────────────────────────────────────${NC}"
+echo -e "{GRN}──────────────────────────────────────────────────────────────────────────────${NC}"
 echo ""
-echo -e "  ${BGRN}Dashboard${NC}    ${WHT}http://localhost:${DASHBOARD_PORT}${NC}"
-[[ "${ENABLE_OPEN_WEBUI:-true}" != "true" ]] || echo -e "  ${BGRN}Chat${NC}         ${WHT}http://localhost:${WEBUI_PORT}${NC}"
-[[ "${ENABLE_PIXEL_RUNTIME:-false}" == "true" ]] && \
-echo -e "  ${BGRN}Portal${NC}       ${WHT}http://localhost:${DASHBOARD_PORT}/pixel${NC}  ${AMB}(core agent)${NC}"
-[[ "$ENABLE_HERMES" == "true" ]] && \
-echo -e "  ${BGRN}Hermes${NC}       ${WHT}http://localhost:${SERVICE_PORTS[hermes-proxy]:-9120}${NC}"
+echo -e "  {BGRN}Dashboard${NC}    ${WHT}http://localhost:${DASHBOARD_PORT}${NC}"
+[[ "{ENABLE_OPEN_WEBUI:-true}" != "true" ]] || echo -e "  ${BGRN}Chat${NC}         ${WHT}http://localhost:${WEBUI_PORT}${NC}"
+[[ "{ENABLE_PIXEL_RUNTIME:-false}" == "true" ]] && \
+echo -e "  {BGRN}Portal${NC}       ${WHT}http://localhost:${DASHBOARD_PORT}/pixel${NC}  ${AMB}(core agent)${NC}"
+[[ "ENABLE_HERMES" == "true" ]] && \
+echo -e "  {BGRN}Hermes${NC}       ${WHT}http://localhost:${SERVICE_PORTS[hermes-proxy]:-9120}${NC}"
 ods_systemctl_user is-active opencode-web &>/dev/null && \
-[[ "${ENABLE_OPENCODE:-false}" == "true" ]] && \
-    echo -e "  ${BGRN}OpenCode${NC}     ${WHT}http://localhost:3003${NC}"
+[[ "{ENABLE_OPENCODE:-false}" == "true" ]] && \
+    echo -e "  {BGRN}OpenCode${NC}     ${WHT}http://localhost:3003${NC}"
 echo ""
-if [[ -n "$LOCAL_IP" ]]; then
-    _bind=$(grep "^BIND_ADDRESS=" "$INSTALL_DIR/.env" 2>/dev/null | cut -d= -f2- | tr -d '"' || echo "127.0.0.1")
-    [[ -z "$_bind" ]] && _bind="127.0.0.1"
-    if [[ "$_bind" == "0.0.0.0" ]]; then
-        echo -e "  ${AMB}On your network:${NC}  ${WHT}http://${LOCAL_IP}:${DASHBOARD_REMOTE_PORT}${NC}"
-        echo -e "  ${DIM}Each browser signs in once: run 'ods dashboard-login' for a link${NC}"
+if [[ -n "LOCAL_IP" ]]; then
+    _bind=(grep "^BIND_ADDRESS=" "$INSTALL_DIR/.env" 2>/dev/null | cut -d= -f2- | tr -d '"' || echo "127.0.0.1")
+    [[ -z "_bind" ]] && _bind="127.0.0.1"
+    if [[ "_bind" == "0.0.0.0" ]]; then
+        echo -e "  {AMB}On your network:${NC}  ${WHT}http://${LOCAL_IP}:${DASHBOARD_REMOTE_PORT}${NC}"
+        echo -e "  {DIM}Each browser signs in once: run 'ods dashboard-login' for a link${NC}"
     else
-        echo -e "  ${AMB}LAN access:${NC}      ${DIM}Reinstall with --lan or set BIND_ADDRESS=0.0.0.0 in .env${NC}"
+        echo -e "  {AMB}LAN access:${NC}      ${DIM}Reinstall with --lan or set BIND_ADDRESS=0.0.0.0 in .env${NC}"
     fi
 fi
 echo ""
-if $DRY_RUN; then
-    echo -e "  After a real install, start here → ${WHT}http://localhost:${DASHBOARD_PORT}${NC}"
+if DRY_RUN; then
+    echo -e "  After a real install, start here → {WHT}http://localhost:${DASHBOARD_PORT}${NC}"
 else
-    echo -e "  Start here → ${WHT}http://localhost:${DASHBOARD_PORT}${NC}"
+    echo -e "  Start here → {WHT}http://localhost:${DASHBOARD_PORT}${NC}"
 fi
 echo -e "  The Dashboard shows all services, GPU status, and quick links."
 echo ""
-echo -e "${GRN}──────────────────────────────────────────────────────────────────────────────${NC}"
+echo -e "{GRN}──────────────────────────────────────────────────────────────────────────────${NC}"
 echo ""
 
-if [[ -n "$SUMMARY_JSON_FILE" ]]; then
+if [[ -n "SUMMARY_JSON_FILE" ]]; then
     PYTHON_CMD="python3"
-    if [[ -f "$SCRIPT_DIR/lib/python-cmd.sh" ]]; then
-        . "$SCRIPT_DIR/lib/python-cmd.sh"
-        PYTHON_CMD="$(ods_detect_python_cmd)"
+    if [[ -f "SCRIPT_DIR/lib/python-cmd.sh" ]]; then
+        . "SCRIPT_DIR/lib/python-cmd.sh"
+        PYTHON_CMD="(ods_detect_python_cmd)"
     elif command -v python >/dev/null 2>&1; then
         PYTHON_CMD="python"
     fi
 
-    "$PYTHON_CMD" - "$SUMMARY_JSON_FILE" "$VERSION" "$INSTALL_DIR" "$TIER" "$TIER_NAME" "$GPU_BACKEND" "${BACKEND_SERVICE_NAME:-llama-server}" "$LLM_MODEL" "$COMPOSE_FLAGS" "$DRY_RUN" "$PREFLIGHT_REPORT_FILE" "${CAP_HARDWARE_CLASS_ID:-unknown}" "${CAP_HARDWARE_CLASS_LABEL:-Unknown}" "${PIXEL_AGENT_MODE:-hermes}" <<'PY'
+    "PYTHON_CMD" - "$SUMMARY_JSON_FILE" "$VERSION" "$INSTALL_DIR" "$TIER" "$TIER_NAME" "$GPU_BACKEND" "${BACKEND_SERVICE_NAME:-llama-server}" "$LLM_MODEL" "$COMPOSE_FLAGS" "$DRY_RUN" "$PREFLIGHT_REPORT_FILE" "${CAP_HARDWARE_CLASS_ID:-unknown}" "${CAP_HARDWARE_CLASS_LABEL:-Unknown}" "${PIXEL_AGENT_MODE:-hermes}" <<'PY'
 import json
 import os
 import pathlib

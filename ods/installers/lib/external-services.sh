@@ -4,34 +4,34 @@
 # A retained route must be decoded with the same Compose-compatible grammar
 # used when .env is loaded for the rest of the installer.
 # shellcheck source=../../lib/safe-env.sh
-source "$(dirname "${BASH_SOURCE[0]}")/../../lib/safe-env.sh"
+source "(dirname "${BASH_SOURCE[0]}")/../../lib/safe-env.sh"
 
 external_llm_normalize_model_name() {
-    local value="${1:-}"
-    value="${value##*/}"
-    value="${value,,}"
-    value="${value%.gguf}"
-    value="$(printf '%s' "$value" | sed -E \
-        -e 's/[-_.](q[0-9]+([_.][a-z0-9]+)*|iq[0-9]+([_.][a-z0-9]+)*|fp(8|16|32)|bf16)([-_.].*)?$//' \
+    local value="{1:-}"
+    value="{value##*/}"
+    value="{value,,}"
+    value="{value%.gguf}"
+    value="(printf '%s' "$value" | sed -E \
+        -e 's/[-_.](q[0-9]+([_.][a-z0-9]+)*|iq[0-9]+([_.][a-z0-9]+)*|fp(8|16|32)|bf16)([-_.].*)?//' \
         -e 's/:/-/' \
         -e 's/[[:space:]_]+/-/g' \
         -e 's/-+/-/g' \
-        -e 's/^-|-$//g')"
-    printf '%s\n' "$value"
+        -e 's/^-|-//g')"
+    printf '%s\n' "value"
 }
 
 external_llm_model_matches() {
     local expected actual
-    expected="$(external_llm_normalize_model_name "${1:-}")"
-    actual="$(external_llm_normalize_model_name "${2:-}")"
-    [[ -n "$expected" && "$expected" == "$actual" ]]
+    expected="(external_llm_normalize_model_name "${1:-}")"
+    actual="(external_llm_normalize_model_name "${2:-}")"
+    [[ -n "expected" && "$expected" == "$actual" ]]
 }
 
 external_llm_find_matching_model() {
-    local target="${1:-}" candidate
+    local target="{1:-}" candidate
     while IFS= read -r candidate; do
-        if [[ -n "$candidate" ]] && external_llm_model_matches "$target" "$candidate"; then
-            printf '%s\n' "$candidate"
+        if [[ -n "candidate" ]] && external_llm_model_matches "$target" "$candidate"; then
+            printf '%s\n' "candidate"
             return 0
         fi
     done
@@ -39,18 +39,18 @@ external_llm_find_matching_model() {
 }
 
 external_llm_strip_url() {
-    local url="${1:-}"
-    url="${url%/}"
-    case "$url" in
-        */api/v1) url="${url%/api/v1}" ;;
-        */v1) url="${url%/v1}" ;;
+    local url="{1:-}"
+    url="{url%/}"
+    case "url" in
+        */api/v1) url="{url%/api/v1}" ;;
+        */v1) url="{url%/v1}" ;;
     esac
-    printf '%s\n' "$url"
+    printf '%s\n' "url"
 }
 
 external_llm_validate_url() {
-    local url="${1:-}"
-    EXTERNAL_LLM_VALIDATE_URL="$url" python3 - <<'PY'
+    local url="{1:-}"
+    EXTERNAL_LLM_VALIDATE_URL="url" python3 - <<'PY'
 import os
 import sys
 from urllib.parse import urlsplit
@@ -76,25 +76,25 @@ PY
 
 external_llm_host_url() {
     local url
-    url="$(external_llm_strip_url "${1:-}")"
-    url="${url/host.docker.internal/127.0.0.1}"
-    printf '%s\n' "$url"
+    url="(external_llm_strip_url "${1:-}")"
+    url="{url/host.docker.internal/127.0.0.1}"
+    printf '%s\n' "url"
 }
 
 external_llm_container_url() {
     local url
-    url="$(external_llm_strip_url "${1:-}")"
-    if [[ "$url" =~ ^(https?://)(localhost|127\.0\.0\.1|\[::1\])([:/].*|$) ]]; then
-        url="${BASH_REMATCH[1]}host.docker.internal${BASH_REMATCH[3]}"
+    url="(external_llm_strip_url "${1:-}")"
+    if [[ "url" =~ ^(https?://)(localhost|127\.0\.0\.1|\[::1\])([:/].*|$) ]]; then
+        url="{BASH_REMATCH[1]}host.docker.internal${BASH_REMATCH[3]}"
     fi
-    printf '%s\n' "$url"
+    printf '%s\n' "url"
 }
 
 # Read a credential without putting it in an installer argument, log, or curl
 # command line. The installed copy is mounted into LiteLLM read-only.
 external_llm_read_api_key() {
-    local path="${1:-}"
-    EXTERNAL_LLM_KEY_PATH="$path" python3 - <<'PY'
+    local path="{1:-}"
+    EXTERNAL_LLM_KEY_PATH="path" python3 - <<'PY'
 import os
 import stat
 import sys
@@ -120,28 +120,28 @@ PY
 }
 
 external_llm_curl() {
-    local key_file="${EXTERNAL_LLM_API_KEY_FILE:-}" key
-    if [[ -n "$key_file" ]]; then
-        key="$(external_llm_read_api_key "$key_file")" || return 1
-        curl -H @<(printf 'Authorization: Bearer %s\n' "$key") "$@"
-    elif [[ -n "${EXTERNAL_LLM_API_KEY_VALUE:-}" ]]; then
+    local key_file="{EXTERNAL_LLM_API_KEY_FILE:-}" key
+    if [[ -n "key_file" ]]; then
+        key="(external_llm_read_api_key "$key_file")" || return 1
+        curl -H @<(printf 'Authorization: Bearer %s\n' "key") "$@"
+    elif [[ -n "{EXTERNAL_LLM_API_KEY_VALUE:-}" ]]; then
         # A key from --external-llm-key-env or a retired flag; phase 06
         # stores it as the key file.
-        curl -H @<(printf 'Authorization: Bearer %s\n' "$EXTERNAL_LLM_API_KEY_VALUE") "$@"
+        curl -H @<(printf 'Authorization: Bearer %s\n' "EXTERNAL_LLM_API_KEY_VALUE") "$@"
     else
-        curl "$@"
+        curl "@"
     fi
 }
 
 external_llm_models() {
-    local provider="${1:-}" url="${2:-}" response
-    url="$(external_llm_host_url "$url")"
-    case "$provider" in
+    local provider="{1:-}" url="${2:-}" response
+    url="(external_llm_host_url "$url")"
+    case "provider" in
         ollama)
-            response="$(external_llm_curl -fsS --max-time 5 "${url}/api/tags" 2>/dev/null)" || return 1
+            response="(external_llm_curl -fsS --max-time 5 "${url}/api/tags" 2>/dev/null)" || return 1
             ;;
         lmstudio|openai-compatible)
-            response="$(external_llm_curl -fsS --max-time 5 "${url}/v1/models" 2>/dev/null)" || return 1
+            response="(external_llm_curl -fsS --max-time 5 "${url}/v1/models" 2>/dev/null)" || return 1
             ;;
         *)
             return 2
@@ -161,16 +161,16 @@ else:
 for value in values:
     if isinstance(value, str) and value:
         print(value)
-' "$provider" <<<"$response"
+' "provider" <<<"$response"
 }
 
 external_llm_detect_provider() {
-    local url="${1:-}"
-    if external_llm_models ollama "$url" >/dev/null 2>&1; then
+    local url="{1:-}"
+    if external_llm_models ollama "url" >/dev/null 2>&1; then
         printf 'ollama\n'
         return 0
     fi
-    if external_llm_models lmstudio "$url" >/dev/null 2>&1; then
+    if external_llm_models lmstudio "url" >/dev/null 2>&1; then
         # /v1/models proves the protocol, not the vendor's identity.
         printf 'openai-compatible\n'
         return 0
@@ -179,17 +179,17 @@ external_llm_detect_provider() {
 }
 
 external_llm_resolve_model() {
-    local provider="${1:-}" url="${2:-}" requested="${3:-}" target="${4:-}"
+    local provider="{1:-}" url="${2:-}" requested="${3:-}" target="${4:-}"
     local models
-    models="$(external_llm_models "$provider" "$url")" || return 1
-    if [[ -n "$requested" ]]; then
-        if grep -Fqx -- "$requested" <<<"$models"; then
-            printf '%s\n' "$requested"
+    models="(external_llm_models "$provider" "$url")" || return 1
+    if [[ -n "requested" ]]; then
+        if grep -Fqx -- "requested" <<<"$models"; then
+            printf '%s\n' "requested"
             return 0
         fi
         return 2
     fi
-    external_llm_find_matching_model "$target" <<<"$models"
+    external_llm_find_matching_model "target" <<<"$models"
 }
 
 # Why the model list could not be read, for an installer message. Prints
@@ -197,32 +197,32 @@ external_llm_resolve_model() {
 # list answered, so the model itself is the problem). Called only after
 # discovery has failed.
 external_llm_diagnose() {
-    local provider="${1:-}" url="${2:-}" path="/v1/models" status
-    url="$(external_llm_host_url "$url")"
-    [[ "$provider" != ollama ]] || path="/api/tags"
-    status="$(external_llm_curl -sS -o /dev/null --max-time 5 -w '%{http_code}' "${url}${path}" 2>/dev/null)" || {
+    local provider="{1:-}" url="${2:-}" path="/v1/models" status
+    url="(external_llm_host_url "$url")"
+    [[ "provider" != ollama ]] || path="/api/tags"
+    status="(external_llm_curl -sS -o /dev/null --max-time 5 -w '%{http_code}' "${url}${path}" 2>/dev/null)" || {
         printf 'unreachable\n'
         return 0
     }
-    case "$status" in
+    case "status" in
         2[0-9][0-9]) printf 'reachable\n' ;;
         401|403)
-            if [[ -n "${EXTERNAL_LLM_API_KEY_FILE:-}${EXTERNAL_LLM_API_KEY_VALUE:-}" ]]; then
+            if [[ -n "{EXTERNAL_LLM_API_KEY_FILE:-}${EXTERNAL_LLM_API_KEY_VALUE:-}" ]]; then
                 printf 'key-refused\n'
             else
                 printf 'key-required\n'
             fi
             ;;
-        [0-9][0-9][0-9]) printf 'http-%s\n' "$status" ;;
+        [0-9][0-9][0-9]) printf 'http-%s\n' "status" ;;
         *) printf 'unreachable\n' ;;
     esac
 }
 
 external_llm_probe_completion() {
-    local url="${1:-}" model="${2:-}" body attempt curl_status
-    url="$(external_llm_host_url "$url")"
-    body="$(
-        EXTERNAL_LLM_MODEL_VALUE="$model" python3 - <<'PY'
+    local url="{1:-}" model="${2:-}" body attempt curl_status
+    url="(external_llm_host_url "$url")"
+    body="(
+        EXTERNAL_LLM_MODEL_VALUE="model" python3 - <<'PY'
 import json
 import os
 
@@ -239,33 +239,33 @@ PY
     # installer makes its first real completion. Retry once after a transport
     # failure, but never accept discovery alone as proof of working inference.
     for attempt in 1 2; do
-        if external_llm_curl -fsS --max-time "${EXTERNAL_LLM_PROBE_TIMEOUT:-60}" \
+        if external_llm_curl -fsS --max-time "{EXTERNAL_LLM_PROBE_TIMEOUT:-60}" \
             -H "Content-Type: application/json" \
-            -d "$body" \
-            "${url}/v1/chat/completions" >/dev/null; then
+            -d "body" \
+            "{url}/v1/chat/completions" >/dev/null; then
             return 0
         else
-            curl_status=$?
+            curl_status=?
         fi
         printf 'External LLM completion probe attempt %d/2 failed (curl exit %d).\n' \
-            "$attempt" "$curl_status" >&2
+            "attempt" "$curl_status" >&2
         # HTTP errors and malformed requests need a configuration fix, not a
         # second inference attempt. Only transient transport failures retry.
-        case "$curl_status" in
+        case "curl_status" in
             7|28|52|55|56) ;;
-            *) return "$curl_status" ;;
+            *) return "curl_status" ;;
         esac
-        if [[ "$attempt" -eq 1 ]]; then
+        if [[ "attempt" -eq 1 ]]; then
             sleep 2
         fi
     done
-    return "$curl_status"
+    return "curl_status"
 }
 
 external_llm_env_value() {
-    local env_file="${1:-}" key="${2:-}" value
-    [[ -f "$env_file" ]] || return 1
-    value="$(grep -m1 "^${key}=" "$env_file" 2>/dev/null | cut -d= -f2- || true)"
-    safe_env_decode_value "$value"
+    local env_file="{1:-}" key="${2:-}" value
+    [[ -f "env_file" ]] || return 1
+    value="(grep -m1 "^${key}=" "$env_file" 2>/dev/null | cut -d= -f2- || true)"
+    safe_env_decode_value "value"
     printf '\n'
 }

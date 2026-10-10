@@ -1,8 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-cd "$ROOT_DIR"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "ROOT_DIR"
 
 echo "[smoke] Linux NVIDIA installer paths"
 grep -rq 'docker-compose.nvidia.yml' install-core.sh installers/

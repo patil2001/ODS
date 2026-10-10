@@ -11,8 +11,8 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="(cd "$SCRIPT_DIR/.." && pwd)"
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -22,11 +22,11 @@ NC='\033[0m'
 PASSED=0
 FAILED=0
 
-pass() { echo -e "  ${GREEN}✓ PASS${NC} $1"; PASSED=$((PASSED + 1)); }
-fail() { echo -e "  ${RED}✗ FAIL${NC} $1"; FAILED=$((FAILED + 1)); }
-skip() { echo -e "  ${YELLOW}⊘ SKIP${NC} $1"; }
+pass() { echo -e "  {GREEN}✓ PASS${NC} $1"; PASSED=$((PASSED + 1)); }
+fail() { echo -e "  {RED}✗ FAIL${NC} $1"; FAILED=$((FAILED + 1)); }
+skip() { echo -e "  {YELLOW}⊘ SKIP${NC} $1"; }
 contains_path() {
-    printf '%s\n' "$1" | tr '\\' '/' | grep -q "$2"
+    printf '%s\n' "1" | tr '\\' '/' | grep -q "$2"
 }
 
 echo ""
@@ -36,22 +36,22 @@ echo "╚═══════════════════════�
 echo ""
 
 # 1. Script exists
-if [[ ! -f "$ROOT_DIR/scripts/resolve-compose-stack.sh" ]]; then
+if [[ ! -f "ROOT_DIR/scripts/resolve-compose-stack.sh" ]]; then
     fail "scripts/resolve-compose-stack.sh not found"
-    echo ""; echo "Result: $PASSED passed, $FAILED failed"; exit 1
+    echo ""; echo "Result: PASSED passed, $FAILED failed"; exit 1
 fi
 pass "resolve-compose-stack.sh exists"
 
 # The long-lived host agent sends an external-route presence marker after
 # reading the installed .env. It must select the external overlay without
 # carrying a potentially credential-bearing upstream URL in its environment.
-marker_flags=$(ODS_EXTERNAL_LLM_SELECTED=true EXTERNAL_LLM_URL="" \
+marker_flags=(ODS_EXTERNAL_LLM_SELECTED=true EXTERNAL_LLM_URL="" \
     ODS_GATEWAY_ONLY=true ENABLE_OPEN_WEBUI=false ODS_MODE=local \
-    bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
-        --script-dir "$ROOT_DIR" --tier 1 --gpu-backend cpu 2>/dev/null)
-if contains_path "$marker_flags" "docker-compose.external-llm.yml" \
-    && contains_path "$marker_flags" "docker-compose.gateway-only.yml" \
-    && ! contains_path "$marker_flags" "perplexica/compose.local.yaml"; then
+    bash "ROOT_DIR/scripts/resolve-compose-stack.sh" \
+        --script-dir "ROOT_DIR" --tier 1 --gpu-backend cpu 2>/dev/null)
+if contains_path "marker_flags" "docker-compose.external-llm.yml" \
+    && contains_path "marker_flags" "docker-compose.gateway-only.yml" \
+    && ! contains_path "marker_flags" "perplexica/compose.local.yaml"; then
     pass "Persisted external-route marker excludes managed Perplexica inference"
 else
     fail "Persisted external-route marker resolved a local Perplexica dependency"
@@ -59,43 +59,43 @@ fi
 
 # 2. --skip-broken flag is accepted
 help_exit=0
-bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" --help 2>&1 | grep -q "skip-broken" || help_exit=$?
-if [[ $help_exit -eq 0 ]] || grep -q "skip-broken" "$ROOT_DIR/scripts/resolve-compose-stack.sh"; then
+bash "ROOT_DIR/scripts/resolve-compose-stack.sh" --help 2>&1 | grep -q "skip-broken" || help_exit=$?
+if [[ help_exit -eq 0 ]] || grep -q "skip-broken" "$ROOT_DIR/scripts/resolve-compose-stack.sh"; then
     pass "--skip-broken flag is implemented"
 else
     skip "--skip-broken flag not in help (may still work)"
 fi
 
 # 3. Behavioral test: Create temp extension with broken manifest
-TEMP_DIR=$(mktemp -d)
-trap 'rm -rf "$TEMP_DIR"' EXIT
+TEMP_DIR=(mktemp -d)
+trap 'rm -rf "TEMP_DIR"' EXIT
 
 # The resolver must remain anchored to the ODS root when invoked directly from
 # an arbitrary working directory. Installers may still override it explicitly.
-mkdir -p "$TEMP_DIR/unrelated-cwd"
-default_root_output=$(
-    cd "$TEMP_DIR/unrelated-cwd"
+mkdir -p "TEMP_DIR/unrelated-cwd"
+default_root_output=(
+    cd "TEMP_DIR/unrelated-cwd"
     ODS_MODE=local \
         EXTERNAL_LLM_URL="" \
         NATIVE_LLM_BASE_URL="" \
         AMD_INFERENCE_RUNTIME="" \
         AMD_INFERENCE_MANAGED="" \
-        bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
+        bash "ROOT_DIR/scripts/resolve-compose-stack.sh" \
             --tier 1 --gpu-backend cpu 2>/dev/null
 )
-if contains_path "$default_root_output" "docker-compose.base.yml" \
-    && contains_path "$default_root_output" "docker-compose.cpu.yml"; then
+if contains_path "default_root_output" "docker-compose.base.yml" \
+    && contains_path "default_root_output" "docker-compose.cpu.yml"; then
     pass "Direct invocation resolves compose files from the ODS root"
 else
     fail "Direct invocation used the caller working directory instead of the ODS root"
 fi
 
 # Create minimal directory structure
-mkdir -p "$TEMP_DIR/extensions/services/broken-ext"
-mkdir -p "$TEMP_DIR/extensions/services/good-ext"
+mkdir -p "TEMP_DIR/extensions/services/broken-ext"
+mkdir -p "TEMP_DIR/extensions/services/good-ext"
 
 # Create broken manifest (invalid YAML)
-cat > "$TEMP_DIR/extensions/services/broken-ext/manifest.yaml" <<'EOF'
+cat > "TEMP_DIR/extensions/services/broken-ext/manifest.yaml" <<'EOF'
 schema_version: ods.services.v1
 service:
   id: broken-ext
@@ -105,7 +105,7 @@ service:
 EOF
 
 # Create good manifest
-cat > "$TEMP_DIR/extensions/services/good-ext/manifest.yaml" <<'EOF'
+cat > "TEMP_DIR/extensions/services/good-ext/manifest.yaml" <<'EOF'
 schema_version: ods.services.v1
 service:
   id: good-ext
@@ -115,14 +115,14 @@ service:
 EOF
 
 # Create compose files
-cat > "$TEMP_DIR/extensions/services/good-ext/compose.yaml" <<'EOF'
+cat > "TEMP_DIR/extensions/services/good-ext/compose.yaml" <<'EOF'
 services:
   good-service:
     image: nginx:latest
 EOF
 
 # Create base compose file
-cat > "$TEMP_DIR/docker-compose.base.yml" <<'EOF'
+cat > "TEMP_DIR/docker-compose.base.yml" <<'EOF'
 services:
   base-service:
     image: nginx:latest
@@ -130,9 +130,9 @@ EOF
 
 # 4. Test default behavior: should exit 1 on broken manifest
 default_exit=0
-bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia 2>&1 || default_exit=$?
+bash "ROOT_DIR/scripts/resolve-compose-stack.sh" --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia 2>&1 || default_exit=$?
 
-if [[ $default_exit -ne 0 ]]; then
+if [[ default_exit -ne 0 ]]; then
     pass "Default behavior: exits on broken manifest (Let It Crash)"
 else
     fail "Default behavior: should exit 1 on broken manifest"
@@ -140,38 +140,38 @@ fi
 
 # 5. Test --skip-broken flag: should continue and skip broken extension
 skip_exit=0
-output=$(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken 2>&1) || skip_exit=$?
+output=(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken 2>&1) || skip_exit=$?
 
-if [[ $skip_exit -eq 0 ]]; then
+if [[ skip_exit -eq 0 ]]; then
     pass "--skip-broken: continues execution despite broken manifest"
 else
     fail "--skip-broken: should not exit on broken manifest"
 fi
 
 # 6. Verify error message is printed to stderr with --skip-broken
-if echo "$output" | grep -q "ERROR: Failed to parse manifest"; then
+if echo "output" | grep -q "ERROR: Failed to parse manifest"; then
     pass "--skip-broken: error message printed to stderr"
 else
     fail "--skip-broken: error message not printed"
 fi
 
 # 7. Verify good extension is still included with --skip-broken
-flags_output=$(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken 2>/dev/null)
-if echo "$flags_output" | grep -q "good-ext"; then
+flags_output=(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken 2>/dev/null)
+if echo "flags_output" | grep -q "good-ext"; then
     pass "--skip-broken: good extension still included in output"
 else
     skip "--skip-broken: good extension not in output (may be filtered by other logic)"
 fi
 
 # 8. Verify broken extension is not included with --skip-broken
-if echo "$flags_output" | grep -q "broken-ext"; then
+if echo "flags_output" | grep -q "broken-ext"; then
     fail "--skip-broken: broken extension should not be in output"
 else
     pass "--skip-broken: broken extension correctly excluded"
 fi
 
 # 9. Test with JSON parse error
-cat > "$TEMP_DIR/extensions/services/broken-ext/manifest.json" <<'EOF'
+cat > "TEMP_DIR/extensions/services/broken-ext/manifest.json" <<'EOF'
 {
   "schema_version": "ods.services.v1",
   "service": {
@@ -181,12 +181,12 @@ cat > "$TEMP_DIR/extensions/services/broken-ext/manifest.json" <<'EOF'
 }
 EOF
 
-rm -f "$TEMP_DIR/extensions/services/broken-ext/manifest.yaml"
+rm -f "TEMP_DIR/extensions/services/broken-ext/manifest.yaml"
 
 json_exit=0
-bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia 2>&1 || json_exit=$?
+bash "ROOT_DIR/scripts/resolve-compose-stack.sh" --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia 2>&1 || json_exit=$?
 
-if [[ $json_exit -ne 0 ]]; then
+if [[ json_exit -ne 0 ]]; then
     pass "JSON parse error: exits by default"
 else
     fail "JSON parse error: should exit 1"
@@ -194,9 +194,9 @@ fi
 
 # 10. Verify --skip-broken works with JSON errors
 json_skip_exit=0
-bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken 2>&1 || json_skip_exit=$?
+bash "ROOT_DIR/scripts/resolve-compose-stack.sh" --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken 2>&1 || json_skip_exit=$?
 
-if [[ $json_skip_exit -eq 0 ]]; then
+if [[ json_skip_exit -eq 0 ]]; then
     pass "JSON parse error: --skip-broken continues execution"
 else
     fail "JSON parse error: --skip-broken should not exit"
@@ -206,10 +206,10 @@ fi
 # 11. Path-traversal hardening: compose_file with .. must not escape ext dir
 # ============================================================================
 # Clean prior broken-ext fixture so it doesn't interfere with traversal checks.
-rm -rf "$TEMP_DIR/extensions/services/broken-ext"
+rm -rf "TEMP_DIR/extensions/services/broken-ext"
 
-mkdir -p "$TEMP_DIR/extensions/services/traversal-ext"
-cat > "$TEMP_DIR/extensions/services/traversal-ext/manifest.yaml" <<'EOF'
+mkdir -p "TEMP_DIR/extensions/services/traversal-ext"
+cat > "TEMP_DIR/extensions/services/traversal-ext/manifest.yaml" <<'EOF'
 schema_version: ods.services.v1
 service:
   id: traversal-ext
@@ -219,21 +219,21 @@ service:
 EOF
 
 traversal_exit=0
-traversal_stderr_file="$TEMP_DIR/traversal.stderr"
-traversal_stdout=$(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
-    --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
-    2>"$traversal_stderr_file") || traversal_exit=$?
-traversal_stderr=$(cat "$traversal_stderr_file")
+traversal_stderr_file="TEMP_DIR/traversal.stderr"
+traversal_stdout=(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
+    --script-dir "TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
+    2>"traversal_stderr_file") || traversal_exit=$?
+traversal_stderr=(cat "$traversal_stderr_file")
 
-if [[ $traversal_exit -ne 0 ]]; then
-    fail "Traversal compose_file caused resolver to crash (exit $traversal_exit)"
-elif contains_path "$traversal_stdout" "etc/passwd"; then
+if [[ traversal_exit -ne 0 ]]; then
+    fail "Traversal compose_file caused resolver to crash (exit traversal_exit)"
+elif contains_path "traversal_stdout" "etc/passwd"; then
     fail "Traversal path INCLUDED in resolved stack (security regression)"
 else
     pass "Traversal compose_file rejected from resolved stack"
 fi
 
-if echo "$traversal_stderr" | grep -qi "WARNING.*traversal-ext.*escapes"; then
+if echo "traversal_stderr" | grep -qi "WARNING.*traversal-ext.*escapes"; then
     pass "WARNING emitted for traversal-ext compose_file"
 else
     fail "Expected WARNING for traversal-ext compose_file"
@@ -242,8 +242,8 @@ fi
 # ============================================================================
 # 12. Path-traversal hardening: absolute compose_file must not crash resolver
 # ============================================================================
-mkdir -p "$TEMP_DIR/extensions/services/absolute-ext"
-cat > "$TEMP_DIR/extensions/services/absolute-ext/manifest.yaml" <<'EOF'
+mkdir -p "TEMP_DIR/extensions/services/absolute-ext"
+cat > "TEMP_DIR/extensions/services/absolute-ext/manifest.yaml" <<'EOF'
 schema_version: ods.services.v1
 service:
   id: absolute-ext
@@ -253,21 +253,21 @@ service:
 EOF
 
 abs_exit=0
-abs_stderr_file="$TEMP_DIR/absolute.stderr"
-abs_stdout=$(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
-    --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
-    2>"$abs_stderr_file") || abs_exit=$?
-abs_stderr=$(cat "$abs_stderr_file")
+abs_stderr_file="TEMP_DIR/absolute.stderr"
+abs_stdout=(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
+    --script-dir "TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
+    2>"abs_stderr_file") || abs_exit=$?
+abs_stderr=(cat "$abs_stderr_file")
 
-if [[ $abs_exit -ne 0 ]]; then
-    fail "Resolver crashed on absolute compose_file (DoS regression, exit $abs_exit)"
-elif contains_path "$abs_stdout" "etc/shadow"; then
+if [[ abs_exit -ne 0 ]]; then
+    fail "Resolver crashed on absolute compose_file (DoS regression, exit abs_exit)"
+elif contains_path "abs_stdout" "etc/shadow"; then
     fail "Absolute path INCLUDED in resolved stack (security regression)"
 else
     pass "Resolver handled absolute compose_file gracefully"
 fi
 
-if echo "$abs_stderr" | grep -qi "WARNING.*absolute-ext.*escapes"; then
+if echo "abs_stderr" | grep -qi "WARNING.*absolute-ext.*escapes"; then
     pass "WARNING emitted for absolute-ext compose_file"
 else
     fail "Expected WARNING for absolute-ext compose_file"
@@ -276,8 +276,8 @@ fi
 # ============================================================================
 # 14. User-ext path-traversal: compose_file with .. must not escape ext dir
 # ============================================================================
-mkdir -p "$TEMP_DIR/data/user-extensions/user-traversal"
-cat > "$TEMP_DIR/data/user-extensions/user-traversal/manifest.yaml" <<'EOF'
+mkdir -p "TEMP_DIR/data/user-extensions/user-traversal"
+cat > "TEMP_DIR/data/user-extensions/user-traversal/manifest.yaml" <<'EOF'
 schema_version: ods.services.v1
 service:
   id: user-traversal
@@ -287,21 +287,21 @@ service:
 EOF
 
 ut_exit=0
-ut_stderr_file="$TEMP_DIR/user-traversal.stderr"
-ut_stdout=$(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
-    --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
-    2>"$ut_stderr_file") || ut_exit=$?
-ut_stderr=$(cat "$ut_stderr_file")
+ut_stderr_file="TEMP_DIR/user-traversal.stderr"
+ut_stdout=(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
+    --script-dir "TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
+    2>"ut_stderr_file") || ut_exit=$?
+ut_stderr=(cat "$ut_stderr_file")
 
-if [[ $ut_exit -ne 0 ]]; then
-    fail "User-ext traversal caused resolver to crash (exit $ut_exit)"
-elif contains_path "$ut_stdout" "etc/passwd"; then
+if [[ ut_exit -ne 0 ]]; then
+    fail "User-ext traversal caused resolver to crash (exit ut_exit)"
+elif contains_path "ut_stdout" "etc/passwd"; then
     fail "User-ext traversal path INCLUDED in resolved stack (security regression)"
 else
     pass "User-ext traversal compose_file rejected from resolved stack"
 fi
 
-if echo "$ut_stderr" | grep -qi "WARNING.*user-traversal.*escapes"; then
+if echo "ut_stderr" | grep -qi "WARNING.*user-traversal.*escapes"; then
     pass "WARNING emitted for user-ext traversal compose_file"
 else
     fail "Expected WARNING for user-ext traversal compose_file"
@@ -310,8 +310,8 @@ fi
 # ============================================================================
 # 15. User-ext compose with bare 0.0.0.0 port must be rejected
 # ============================================================================
-mkdir -p "$TEMP_DIR/data/user-extensions/user-bareports"
-cat > "$TEMP_DIR/data/user-extensions/user-bareports/manifest.yaml" <<'EOF'
+mkdir -p "TEMP_DIR/data/user-extensions/user-bareports"
+cat > "TEMP_DIR/data/user-extensions/user-bareports/manifest.yaml" <<'EOF'
 schema_version: ods.services.v1
 service:
   id: user-bareports
@@ -319,7 +319,7 @@ service:
   compose_file: compose.yaml
   gpu_backends: ["nvidia", "amd", "apple"]
 EOF
-cat > "$TEMP_DIR/data/user-extensions/user-bareports/compose.yaml" <<'EOF'
+cat > "TEMP_DIR/data/user-extensions/user-bareports/compose.yaml" <<'EOF'
 services:
   user-bareports-svc:
     image: nginx:latest
@@ -327,19 +327,19 @@ services:
       - "0.0.0.0:8080:80"
 EOF
 
-bp_stderr_file="$TEMP_DIR/user-bareports.stderr"
-bp_stdout=$(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
-    --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
-    2>"$bp_stderr_file") || true
-bp_stderr=$(cat "$bp_stderr_file")
+bp_stderr_file="TEMP_DIR/user-bareports.stderr"
+bp_stdout=(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
+    --script-dir "TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
+    2>"bp_stderr_file") || true
+bp_stderr=(cat "$bp_stderr_file")
 
-if contains_path "$bp_stdout" "user-bareports/compose.yaml"; then
+if contains_path "bp_stdout" "user-bareports/compose.yaml"; then
     fail "User-ext with 0.0.0.0 port INCLUDED in resolved stack"
 else
     pass "User-ext with 0.0.0.0 port excluded from resolved stack"
 fi
 
-if echo "$bp_stderr" | grep -qi "WARNING.*user-bareports.*"; then
+if echo "bp_stderr" | grep -qi "WARNING.*user-bareports.*"; then
     pass "WARNING emitted for user-ext 0.0.0.0 port"
 else
     fail "Expected WARNING for user-ext 0.0.0.0 port"
@@ -348,8 +348,8 @@ fi
 # ============================================================================
 # 16. User-ext compose with privileged: true must be rejected
 # ============================================================================
-mkdir -p "$TEMP_DIR/data/user-extensions/user-priv"
-cat > "$TEMP_DIR/data/user-extensions/user-priv/manifest.yaml" <<'EOF'
+mkdir -p "TEMP_DIR/data/user-extensions/user-priv"
+cat > "TEMP_DIR/data/user-extensions/user-priv/manifest.yaml" <<'EOF'
 schema_version: ods.services.v1
 service:
   id: user-priv
@@ -357,26 +357,26 @@ service:
   compose_file: compose.yaml
   gpu_backends: ["nvidia", "amd", "apple"]
 EOF
-cat > "$TEMP_DIR/data/user-extensions/user-priv/compose.yaml" <<'EOF'
+cat > "TEMP_DIR/data/user-extensions/user-priv/compose.yaml" <<'EOF'
 services:
   user-priv-svc:
     image: nginx:latest
     privileged: true
 EOF
 
-priv_stderr_file="$TEMP_DIR/user-priv.stderr"
-priv_stdout=$(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
-    --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
-    2>"$priv_stderr_file") || true
-priv_stderr=$(cat "$priv_stderr_file")
+priv_stderr_file="TEMP_DIR/user-priv.stderr"
+priv_stdout=(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
+    --script-dir "TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
+    2>"priv_stderr_file") || true
+priv_stderr=(cat "$priv_stderr_file")
 
-if contains_path "$priv_stdout" "user-priv/compose.yaml"; then
+if contains_path "priv_stdout" "user-priv/compose.yaml"; then
     fail "User-ext privileged INCLUDED in resolved stack"
 else
     pass "User-ext privileged excluded from resolved stack"
 fi
 
-if echo "$priv_stderr" | grep -qi "WARNING.*user-priv.*privileged"; then
+if echo "priv_stderr" | grep -qi "WARNING.*user-priv.*privileged"; then
     pass "WARNING emitted for user-ext privileged"
 else
     fail "Expected WARNING for user-ext privileged"
@@ -385,8 +385,8 @@ fi
 # ============================================================================
 # 17. User-ext compose with build: must be rejected
 # ============================================================================
-mkdir -p "$TEMP_DIR/data/user-extensions/user-build"
-cat > "$TEMP_DIR/data/user-extensions/user-build/manifest.yaml" <<'EOF'
+mkdir -p "TEMP_DIR/data/user-extensions/user-build"
+cat > "TEMP_DIR/data/user-extensions/user-build/manifest.yaml" <<'EOF'
 schema_version: ods.services.v1
 service:
   id: user-build
@@ -394,25 +394,25 @@ service:
   compose_file: compose.yaml
   gpu_backends: ["nvidia", "amd", "apple"]
 EOF
-cat > "$TEMP_DIR/data/user-extensions/user-build/compose.yaml" <<'EOF'
+cat > "TEMP_DIR/data/user-extensions/user-build/compose.yaml" <<'EOF'
 services:
   user-build-svc:
     build: .
 EOF
 
-build_stderr_file="$TEMP_DIR/user-build.stderr"
-build_stdout=$(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
-    --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
-    2>"$build_stderr_file") || true
-build_stderr=$(cat "$build_stderr_file")
+build_stderr_file="TEMP_DIR/user-build.stderr"
+build_stdout=(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
+    --script-dir "TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
+    2>"build_stderr_file") || true
+build_stderr=(cat "$build_stderr_file")
 
-if contains_path "$build_stdout" "user-build/compose.yaml"; then
+if contains_path "build_stdout" "user-build/compose.yaml"; then
     fail "User-ext build INCLUDED in resolved stack"
 else
     pass "User-ext build excluded from resolved stack"
 fi
 
-if echo "$build_stderr" | grep -qi "WARNING.*user-build.*build"; then
+if echo "build_stderr" | grep -qi "WARNING.*user-build.*build"; then
     pass "WARNING emitted for user-ext build directive"
 else
     fail "Expected WARNING for user-ext build directive"
@@ -421,8 +421,8 @@ fi
 # ============================================================================
 # 18. User-ext compose with docker.sock mount must be rejected
 # ============================================================================
-mkdir -p "$TEMP_DIR/data/user-extensions/user-sock"
-cat > "$TEMP_DIR/data/user-extensions/user-sock/manifest.yaml" <<'EOF'
+mkdir -p "TEMP_DIR/data/user-extensions/user-sock"
+cat > "TEMP_DIR/data/user-extensions/user-sock/manifest.yaml" <<'EOF'
 schema_version: ods.services.v1
 service:
   id: user-sock
@@ -430,7 +430,7 @@ service:
   compose_file: compose.yaml
   gpu_backends: ["nvidia", "amd", "apple"]
 EOF
-cat > "$TEMP_DIR/data/user-extensions/user-sock/compose.yaml" <<'EOF'
+cat > "TEMP_DIR/data/user-extensions/user-sock/compose.yaml" <<'EOF'
 services:
   user-sock-svc:
     image: nginx:latest
@@ -438,19 +438,19 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 EOF
 
-sock_stderr_file="$TEMP_DIR/user-sock.stderr"
-sock_stdout=$(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
-    --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
-    2>"$sock_stderr_file") || true
-sock_stderr=$(cat "$sock_stderr_file")
+sock_stderr_file="TEMP_DIR/user-sock.stderr"
+sock_stdout=(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
+    --script-dir "TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
+    2>"sock_stderr_file") || true
+sock_stderr=(cat "$sock_stderr_file")
 
-if contains_path "$sock_stdout" "user-sock/compose.yaml"; then
+if contains_path "sock_stdout" "user-sock/compose.yaml"; then
     fail "User-ext docker.sock INCLUDED in resolved stack"
 else
     pass "User-ext docker.sock excluded from resolved stack"
 fi
 
-if echo "$sock_stderr" | grep -qi "WARNING.*user-sock.*Docker socket"; then
+if echo "sock_stderr" | grep -qi "WARNING.*user-sock.*Docker socket"; then
     pass "WARNING emitted for user-ext docker.sock mount"
 else
     fail "Expected WARNING for user-ext docker.sock mount"
@@ -459,8 +459,8 @@ fi
 # ============================================================================
 # 19. User-ext compose with long-form absolute bind mount must be rejected
 # ============================================================================
-mkdir -p "$TEMP_DIR/data/user-extensions/user-dict-bind"
-cat > "$TEMP_DIR/data/user-extensions/user-dict-bind/manifest.yaml" <<'EOF'
+mkdir -p "TEMP_DIR/data/user-extensions/user-dict-bind"
+cat > "TEMP_DIR/data/user-extensions/user-dict-bind/manifest.yaml" <<'EOF'
 schema_version: ods.services.v1
 service:
   id: user-dict-bind
@@ -468,7 +468,7 @@ service:
   compose_file: compose.yaml
   gpu_backends: ["nvidia", "amd", "apple"]
 EOF
-cat > "$TEMP_DIR/data/user-extensions/user-dict-bind/compose.yaml" <<'EOF'
+cat > "TEMP_DIR/data/user-extensions/user-dict-bind/compose.yaml" <<'EOF'
 services:
   user-dict-bind-svc:
     image: nginx:latest
@@ -478,19 +478,19 @@ services:
         target: /host-etc
 EOF
 
-dict_bind_stderr_file="$TEMP_DIR/user-dict-bind.stderr"
-dict_bind_stdout=$(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
-    --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
-    2>"$dict_bind_stderr_file") || true
-dict_bind_stderr=$(cat "$dict_bind_stderr_file")
+dict_bind_stderr_file="TEMP_DIR/user-dict-bind.stderr"
+dict_bind_stdout=(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
+    --script-dir "TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
+    2>"dict_bind_stderr_file") || true
+dict_bind_stderr=(cat "$dict_bind_stderr_file")
 
-if contains_path "$dict_bind_stdout" "user-dict-bind/compose.yaml"; then
+if contains_path "dict_bind_stdout" "user-dict-bind/compose.yaml"; then
     fail "User-ext long-form bind mount INCLUDED in resolved stack"
 else
     pass "User-ext long-form bind mount excluded from resolved stack"
 fi
 
-if echo "$dict_bind_stderr" | grep -qi "WARNING.*user-dict-bind.*bind-mounts absolute host path"; then
+if echo "dict_bind_stderr" | grep -qi "WARNING.*user-dict-bind.*bind-mounts absolute host path"; then
     pass "WARNING emitted for user-ext long-form bind mount"
 else
     fail "Expected WARNING for user-ext long-form bind mount"
@@ -499,8 +499,8 @@ fi
 # ============================================================================
 # 20. A loopback interpolation default must not authorize a LAN-capable port
 # ============================================================================
-mkdir -p "$TEMP_DIR/data/user-extensions/user-loopback-default"
-cat > "$TEMP_DIR/data/user-extensions/user-loopback-default/manifest.yaml" <<'EOF'
+mkdir -p "TEMP_DIR/data/user-extensions/user-loopback-default"
+cat > "TEMP_DIR/data/user-extensions/user-loopback-default/manifest.yaml" <<'EOF'
 schema_version: ods.services.v1
 service:
   id: user-loopback-default
@@ -508,19 +508,19 @@ service:
   compose_file: compose.yaml
   gpu_backends: ["nvidia", "amd", "apple"]
 EOF
-cat > "$TEMP_DIR/data/user-extensions/user-loopback-default/compose.yaml" <<'EOF'
+cat > "TEMP_DIR/data/user-extensions/user-loopback-default/compose.yaml" <<'EOF'
 services:
   user-loopback-default-svc:
     image: nginx:latest
     ports:
-      - "${BIND_ADDRESS:-127.0.0.1}:9091:80"
+      - "{BIND_ADDRESS:-127.0.0.1}:9091:80"
 EOF
 
-ld_stdout=$(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
-    --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
+ld_stdout=(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
+    --script-dir "TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
     2>/dev/null) || true
 
-if contains_path "$ld_stdout" "user-loopback-default/compose.yaml"; then
+if contains_path "ld_stdout" "user-loopback-default/compose.yaml"; then
     fail "User-ext interpolation could publish its port on the UI LAN address"
 else
     pass "User-ext interpolated host bind rejected even with a loopback default"
@@ -529,7 +529,7 @@ fi
 # ============================================================================
 # 21. docker-compose.override.yml with bare 0.0.0.0 port must be rejected
 # ============================================================================
-cat > "$TEMP_DIR/docker-compose.override.yml" <<'EOF'
+cat > "TEMP_DIR/docker-compose.override.yml" <<'EOF'
 services:
   override-svc:
     image: nginx:latest
@@ -537,19 +537,19 @@ services:
       - "0.0.0.0:9999:80"
 EOF
 
-ovr_stderr_file="$TEMP_DIR/override.stderr"
-ovr_stdout=$(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
-    --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
-    2>"$ovr_stderr_file") || true
-ovr_stderr=$(cat "$ovr_stderr_file")
+ovr_stderr_file="TEMP_DIR/override.stderr"
+ovr_stdout=(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
+    --script-dir "TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
+    2>"ovr_stderr_file") || true
+ovr_stderr=(cat "$ovr_stderr_file")
 
-if echo "$ovr_stdout" | grep -q "docker-compose.override.yml"; then
+if echo "ovr_stdout" | grep -q "docker-compose.override.yml"; then
     fail "Override with 0.0.0.0 port INCLUDED in resolved stack"
 else
     pass "Override with 0.0.0.0 port excluded from resolved stack"
 fi
 
-if echo "$ovr_stderr" | grep -qi "WARNING.*docker-compose.override.yml"; then
+if echo "ovr_stderr" | grep -qi "WARNING.*docker-compose.override.yml"; then
     pass "WARNING emitted for override with 0.0.0.0 port"
 else
     fail "Expected WARNING for override with 0.0.0.0 port"
@@ -558,7 +558,7 @@ fi
 # ============================================================================
 # 22. docker-compose.override.yml with loopback ports must be ACCEPTED
 # ============================================================================
-cat > "$TEMP_DIR/docker-compose.override.yml" <<'EOF'
+cat > "TEMP_DIR/docker-compose.override.yml" <<'EOF'
 services:
   override-svc-good:
     image: nginx:latest
@@ -566,31 +566,31 @@ services:
       - "127.0.0.1:10001:80"
 EOF
 
-ovr_good_stdout=$(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
-    --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
+ovr_good_stdout=(bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
+    --script-dir "TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
     2>/dev/null) || true
 
-if echo "$ovr_good_stdout" | grep -q "docker-compose.override.yml"; then
+if echo "ovr_good_stdout" | grep -q "docker-compose.override.yml"; then
     pass "Override with literal-loopback port accepted"
 else
     fail "Override with literal-loopback port should be accepted"
 fi
 
 # Drop the override.yml so subsequent tests don't drag it back into the stack
-rm -f "$TEMP_DIR/docker-compose.override.yml"
+rm -f "TEMP_DIR/docker-compose.override.yml"
 
 # ============================================================================
 # 23. User-ext compose with core-service-ID name collision must be REJECTED
 # ============================================================================
-mkdir -p "$TEMP_DIR/data/user-extensions/shadow-core"
-cat > "$TEMP_DIR/data/user-extensions/shadow-core/manifest.yaml" <<'EOF'
+mkdir -p "TEMP_DIR/data/user-extensions/shadow-core"
+cat > "TEMP_DIR/data/user-extensions/shadow-core/manifest.yaml" <<'EOF'
 schema_version: ods.services.v1
 service:
   id: shadow-core
   name: Shadow Core
   gpu_backends: ["nvidia", "amd", "apple"]
 EOF
-cat > "$TEMP_DIR/data/user-extensions/shadow-core/compose.yaml" <<'EOF'
+cat > "TEMP_DIR/data/user-extensions/shadow-core/compose.yaml" <<'EOF'
 services:
   dashboard-api:
     image: attacker/malicious:latest
@@ -598,52 +598,52 @@ services:
       - "127.0.0.1:8001:8001"
 EOF
 
-coll_stderr_file="$TEMP_DIR/collision.stderr"
-coll_stdout=$(USER_EXTENSIONS_DIR="$TEMP_DIR/data/user-extensions" \
-    bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
-    --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
-    2>"$coll_stderr_file") || true
-coll_stderr=$(cat "$coll_stderr_file")
+coll_stderr_file="TEMP_DIR/collision.stderr"
+coll_stdout=(USER_EXTENSIONS_DIR="$TEMP_DIR/data/user-extensions" \
+    bash "ROOT_DIR/scripts/resolve-compose-stack.sh" \
+    --script-dir "TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
+    2>"coll_stderr_file") || true
+coll_stderr=(cat "$coll_stderr_file")
 
-if contains_path "$coll_stdout" "shadow-core/compose.yaml"; then
+if contains_path "coll_stdout" "shadow-core/compose.yaml"; then
     fail "User-ext shadowing core service name INCLUDED in resolved stack"
 else
     pass "User-ext shadowing core service name excluded from resolved stack"
 fi
 
-if echo "$coll_stderr" | grep -qi "collides.*core service"; then
+if echo "coll_stderr" | grep -qi "collides.*core service"; then
     pass "WARNING emitted for core-service name collision"
 else
-    fail "Expected WARNING for core-service name collision (got: $(echo "$coll_stderr" | tail -3))"
+    fail "Expected WARNING for core-service name collision (got: (echo "$coll_stderr" | tail -3))"
 fi
 
-rm -rf "$TEMP_DIR/data/user-extensions/shadow-core"
+rm -rf "TEMP_DIR/data/user-extensions/shadow-core"
 
 # ============================================================================
 # 24. External LLM overlay selection is explicit and deterministic
 # ============================================================================
-cat > "$TEMP_DIR/docker-compose.external-llm.yml" <<'EOF'
+cat > "TEMP_DIR/docker-compose.external-llm.yml" <<'EOF'
 services:
   base-service:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 EOF
 
-external_flags=$(EXTERNAL_LLM_URL="http://127.0.0.1:11434" \
-    bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
-    --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
+external_flags=(EXTERNAL_LLM_URL="http://127.0.0.1:11434" \
+    bash "ROOT_DIR/scripts/resolve-compose-stack.sh" \
+    --script-dir "TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
     2>/dev/null)
-if contains_path "$external_flags" "docker-compose.external-llm.yml"; then
+if contains_path "external_flags" "docker-compose.external-llm.yml"; then
     pass "External endpoint selects the dedicated external-LLM overlay"
 else
     fail "External endpoint did not select the dedicated external-LLM overlay"
 fi
 
-managed_flags=$(EXTERNAL_LLM_URL="" \
-    bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
-    --script-dir "$TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
+managed_flags=(EXTERNAL_LLM_URL="" \
+    bash "ROOT_DIR/scripts/resolve-compose-stack.sh" \
+    --script-dir "TEMP_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
     2>/dev/null)
-if contains_path "$managed_flags" "docker-compose.external-llm.yml"; then
+if contains_path "managed_flags" "docker-compose.external-llm.yml"; then
     fail "Managed inference unexpectedly selected the external-LLM overlay"
 else
     pass "Managed inference does not select the external-LLM overlay"
@@ -653,76 +653,76 @@ fi
 # 25. Every direct external-LLM consumer receives a Linux host-gateway route
 # ============================================================================
 consumer_route_files=(
-    "$ROOT_DIR/docker-compose.external-llm.yml"
-    "$ROOT_DIR/extensions/services/hermes/compose.yaml"
-    "$ROOT_DIR/extensions/services/perplexica/compose.yaml"
-    "$ROOT_DIR/extensions/services/privacy-shield/compose.yaml"
-    "$ROOT_DIR/extensions/services/token-spy/compose.yaml"
+    "ROOT_DIR/docker-compose.external-llm.yml"
+    "ROOT_DIR/extensions/services/hermes/compose.yaml"
+    "ROOT_DIR/extensions/services/perplexica/compose.yaml"
+    "ROOT_DIR/extensions/services/privacy-shield/compose.yaml"
+    "ROOT_DIR/extensions/services/token-spy/compose.yaml"
 )
 consumer_routes_ok=true
-for consumer_file in "${consumer_route_files[@]}"; do
-    if ! grep -Fq "host.docker.internal:host-gateway" "$consumer_file"; then
-        fail "$(basename "$consumer_file") is missing the external-LLM host-gateway route"
+for consumer_file in "{consumer_route_files[@]}"; do
+    if ! grep -Fq "host.docker.internal:host-gateway" "consumer_file"; then
+        fail "(basename "$consumer_file") is missing the external-LLM host-gateway route"
         consumer_routes_ok=false
     fi
 done
-if $consumer_routes_ok; then
+if consumer_routes_ok; then
     pass "All direct external-LLM consumers define a Linux host-gateway route"
 fi
 
 # ============================================================================
 # 26. The real external-LLM stack renders without local inference dependencies
 # ============================================================================
-real_external_flags=$(EXTERNAL_LLM_URL="http://127.0.0.1:11434" \
+real_external_flags=(EXTERNAL_LLM_URL="http://127.0.0.1:11434" \
     ODS_MODE=local \
-    bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
-    --script-dir "$ROOT_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
+    bash "ROOT_DIR/scripts/resolve-compose-stack.sh" \
+    --script-dir "ROOT_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
     2>/dev/null)
 
-real_managed_flags=$(EXTERNAL_LLM_URL="" \
+real_managed_flags=(EXTERNAL_LLM_URL="" \
     ODS_MODE=local \
-    bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
-    --script-dir "$ROOT_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
+    bash "ROOT_DIR/scripts/resolve-compose-stack.sh" \
+    --script-dir "ROOT_DIR" --tier 1 --gpu-backend nvidia --skip-broken \
     2>/dev/null)
-if printf '%s\n' "$real_managed_flags" | grep -Fq \
+if printf '%s\n' "real_managed_flags" | grep -Fq \
     "extensions/services/perplexica/compose.local.yaml"; then
     pass "Managed-local Perplexica keeps its llama-server health overlay"
 else
     fail "Managed-local Perplexica lost its llama-server health overlay"
 fi
 
-if printf '%s\n' "$real_managed_flags" | grep -Fq \
+if printf '%s\n' "real_managed_flags" | grep -Fq \
     "extensions/services/hermes/compose.local.yaml"; then
     pass "Managed-local Hermes keeps its llama-server health overlay"
 else
     fail "Managed-local Hermes lost its llama-server health overlay"
 fi
 
-if printf '%s\n' "$real_external_flags" | grep -Fq \
+if printf '%s\n' "real_external_flags" | grep -Fq \
     "extensions/services/hermes/compose.local.yaml"; then
     fail "External-LLM Hermes retained a managed llama-server dependency"
 else
     pass "External-LLM Hermes omits its managed llama-server dependency"
 fi
 
-if printf '%s\n' "$real_external_flags" | grep -Fq "compose.local.yaml"; then
+if printf '%s\n' "real_external_flags" | grep -Fq "compose.local.yaml"; then
     fail "External-LLM stack retained a local llama-server dependency overlay"
 else
     pass "External-LLM stack excludes local llama-server dependency overlays"
 fi
 
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-    compose_config_file="$TEMP_DIR/external-compose-config.yml"
+    compose_config_file="TEMP_DIR/external-compose-config.yml"
     # shellcheck disable=SC2086
     if (
-        cd "$ROOT_DIR"
+        cd "ROOT_DIR"
         export EXTERNAL_LLM_URL="http://127.0.0.1:11434"
         export EXTERNAL_LLM_CONTAINER_URL="http://host.docker.internal:11434"
         export EXTERNAL_LLM_PROVIDER="ollama"
         export EXTERNAL_LLM_MODEL="qwen3.5:9b"
         export ODS_MODEL_SWITCHBOARD="observe"
-        export LLM_API_URL="$EXTERNAL_LLM_CONTAINER_URL"
-        export HERMES_LLM_BASE_URL="${EXTERNAL_LLM_CONTAINER_URL}/v1"
+        export LLM_API_URL="EXTERNAL_LLM_CONTAINER_URL"
+        export HERMES_LLM_BASE_URL="{EXTERNAL_LLM_CONTAINER_URL}/v1"
         export HERMES_DASHBOARD_SESSION_TOKEN="external-llm-hermes-dashboard-session-token"
         export WEBUI_SECRET="external-llm-compose-test"
         export DASHBOARD_API_KEY="external-llm-compose-test"
@@ -730,37 +730,37 @@ if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; 
         export N8N_USER="admin@example.invalid"
         export N8N_PASS="external-llm-compose-test"
         export SEARXNG_SECRET="external-llm-compose-test"
-        docker compose $real_external_flags config > "$compose_config_file"
+        docker compose real_external_flags config > "$compose_config_file"
     ); then
-        if grep -Eq '^[[:space:]]+llama-server:$' "$compose_config_file"; then
+        if grep -Eq '^[[:space:]]+llama-server:' "$compose_config_file"; then
             fail "Rendered external-LLM stack still contains managed llama-server"
-        elif grep -Eq '^[[:space:]]+model-router:$' "$compose_config_file"; then
+        elif grep -Eq '^[[:space:]]+model-router:' "$compose_config_file"; then
             fail "Rendered external-LLM stack still contains model-router"
-        elif ! grep -Fq 'ODS_TALK_VISION_URL: http://host.docker.internal:11434/v1' "$compose_config_file"; then
+        elif ! grep -Fq 'ODS_TALK_VISION_URL: http://host.docker.internal:11434/v1' "compose_config_file"; then
             fail "Rendered external-LLM stack does not route ODS Talk vision to the external backend"
         elif ! awk '
             /^  dashboard-api:/ { in_dashboard = 1; next }
             in_dashboard && /^  [^ ]/ { exit }
             in_dashboard { print }
-        ' "$compose_config_file" | grep -Fq 'EXTERNAL_LLM_CONTAINER_URL: http://host.docker.internal:11434'; then
+        ' "compose_config_file" | grep -Fq 'EXTERNAL_LLM_CONTAINER_URL: http://host.docker.internal:11434'; then
             fail "Rendered Dashboard API lacks the physical external-LLM URL"
         elif ! awk '
             /^  dashboard-api:/ { in_dashboard = 1; next }
             in_dashboard && /^  [^ ]/ { exit }
             in_dashboard { print }
-        ' "$compose_config_file" | grep -Fq 'EXTERNAL_LLM_PROVIDER: ollama'; then
+        ' "compose_config_file" | grep -Fq 'EXTERNAL_LLM_PROVIDER: ollama'; then
             fail "Rendered Dashboard API lacks the external-LLM provider"
         elif ! awk '
             /^  dashboard-api:/ { in_dashboard = 1; next }
             in_dashboard && /^  [^ ]/ { exit }
             in_dashboard { print }
-        ' "$compose_config_file" | grep -Fq 'EXTERNAL_LLM_MODEL: qwen3.5:9b'; then
+        ' "compose_config_file" | grep -Fq 'EXTERNAL_LLM_MODEL: qwen3.5:9b'; then
             fail "Rendered Dashboard API lacks the pinned external model ID"
         elif ! awk '
             /^  dashboard-api:/ { in_dashboard = 1; next }
             in_dashboard && /^  [^ ]/ { exit }
             in_dashboard { print }
-        ' "$compose_config_file" | grep -Fq 'ODS_MODEL_SWITCHBOARD: observe'; then
+        ' "compose_config_file" | grep -Fq 'ODS_MODEL_SWITCHBOARD: observe'; then
             fail "Rendered Dashboard API lacks the effective external switchboard mode"
         else
             pass "Real external-LLM Compose stack routes ODS Talk and Dashboard model discovery externally"
@@ -769,21 +769,21 @@ if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; 
         fail "Real external-LLM Compose stack failed docker compose config"
     fi
 
-    amd_external_flags=$(EXTERNAL_LLM_URL="http://127.0.0.1:11434" \
+    amd_external_flags=(EXTERNAL_LLM_URL="http://127.0.0.1:11434" \
         ODS_MODE=local \
-        bash "$ROOT_DIR/scripts/resolve-compose-stack.sh" \
-        --script-dir "$ROOT_DIR" --tier 1 --gpu-backend amd --skip-broken \
+        bash "ROOT_DIR/scripts/resolve-compose-stack.sh" \
+        --script-dir "ROOT_DIR" --tier 1 --gpu-backend amd --skip-broken \
         2>/dev/null)
-    amd_compose_config_file="$TEMP_DIR/external-amd-compose-config.yml"
+    amd_compose_config_file="TEMP_DIR/external-amd-compose-config.yml"
     # shellcheck disable=SC2086
     if (
-        cd "$ROOT_DIR"
+        cd "ROOT_DIR"
         export EXTERNAL_LLM_URL="http://127.0.0.1:11434"
         export EXTERNAL_LLM_CONTAINER_URL="http://host.docker.internal:11434"
         export EXTERNAL_LLM_PROVIDER="ollama"
         export EXTERNAL_LLM_MODEL="qwen3.5:9b"
-        export LLM_API_URL="$EXTERNAL_LLM_CONTAINER_URL"
-        export OPEN_WEBUI_LLM_BASE_URL="${EXTERNAL_LLM_CONTAINER_URL}/v1"
+        export LLM_API_URL="EXTERNAL_LLM_CONTAINER_URL"
+        export OPEN_WEBUI_LLM_BASE_URL="{EXTERNAL_LLM_CONTAINER_URL}/v1"
         export OPEN_WEBUI_LLM_API_KEY=""
         export HERMES_DASHBOARD_SESSION_TOKEN="external-llm-hermes-dashboard-session-token"
         export WEBUI_SECRET="external-llm-compose-test"
@@ -792,17 +792,17 @@ if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; 
         export N8N_USER="admin@example.invalid"
         export N8N_PASS="external-llm-compose-test"
         export SEARXNG_SECRET="external-llm-compose-test"
-        docker compose $amd_external_flags config > "$amd_compose_config_file"
+        docker compose amd_external_flags config > "$amd_compose_config_file"
     ); then
-        if grep -Eq '^[[:space:]]+llama-server:$' "$amd_compose_config_file"; then
+        if grep -Eq '^[[:space:]]+llama-server:' "$amd_compose_config_file"; then
             fail "Rendered AMD external stack retained the managed llama-server"
-        elif ! grep -Fq 'LLM_BACKEND: external' "$amd_compose_config_file"; then
+        elif ! grep -Fq 'LLM_BACKEND: external' "amd_compose_config_file"; then
             fail "Rendered AMD external stack overwrote the external API backend"
-        elif ! grep -Fq 'LLM_API_BASE_PATH: /v1' "$amd_compose_config_file"; then
+        elif ! grep -Fq 'LLM_API_BASE_PATH: /v1' "amd_compose_config_file"; then
             fail "Rendered AMD external stack lost the /v1 API base path"
-        elif ! grep -Fq 'OPENAI_API_KEY: ""' "$amd_compose_config_file"; then
+        elif ! grep -Fq 'OPENAI_API_KEY: ""' "amd_compose_config_file"; then
             fail "Rendered AMD external stack leaked the LiteLLM key into Open WebUI"
-        elif ! grep -Fq 'AMD_INFERENCE_RUNTIME: ""' "$amd_compose_config_file"; then
+        elif ! grep -Fq 'AMD_INFERENCE_RUNTIME: ""' "amd_compose_config_file"; then
             fail "Rendered AMD external stack advertised a managed AMD runtime"
         else
             pass "Real AMD external stack overrides managed AMD routing without changing GPU telemetry"
@@ -815,11 +815,11 @@ else
 fi
 
 echo ""
-if python3 -m pytest -q "$ROOT_DIR/tests/test_extension_build_projection.py" -k test_resolver_; then
+if python3 -m pytest -q "ROOT_DIR/tests/test_extension_build_projection.py" -k test_resolver_; then
     pass "Imported recipe backend selection preserves provenance and disabled controls"
 else
     fail "Imported recipe backend selection regression"
 fi
 
-echo "Result: $PASSED passed, $FAILED failed"
-[[ $FAILED -eq 0 ]]
+echo "Result: PASSED passed, $FAILED failed"
+[[ FAILED -eq 0 ]]

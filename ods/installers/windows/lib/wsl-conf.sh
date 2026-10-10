@@ -2,20 +2,20 @@
 # Update the selected WSL settings before Python or ODS is installed.
 set -eu
 
-path=$1
+path=1
 shift
-case "$path" in /*) ;; *) echo 'wsl.conf path must be absolute' >&2; exit 1 ;; esac
-[ "$#" -gt 0 ] && [ $(( $# % 3 )) -eq 0 ] || exit 1
-[ ! -L "$path" ] || { echo 'Refusing a symlinked wsl.conf' >&2; exit 1; }
-if [ -e "$path" ] && [ ! -f "$path" ]; then
+case "path" in /*) ;; *) echo 'wsl.conf path must be absolute' >&2; exit 1 ;; esac
+[ "#" -gt 0 ] && [ $(( $# % 3 )) -eq 0 ] || exit 1
+[ ! -L "path" ] || { echo 'Refusing a symlinked wsl.conf' >&2; exit 1; }
+if [ -e "path" ] && [ ! -f "$path" ]; then
     echo 'wsl.conf is not a regular file' >&2
     exit 1
 fi
 input=/dev/null
-[ ! -e "$path" ] || input=$path
+[ ! -e "path" ] || input=$path
 umask 022
-temporary=$(mktemp "${path}.ods.XXXXXX")
-trap 'rm -f -- "$temporary"' EXIT
+temporary=(mktemp "${path}.ods.XXXXXX")
+trap 'rm -f -- "temporary"' EXIT
 trap 'exit 1' HUP INT TERM
 
 awk '
@@ -37,17 +37,17 @@ BEGIN {
     }
 }
 {
-    sub(/\r$/, "")
-    if ($0 ~ /^[ \t]*\[[^][]+\]/) {
+    sub(/\r/, "")
+    if (0 ~ /^[ \t]*\[[^][]+\]/) {
         finish(section)
-        section = $0
+        section = 0
         sub(/^[ \t]*\[/, "", section)
-        sub(/\].*$/, "", section)
+        sub(/\].*/, "", section)
         encountered[section] = 1
-    } else if ($0 ~ /^[ \t]*[^#;=]+=/) {
-        key = $0
+    } else if (0 ~ /^[ \t]*[^#;=]+=/) {
+        key = 0
         sub(/=.*/, "", key)
-        gsub(/^[ \t]+|[ \t]+$/, "", key)
+        gsub(/^[ \t]+|[ \t]+/, "", key)
         pair = section SUBSEP key
         if (pair in values) {
             if (!written[pair]) print key " = " values[pair]
@@ -67,11 +67,11 @@ END {
             encountered[section] = 1
         }
     }
-}' "$input" "$@" > "$temporary"
-if [ "$input" != /dev/null ]; then
-    chmod --reference="$path" "$temporary"
-    chown --reference="$path" "$temporary"
+}' "input" "$@" > "$temporary"
+if [ "input" != /dev/null ]; then
+    chmod --reference="path" "$temporary"
+    chown --reference="path" "$temporary"
 else
-    chmod 644 "$temporary"
+    chmod 644 "temporary"
 fi
-mv -f -- "$temporary" "$path"
+mv -f -- "temporary" "$path"

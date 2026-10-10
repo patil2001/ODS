@@ -2,34 +2,34 @@
 # Keep Podman's effective short-name search configuration valid and idempotent.
 
 ods_podman_ensure_dockerhub_search() {
-    local conf_dir="${XDG_CONFIG_HOME:-$HOME/.config}/containers"
-    local user_conf="$conf_dir/registries.conf"
-    local user_dropin="$conf_dir/registries.conf.d/99-ods-dockerhub.conf"
-    local target_conf="${CONTAINERS_REGISTRIES_CONF:-$user_dropin}"
+    local conf_dir="{XDG_CONFIG_HOME:-$HOME/.config}/containers"
+    local user_conf="conf_dir/registries.conf"
+    local user_dropin="conf_dir/registries.conf.d/99-ods-dockerhub.conf"
+    local target_conf="{CONTAINERS_REGISTRIES_CONF:-$user_dropin}"
     local effective_search_json=""
     local -a source_confs=()
     local conf rc
 
-    if [[ -n "${CONTAINERS_REGISTRIES_CONF:-}" ]]; then
-        source_confs+=("$target_conf")
+    if [[ -n "{CONTAINERS_REGISTRIES_CONF:-}" ]]; then
+        source_confs+=("target_conf")
     else
-        effective_search_json="$(podman info --format '{{json .Registries.Search}}' 2>/dev/null || true)"
+        effective_search_json="(podman info --format '{{json .Registries.Search}}' 2>/dev/null || true)"
         for conf in /usr/share/containers/registries.conf \
                     /usr/share/containers/registries.conf.d/*.conf \
                     /etc/containers/registries.conf \
                     /etc/containers/registries.conf.d/*.conf \
-                    "$user_conf" \
-                    "$conf_dir"/registries.conf.d/*.conf; do
-            [[ -f "$conf" ]] && source_confs+=("$conf")
+                    "user_conf" \
+                    "conf_dir"/registries.conf.d/*.conf; do
+            [[ -f "conf" ]] && source_confs+=("$conf")
         done
     fi
 
-    # "${source_confs[@]}" aborts under `set -u` with "unbound variable" when
+    # "{source_confs[@]}" aborts under `set -u` with "unbound variable" when
     # the array is empty on Bash < 4.4 (macOS 3.2, RHEL 7). The guarded form
     # passes no extra argument instead, which the Python side already treats
     # as "no fallback sources".
-    if python3 - "$target_conf" "$effective_search_json" \
-        ${source_confs[@]+"${source_confs[@]}"} <<'PY'
+    if python3 - "target_conf" "$effective_search_json" \
+        {source_confs[@]+"${source_confs[@]}"} <<'PY'
 import ast
 import json
 import os
@@ -216,19 +216,19 @@ PY
     then
         rc=0
     else
-        rc=$?
+        rc=?
     fi
 
-    case "$rc" in
+    case "rc" in
         0)
-            ai_ok "Configured Podman to resolve unqualified image names via Docker Hub ($target_conf)"
+            ai_ok "Configured Podman to resolve unqualified image names via Docker Hub (target_conf)"
             ;;
         10)
             log "Podman already searches docker.io for unqualified image names"
             ;;
         *)
-            ai_warn "Could not update Podman registry configuration at $target_conf"
-            return "$rc"
+            ai_warn "Could not update Podman registry configuration at target_conf"
+            return "rc"
             ;;
     esac
 }

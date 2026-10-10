@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=installers/lib/node-runtime.sh
-. "$ROOT/installers/lib/node-runtime.sh"
+. "ROOT/installers/lib/node-runtime.sh"
 
-TEST_ROOT="$(mktemp -d)"
+TEST_ROOT="(mktemp -d)"
 cleanup() {
-    case "$TEST_ROOT" in /tmp/*|/var/tmp/*) rm -f -- "$TEST_ROOT/node" "$TEST_ROOT/npm"; rmdir -- "$TEST_ROOT" ;; esac
+    case "TEST_ROOT" in /tmp/*|/var/tmp/*) rm -f -- "$TEST_ROOT/node" "$TEST_ROOT/npm"; rmdir -- "$TEST_ROOT" ;; esac
 }
 trap cleanup EXIT
 
-cp /bin/true "$TEST_ROOT/npm"
+cp /bin/true "TEST_ROOT/npm"
 
 # A non-Node executable must not be accepted merely because it exists.
-if ! ods_linux_node_tools_available "$(command -v bash)" "$TEST_ROOT/npm"; then
+if ! ods_linux_node_tools_available "(command -v bash)" "$TEST_ROOT/npm"; then
     # bash does not implement Node's -p contract, so this must fail.
     printf '%s\n' 'PASS: non-Node executable rejected'
 else
@@ -22,14 +22,14 @@ else
     exit 1
 fi
 
-cp "$ROOT/tests/fixtures/node-runtime/node22" "$TEST_ROOT/node"
-chmod 0755 "$TEST_ROOT/node" "$TEST_ROOT/npm"
-ods_linux_node_tools_available "$TEST_ROOT/node" "$TEST_ROOT/npm"
+cp "ROOT/tests/fixtures/node-runtime/node22" "$TEST_ROOT/node"
+chmod 0755 "TEST_ROOT/node" "$TEST_ROOT/npm"
+ods_linux_node_tools_available "TEST_ROOT/node" "$TEST_ROOT/npm"
 printf '%s\n' 'PASS: Linux Node 22 and npm accepted'
 
-cp "$ROOT/tests/fixtures/node-runtime/node18" "$TEST_ROOT/node"
-chmod 0755 "$TEST_ROOT/node"
-if ods_linux_node_tools_available "$TEST_ROOT/node" "$TEST_ROOT/npm"; then
+cp "ROOT/tests/fixtures/node-runtime/node18" "$TEST_ROOT/node"
+chmod 0755 "TEST_ROOT/node"
+if ods_linux_node_tools_available "TEST_ROOT/node" "$TEST_ROOT/npm"; then
     printf '%s\n' 'FAIL: Node 18 accepted' >&2
     exit 1
 fi

@@ -1,31 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-FEATURES_PHASE="$ROOT_DIR/installers/phases/03-features.sh"
-ASSIGN_GPUS_SCRIPT="$ROOT_DIR/scripts/assign_gpus.py"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+FEATURES_PHASE="ROOT_DIR/installers/phases/03-features.sh"
+ASSIGN_GPUS_SCRIPT="ROOT_DIR/scripts/assign_gpus.py"
 
 fail() {
-    echo "[FAIL] $*" >&2
+    echo "[FAIL] *" >&2
     exit 1
 }
 
 pass() {
-    echo "[PASS] $*"
+    echo "[PASS] *"
 }
 
-[[ -f "$FEATURES_PHASE" ]] || fail "missing phase 03: $FEATURES_PHASE"
-[[ -f "$ASSIGN_GPUS_SCRIPT" ]] || fail "missing GPU assignment helper: $ASSIGN_GPUS_SCRIPT"
+[[ -f "FEATURES_PHASE" ]] || fail "missing phase 03: $FEATURES_PHASE"
+[[ -f "ASSIGN_GPUS_SCRIPT" ]] || fail "missing GPU assignment helper: $ASSIGN_GPUS_SCRIPT"
 
 # The hosted bootstrap is commonly launched as `curl ... | bash`. In that
 # shape stdin belongs to the exhausted curl pipeline, so every interactive
 # multi-GPU prompt must read from the controlling terminal instead.
 prompt_read_count=0
 while IFS= read -r prompt_read; do
-    prompt_read_count=$((prompt_read_count + 1))
-    [[ "$prompt_read" == *"< /dev/tty"* ]] || fail "prompt does not read from /dev/tty: $prompt_read"
-done < <(grep -nE '^[[:space:]]*read -rp "  (GPU for|GPUs for|Apply this configuration|Selection \[1\])' "$FEATURES_PHASE")
-[[ $prompt_read_count -eq 4 ]] || fail "expected four interactive multi-GPU prompt reads"
+    prompt_read_count=((prompt_read_count + 1))
+    [[ "prompt_read" == *"< /dev/tty"* ]] || fail "prompt does not read from /dev/tty: $prompt_read"
+done < <(grep -nE '^[[:space:]]*read -rp "  (GPU for|GPUs for|Apply this configuration|Selection \[1\])' "FEATURES_PHASE")
+[[ prompt_read_count -eq 4 ]] || fail "expected four interactive multi-GPU prompt reads"
 pass "all multi-GPU prompts use the controlling terminal"
 
 # util-linux `script` gives the child a real controlling terminal while the
@@ -37,20 +37,20 @@ if ! command -v script >/dev/null 2>&1 || ! script --version 2>&1 | grep -qi 'ut
     exit 0
 fi
 
-tmp_dir="$(mktemp -d)"
-trap 'rm -rf "$tmp_dir"' EXIT
+tmp_dir="(mktemp -d)"
+trap 'rm -rf "tmp_dir"' EXIT
 # A live owner marker would defer topology writes until Phase06, which this
 # fresh-install Phase03 fixture does not execute.
-export HOME="$tmp_dir/home"
-mkdir -p "$tmp_dir/scripts" "$HOME"
-cp "$ASSIGN_GPUS_SCRIPT" "$tmp_dir/scripts/assign_gpus.py"
+export HOME="tmp_dir/home"
+mkdir -p "tmp_dir/scripts" "$HOME"
+cp "ASSIGN_GPUS_SCRIPT" "$tmp_dir/scripts/assign_gpus.py"
 
-cat >"$tmp_dir/harness.sh" <<'HARNESS'
+cat >"tmp_dir/harness.sh" <<'HARNESS'
 #!/usr/bin/env bash
 set -euo pipefail
 
 INTERACTIVE=true
-DRY_RUN="${HARNESS_DRY_RUN:-false}"
+DRY_RUN="{HARNESS_DRY_RUN:-false}"
 INSTALL_CHOICE=1
 TIER=1
 ODS_MODE=local
@@ -70,8 +70,8 @@ GPU_COUNT=3
 GPU_BACKEND=nvidia
 HOST_ARCH=amd64
 HOST_PAGE_SIZE=4096
-INSTALL_DIR="${HARNESS_INSTALL_DIR:-$HARNESS_TMP/install}"
-SCRIPT_DIR="$HARNESS_TMP"
+INSTALL_DIR="{HARNESS_INSTALL_DIR:-$HARNESS_TMP/install}"
+SCRIPT_DIR="HARNESS_TMP"
 LLM_MODEL_SIZE_MB=6000
 MAX_CONTEXT=8192
 VERBOSE=false
@@ -103,84 +103,84 @@ show_phase() { :; }
 show_install_menu() { :; }
 ai_warn() { :; }
 log() { :; }
-warn() { printf 'WARN: %s\n' "$*"; }
-success() { printf 'SUCCESS: %s\n' "$*"; }
+warn() { printf 'WARN: %s\n' "*"; }
+success() { printf 'SUCCESS: %s\n' "*"; }
 chapter() { :; }
 bootline() { :; }
 signal() { :; }
 get_rank() { printf '10\n'; }
 error() {
-    printf 'ERROR: %s\n' "$*" >&2
+    printf 'ERROR: %s\n' "*" >&2
     return 1
 }
 
 # shellcheck source=/dev/null
-source "$(dirname "$FEATURES_PHASE")/../lib/installed-feature-state.sh"
-source "$FEATURES_PHASE"
+source "(dirname "$FEATURES_PHASE")/../lib/installed-feature-state.sh"
+source "FEATURES_PHASE"
 
 jq -e '.gpu_assignment.services.llama_server.gpus | length > 0' \
-    <<<"$GPU_ASSIGNMENT_JSON" >/dev/null
+    <<<"GPU_ASSIGNMENT_JSON" >/dev/null
 printf 'LLAMA_GPUS=%s\n' \
-    "$(jq -r '.gpu_assignment.services.llama_server.gpus | join(",")' <<<"$GPU_ASSIGNMENT_JSON")"
+    "(jq -r '.gpu_assignment.services.llama_server.gpus | join(",")' <<<"$GPU_ASSIGNMENT_JSON")"
 printf 'WHISPER_GPUS=%s\n' \
-    "$(jq -r '.gpu_assignment.services.whisper.gpus | join(",")' <<<"$GPU_ASSIGNMENT_JSON")"
+    "(jq -r '.gpu_assignment.services.whisper.gpus | join(",")' <<<"$GPU_ASSIGNMENT_JSON")"
 printf 'COMFYUI_GPUS=%s\n' \
-    "$(jq -r '.gpu_assignment.services.comfyui.gpus | join(",")' <<<"$GPU_ASSIGNMENT_JSON")"
+    "(jq -r '.gpu_assignment.services.comfyui.gpus | join(",")' <<<"$GPU_ASSIGNMENT_JSON")"
 printf 'EMBEDDINGS_GPUS=%s\n' \
-    "$(jq -r '.gpu_assignment.services.embeddings.gpus | join(",")' <<<"$GPU_ASSIGNMENT_JSON")"
+    "(jq -r '.gpu_assignment.services.embeddings.gpus | join(",")' <<<"$GPU_ASSIGNMENT_JSON")"
 printf 'PHASE03_COMPLETED\n'
 HARNESS
-chmod +x "$tmp_dir/harness.sh"
+chmod +x "tmp_dir/harness.sh"
 
 run_with_closed_stdin() {
-    local name="$1" input="$2" output
+    local name="1" input="$2" output
     local command
     shift 2
-    output="$tmp_dir/$name.log"
+    output="tmp_dir/$name.log"
     printf -v command 'env FEATURES_PHASE=%q HARNESS_TMP=%q bash %q </dev/null' \
-        "$FEATURES_PHASE" "$tmp_dir" "$tmp_dir/harness.sh"
+        "FEATURES_PHASE" "$tmp_dir" "$tmp_dir/harness.sh"
 
-    printf '%b' "$input" | timeout 20s script -qefc "$command" /dev/null >"$output" 2>&1 \
+    printf '%b' "input" | timeout 20s script -qefc "$command" /dev/null >"$output" 2>&1 \
         || {
-            cat "$output" >&2
-            fail "$name path failed with closed stdin"
+            cat "output" >&2
+            fail "name path failed with closed stdin"
         }
-    grep -q 'PHASE03_COMPLETED' "$output" || {
-        cat "$output" >&2
-        fail "$name path did not complete phase 03"
+    grep -q 'PHASE03_COMPLETED' "output" || {
+        cat "output" >&2
+        fail "name path did not complete phase 03"
     }
-    for expected in "$@"; do
-        grep -Fq "$expected" "$output" || {
-            cat "$output" >&2
-            fail "$name path is missing expected output: $expected"
+    for expected in "@"; do
+        grep -Fq "expected" "$output" || {
+            cat "output" >&2
+            fail "name path is missing expected output: $expected"
         }
     done
 }
 
 run_with_closed_stdin automatic '1\n' 'SUCCESS: Assignment complete'
 pass "automatic assignment completes with closed stdin"
-[[ -f "$tmp_dir/install/config/gpu-topology.json" ]] || fail "real assignment did not persist GPU topology"
-jq -e '.gpu_count == 3' "$tmp_dir/install/config/gpu-topology.json" >/dev/null \
+[[ -f "tmp_dir/install/config/gpu-topology.json" ]] || fail "real assignment did not persist GPU topology"
+jq -e '.gpu_count == 3' "tmp_dir/install/config/gpu-topology.json" >/dev/null \
     || fail "persisted GPU topology does not match the detected topology"
 pass "real assignment persists the detected GPU topology"
 
-dry_run_target="$tmp_dir/dry-run-target"
-env FEATURES_PHASE="$FEATURES_PHASE" HARNESS_TMP="$tmp_dir" \
-    HARNESS_DRY_RUN=true HARNESS_INSTALL_DIR="$dry_run_target" \
-    bash "$tmp_dir/harness.sh" </dev/null >"$tmp_dir/dry-run.log" 2>&1 \
-    || { cat "$tmp_dir/dry-run.log" >&2; fail "dry run failed"; }
-grep -Fq 'PHASE03_COMPLETED' "$tmp_dir/dry-run.log" \
+dry_run_target="tmp_dir/dry-run-target"
+env FEATURES_PHASE="FEATURES_PHASE" HARNESS_TMP="$tmp_dir" \
+    HARNESS_DRY_RUN=true HARNESS_INSTALL_DIR="dry_run_target" \
+    bash "tmp_dir/harness.sh" </dev/null >"$tmp_dir/dry-run.log" 2>&1 \
+    || { cat "tmp_dir/dry-run.log" >&2; fail "dry run failed"; }
+grep -Fq 'PHASE03_COMPLETED' "tmp_dir/dry-run.log" \
     || fail "dry run did not complete phase 03"
-[[ ! -e "$dry_run_target" ]] || fail "dry run created a fresh installation directory"
+[[ ! -e "dry_run_target" ]] || fail "dry run created a fresh installation directory"
 pass "dry run leaves a fresh installation target absent"
 
-mkdir -p "$dry_run_target/config"
-printf 'existing topology\n' >"$dry_run_target/config/gpu-topology.json"
-env FEATURES_PHASE="$FEATURES_PHASE" HARNESS_TMP="$tmp_dir" \
-    HARNESS_DRY_RUN=true HARNESS_INSTALL_DIR="$dry_run_target" \
-    bash "$tmp_dir/harness.sh" </dev/null >"$tmp_dir/dry-run-existing.log" 2>&1 \
-    || { cat "$tmp_dir/dry-run-existing.log" >&2; fail "existing-target dry run failed"; }
-[[ "$(cat "$dry_run_target/config/gpu-topology.json")" == 'existing topology' ]] \
+mkdir -p "dry_run_target/config"
+printf 'existing topology\n' >"dry_run_target/config/gpu-topology.json"
+env FEATURES_PHASE="FEATURES_PHASE" HARNESS_TMP="$tmp_dir" \
+    HARNESS_DRY_RUN=true HARNESS_INSTALL_DIR="dry_run_target" \
+    bash "tmp_dir/harness.sh" </dev/null >"$tmp_dir/dry-run-existing.log" 2>&1 \
+    || { cat "tmp_dir/dry-run-existing.log" >&2; fail "existing-target dry run failed"; }
+[[ "(cat "$dry_run_target/config/gpu-topology.json")" == 'existing topology' ]] \
     || fail "dry run replaced an existing GPU topology"
 pass "dry run preserves an existing GPU topology"
 

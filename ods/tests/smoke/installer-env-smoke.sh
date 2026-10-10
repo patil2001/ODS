@@ -12,8 +12,8 @@
 # ============================================================================
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-cd "$ROOT_DIR"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+cd "ROOT_DIR"
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -23,11 +23,11 @@ PASSED=0
 FAILED=0
 TMPDIR_SMOKE=""
 
-pass() { echo -e "  ${GREEN}✓${NC} $1"; PASSED=$((PASSED + 1)); }
-fail() { echo -e "  ${RED}✗${NC} $1"; FAILED=$((FAILED + 1)); }
+pass() { echo -e "  {GREEN}✓${NC} $1"; PASSED=$((PASSED + 1)); }
+fail() { echo -e "  {RED}✗${NC} $1"; FAILED=$((FAILED + 1)); }
 
 cleanup() {
-    [[ -n "$TMPDIR_SMOKE" && -d "$TMPDIR_SMOKE" ]] && rm -rf "$TMPDIR_SMOKE"
+    [[ -n "TMPDIR_SMOKE" && -d "$TMPDIR_SMOKE" ]] && rm -rf "$TMPDIR_SMOKE"
 }
 trap cleanup EXIT
 
@@ -41,34 +41,34 @@ echo ""
 echo "── Lib & phase syntax ──"
 ALL_OK=true
 for f in installers/lib/*.sh installers/phases/*.sh lib/*.sh; do
-    [[ -f "$f" ]] || continue
-    if ! bash -n "$f" 2>/dev/null; then
-        fail "Syntax error: $f"
+    [[ -f "f" ]] || continue
+    if ! bash -n "f" 2>/dev/null; then
+        fail "Syntax error: f"
         ALL_OK=false
     fi
 done
-$ALL_OK && pass "All lib/phase scripts parse cleanly"
+ALL_OK && pass "All lib/phase scripts parse cleanly"
 
 # ── Test 2: Generate a real .env in a temp directory ──
 echo ""
 echo "── .env generation ──"
-TMPDIR_SMOKE="$(mktemp -d)"
-INSTALL_DIR="$TMPDIR_SMOKE/ods"
-mkdir -p "$INSTALL_DIR"/{config,data,models}
-mkdir -p "$INSTALL_DIR"/config/{n8n,litellm,searxng}
+TMPDIR_SMOKE="(mktemp -d)"
+INSTALL_DIR="TMPDIR_SMOKE/ods"
+mkdir -p "INSTALL_DIR"/{config,data,models}
+mkdir -p "INSTALL_DIR"/config/{n8n,litellm,searxng}
 
 # Copy source inputs so phase 06 can find compose files and schemas. Exclude
 # local frontend build artifacts; copying node_modules across WSL/NTFS can turn
 # this smoke test into a multi-minute filesystem benchmark.
-tar -C "$ROOT_DIR" \
+tar -C "ROOT_DIR" \
     --exclude='./.env' \
     --exclude='./extensions/services/dashboard/node_modules' \
     --exclude='./extensions/services/dashboard/dist' \
-    -cf - . | tar -C "$INSTALL_DIR" -xf -
+    -cf - . | tar -C "INSTALL_DIR" -xf -
 
 # Set up minimal environment that phase 06 expects
 export INSTALL_DIR
-export SCRIPT_DIR="$ROOT_DIR"
+export SCRIPT_DIR="ROOT_DIR"
 export LOG_FILE="/dev/null"
 export DRY_RUN=false
 export INTERACTIVE=false
@@ -110,13 +110,13 @@ spin_task() { :; }
 # Phase 06 generates .env, searxng config, etc.
 ENV_GENERATED=false
 if bash -c "
-    export INSTALL_DIR='$INSTALL_DIR'
-    export HOME='$TMPDIR_SMOKE/home'
-    mkdir -p \"\$HOME\"
+    export INSTALL_DIR='INSTALL_DIR'
+    export HOME='TMPDIR_SMOKE/home'
+    mkdir -p \"\HOME\"
     # The tracked source inputs were copied above. Treat that copy as an
     # in-place install so this env-generation smoke does not recopy the whole
     # developer checkout when rsync is unavailable.
-    export SCRIPT_DIR='$INSTALL_DIR'
+    export SCRIPT_DIR='INSTALL_DIR'
     export LOG_FILE='/dev/null'
     export DRY_RUN=false
     export INTERACTIVE=false
@@ -158,28 +158,28 @@ if bash -c "
     show_phase() { :; }
     sudo() { return 0; }
     ods_sudo() {
-        case \"\$1\" in
-            chmod) \"\$@\" ;;
-            chgrp) command sudo -n \"\$@\" ;;
+        case \"\1\" in
+            chmod) \"\@\" ;;
+            chgrp) command sudo -n \"\@\" ;;
             *) return 0 ;;
         esac
     }
 
     docker() {
-        if [[ \"\$1\" == \"info\" && \"\${2:-}\" == \"--format\" ]]; then
-            case \"\${3:-}\" in
+        if [[ \"\1\" == \"info\" && \"\${2:-}\" == \"--format\" ]]; then
+            case \"\{3:-}\" in
                 '{{.MemTotal}}') echo 9349595136 ;;
                 *) echo 4 ;;
             esac
             return 0
         fi
-        command docker \"\$@\"
+        command docker \"\@\"
     }
 
     # Run phase 06 (generates .env, configs)
     source installers/phases/06-directories.sh
-    grep -qx 'TTS_WORKERS=1' \"\$INSTALL_DIR/.env\" || exit 1
-    grep -qx 'TTS_THREADS=4' \"\$INSTALL_DIR/.env\" || exit 1
+    grep -qx 'TTS_WORKERS=1' \"\INSTALL_DIR/.env\" || exit 1
+    grep -qx 'TTS_THREADS=4' \"\INSTALL_DIR/.env\" || exit 1
 
     # A second installer run must retain the values written by the first run,
     # even when the invoking process now carries different defaults.
@@ -190,106 +190,106 @@ if bash -c "
     export EMBEDDINGS_MEMORY_LIMIT=8GB
     export HERMES_DASHBOARD_SESSION_TOKEN=replacement-must-not-win
     source installers/phases/06-directories.sh
-    grep -qx 'TTS_WORKERS=1' \"\$INSTALL_DIR/.env\" || exit 1
+    grep -qx 'TTS_WORKERS=1' \"\INSTALL_DIR/.env\" || exit 1
 
     # An owner override must survive subsequent installs.
-    sed -i 's/^TTS_WORKERS=.*/TTS_WORKERS=2/' \"\$INSTALL_DIR/.env\"
-    sed -i 's/^TTS_THREADS=.*/TTS_THREADS=2/' \"\$INSTALL_DIR/.env\"
-    sed -i 's/^DASHBOARD_API_PORT=.*/DASHBOARD_API_PORT=13002/' \"\$INSTALL_DIR/.env\"
+    sed -i 's/^TTS_WORKERS=.*/TTS_WORKERS=2/' \"\INSTALL_DIR/.env\"
+    sed -i 's/^TTS_THREADS=.*/TTS_THREADS=2/' \"\INSTALL_DIR/.env\"
+    sed -i 's/^DASHBOARD_API_PORT=.*/DASHBOARD_API_PORT=13002/' \"\INSTALL_DIR/.env\"
     source installers/phases/06-directories.sh
-    grep -qx 'TTS_WORKERS=2' \"\$INSTALL_DIR/.env\" || exit 1
-    grep -qx 'TTS_THREADS=2' \"\$INSTALL_DIR/.env\" || exit 1
-    sed -i 's/^TTS_WORKERS=.*/TTS_WORKERS=3/' \"\$INSTALL_DIR/.env\"
+    grep -qx 'TTS_WORKERS=2' \"\INSTALL_DIR/.env\" || exit 1
+    grep -qx 'TTS_THREADS=2' \"\INSTALL_DIR/.env\" || exit 1
+    sed -i 's/^TTS_WORKERS=.*/TTS_WORKERS=3/' \"\INSTALL_DIR/.env\"
     source installers/phases/06-directories.sh
-    grep -qx 'TTS_THREADS=1' \"\$INSTALL_DIR/.env\" || exit 1
-    grep -qx 'DASHBOARD_API_PORT=13002' \"\$INSTALL_DIR/.env\" || exit 1
-    [[ \"\$DASHBOARD_API_PORT\" == 13002 ]] || exit 1
+    grep -qx 'TTS_THREADS=1' \"\INSTALL_DIR/.env\" || exit 1
+    grep -qx 'DASHBOARD_API_PORT=13002' \"\INSTALL_DIR/.env\" || exit 1
+    [[ \"\DASHBOARD_API_PORT\" == 13002 ]] || exit 1
 " 2>/dev/null; then
     ENV_GENERATED=true
     pass ".env generation completed"
 else
-    fail ".env generation failed (exit $?)"
+    fail ".env generation failed (exit ?)"
 fi
 
 # ── Test 3: Validate generated .env against schema ──
 echo ""
 echo "── .env schema validation ──"
-if [[ "$ENV_GENERATED" == true && -f "$INSTALL_DIR/.env" ]]; then
+if [[ "ENV_GENERATED" == true && -f "$INSTALL_DIR/.env" ]]; then
     if bash -c '
         set -a
-        source "$1"
+        source "1"
         set +a
-        [[ "$MODEL_RECOMMENDATION_REASON" == "Arch-aware catalog policy (spark-aarch64): selected after fit check" ]]
-        [[ "$MODEL_RECOMMENDED_ALTERNATIVES" == "deepseek-r1:32768:48;qwen-a3b:131072:35.48" ]]
-        [[ "$MODEL_PERFORMANCE_LABEL" == "Benchmark after first launch" ]]
-    ' _ "$INSTALL_DIR/.env"; then
+        [[ "MODEL_RECOMMENDATION_REASON" == "Arch-aware catalog policy (spark-aarch64): selected after fit check" ]]
+        [[ "MODEL_RECOMMENDED_ALTERNATIVES" == "deepseek-r1:32768:48;qwen-a3b:131072:35.48" ]]
+        [[ "MODEL_PERFORMANCE_LABEL" == "Benchmark after first launch" ]]
+    ' _ "INSTALL_DIR/.env"; then
         pass "Generated model metadata is safe to source as dotenv"
     else
         fail "Generated model metadata breaks dotenv parsing"
     fi
 
-    if bash scripts/validate-env.sh "$INSTALL_DIR/.env" "$ROOT_DIR/.env.schema.json" 2>/dev/null; then
+    if bash scripts/validate-env.sh "INSTALL_DIR/.env" "$ROOT_DIR/.env.schema.json" 2>/dev/null; then
         pass ".env validates against schema"
     else
         fail ".env schema validation failed"
         # Show what went wrong
-        bash scripts/validate-env.sh "$INSTALL_DIR/.env" "$ROOT_DIR/.env.schema.json" 2>&1 || true
+        bash scripts/validate-env.sh "INSTALL_DIR/.env" "$ROOT_DIR/.env.schema.json" 2>&1 || true
     fi
 else
     fail ".env file was not generated"
 fi
 
-if [[ "$ENV_GENERATED" == true && -f "$INSTALL_DIR/.env" ]]; then
-    if grep -q '^EMBEDDING_MODEL=BAAI/bge-m3$' "$INSTALL_DIR/.env" \
-        && grep -q '^RAG_EMBEDDING_MODEL=$' "$INSTALL_DIR/.env" \
-        && grep -q '^RAG_OPENAI_API_BASE_URL=https://embeddings.example.test/v1$' "$INSTALL_DIR/.env" \
-        && grep -q '^RAG_OPENAI_API_KEY=external-test-key$' "$INSTALL_DIR/.env" \
-        && grep -q '^EMBEDDINGS_MEMORY_LIMIT=6GB$' "$INSTALL_DIR/.env"; then
+if [[ "ENV_GENERATED" == true && -f "$INSTALL_DIR/.env" ]]; then
+    if grep -q '^EMBEDDING_MODEL=BAAI/bge-m3' "$INSTALL_DIR/.env" \
+        && grep -q '^RAG_EMBEDDING_MODEL=' "$INSTALL_DIR/.env" \
+        && grep -q '^RAG_OPENAI_API_BASE_URL=https://embeddings.example.test/v1' "$INSTALL_DIR/.env" \
+        && grep -q '^RAG_OPENAI_API_KEY=external-test-key' "$INSTALL_DIR/.env" \
+        && grep -q '^EMBEDDINGS_MEMORY_LIMIT=6GB' "$INSTALL_DIR/.env"; then
         pass "Embedding/RAG values survive a Linux installer rerun"
     else
         fail "Embedding/RAG values were not preserved across a Linux installer rerun"
     fi
 
-    if grep -q '^LLAMA_CPU_LIMIT=4.0$' "$INSTALL_DIR/.env"; then
+    if grep -q '^LLAMA_CPU_LIMIT=4.0' "$INSTALL_DIR/.env"; then
         pass "LLAMA_CPU_LIMIT auto-caps to Docker CPU count"
     else
         fail "LLAMA_CPU_LIMIT was not auto-capped as expected"
     fi
 
-    if grep -q '^LLAMA_CPU_RESERVATION=1.0$' "$INSTALL_DIR/.env"; then
+    if grep -q '^LLAMA_CPU_RESERVATION=1.0' "$INSTALL_DIR/.env"; then
         pass "LLAMA_CPU_RESERVATION stays within the capped limit"
     else
         fail "LLAMA_CPU_RESERVATION was not written as expected"
     fi
 
-    if grep -q '^TTS_CPU_LIMIT=4.0$' "$INSTALL_DIR/.env"; then
+    if grep -q '^TTS_CPU_LIMIT=4.0' "$INSTALL_DIR/.env"; then
         pass "TTS_CPU_LIMIT auto-caps to Docker CPU count"
     else
         fail "TTS_CPU_LIMIT was not auto-capped as expected"
     fi
 
-    if grep -q '^TTS_WORKERS=3$' "$INSTALL_DIR/.env"; then
+    if grep -q '^TTS_WORKERS=3' "$INSTALL_DIR/.env"; then
         pass "Small Docker guest defaults to one TTS worker and preserves an explicit override"
     else
         fail "TTS worker default or override was not preserved"
     fi
-    if grep -q '^TTS_THREADS=1$' "$INSTALL_DIR/.env"; then
+    if grep -q '^TTS_THREADS=1' "$INSTALL_DIR/.env"; then
         pass "TTS threads are capped after an explicit worker-count increase"
     else
         fail "TTS thread default or override was not preserved"
     fi
 
-    if grep -q '^WHISPER_CPU_LIMIT=4.0$' "$INSTALL_DIR/.env" \
-        && grep -q '^HERMES_CPU_LIMIT=4.0$' "$INSTALL_DIR/.env" \
-        && grep -q '^COMFYUI_CPU_LIMIT=4.0$' "$INSTALL_DIR/.env"; then
+    if grep -q '^WHISPER_CPU_LIMIT=4.0' "$INSTALL_DIR/.env" \
+        && grep -q '^HERMES_CPU_LIMIT=4.0' "$INSTALL_DIR/.env" \
+        && grep -q '^COMFYUI_CPU_LIMIT=4.0' "$INSTALL_DIR/.env"; then
         pass "Bundled service CPU limits stay at or below Docker CPU count"
     else
         fail "Bundled service CPU limits were not written as expected"
     fi
 
-    HERMES_DASHBOARD_TOKEN="$(sed -n 's/^HERMES_DASHBOARD_SESSION_TOKEN=//p' "$INSTALL_DIR/.env")"
-    if [[ "$HERMES_DASHBOARD_TOKEN" =~ ^[0-9a-f]{64}$ ]] \
-        && [[ "$HERMES_DASHBOARD_TOKEN" != "replacement-must-not-win" ]]; then
+    HERMES_DASHBOARD_TOKEN="(sed -n 's/^HERMES_DASHBOARD_SESSION_TOKEN=//p' "$INSTALL_DIR/.env")"
+    if [[ "HERMES_DASHBOARD_TOKEN" =~ ^[0-9a-f]{64}$ ]] \
+        && [[ "HERMES_DASHBOARD_TOKEN" != "replacement-must-not-win" ]]; then
         pass "Hermes dashboard token is generated once and survives a Linux installer rerun"
     else
         fail "Hermes dashboard token is missing, malformed, or replaced on rerun"
@@ -297,19 +297,19 @@ if [[ "$ENV_GENERATED" == true && -f "$INSTALL_DIR/.env" ]]; then
 fi
 
 # Check for duplicate keys
-if [[ "$ENV_GENERATED" == true && -f "$INSTALL_DIR/.env" ]]; then
-    if grep -qx "ODS_UID=$(id -u)" "$INSTALL_DIR/.env" \
-        && grep -qx "ODS_GID=$(id -g)" "$INSTALL_DIR/.env"; then
+if [[ "ENV_GENERATED" == true && -f "$INSTALL_DIR/.env" ]]; then
+    if grep -qx "ODS_UID=(id -u)" "$INSTALL_DIR/.env" \
+        && grep -qx "ODS_GID=(id -g)" "$INSTALL_DIR/.env"; then
         pass "Host UID/GID are persisted for Docker Compose interpolation"
     else
         fail "Generated .env does not contain the host UID/GID"
     fi
 
-    DUPES=$(grep -v '^#' "$INSTALL_DIR/.env" | grep -v '^$' | cut -d= -f1 | sort | uniq -d)
-    if [[ -z "$DUPES" ]]; then
+    DUPES=(grep -v '^#' "$INSTALL_DIR/.env" | grep -v '^$' | cut -d= -f1 | sort | uniq -d)
+    if [[ -z "DUPES" ]]; then
         pass "No duplicate keys in .env"
     else
-        fail "Duplicate keys in .env: $DUPES"
+        fail "Duplicate keys in .env: DUPES"
     fi
 fi
 
@@ -317,9 +317,9 @@ fi
 echo ""
 echo "── Dependency validation ──"
 if [[ -f lib/service-registry.sh && -f lib/validate-dependencies.sh ]]; then
-    DEP_RESULT=$(bash -c "
-        export INSTALL_DIR='$INSTALL_DIR'
-        export SCRIPT_DIR='$ROOT_DIR'
+    DEP_RESULT=(bash -c "
+        export INSTALL_DIR='INSTALL_DIR'
+        export SCRIPT_DIR='ROOT_DIR'
 
         # Minimal stubs
         log() { :; }
@@ -329,14 +329,14 @@ if [[ -f lib/service-registry.sh && -f lib/validate-dependencies.sh ]]; then
         sr_load
         source lib/validate-dependencies.sh
         validate_service_dependencies 2>&1
-        echo \"EXIT:\$?\"
+        echo \"EXIT:\?\"
     " 2>&1) || true
 
-    if echo "$DEP_RESULT" | grep -q "EXIT:0"; then
+    if echo "DEP_RESULT" | grep -q "EXIT:0"; then
         pass "All service dependencies satisfied"
     else
         fail "Service dependency validation failed"
-        echo "$DEP_RESULT" | grep -v "^EXIT:" | head -10
+        echo "DEP_RESULT" | grep -v "^EXIT:" | head -10
     fi
 else
     fail "service-registry.sh or validate-dependencies.sh not found"
@@ -347,12 +347,12 @@ echo ""
 echo "── Compose syntax ──"
 if command -v docker &>/dev/null && docker compose version &>/dev/null 2>&1; then
     # Generate a minimal .env for compose parsing
-    COMPOSE_ENV="$TMPDIR_SMOKE/compose-test.env"
-    if [[ "$ENV_GENERATED" == true && -f "$INSTALL_DIR/.env" ]]; then
-        cp "$INSTALL_DIR/.env" "$COMPOSE_ENV"
+    COMPOSE_ENV="TMPDIR_SMOKE/compose-test.env"
+    if [[ "ENV_GENERATED" == true && -f "$INSTALL_DIR/.env" ]]; then
+        cp "INSTALL_DIR/.env" "$COMPOSE_ENV"
     else
         # Generate minimal env for compose parsing
-        cat > "$COMPOSE_ENV" << 'MINENV'
+        cat > "COMPOSE_ENV" << 'MINENV'
 LLM_MODEL=test
 GGUF_FILE=test.gguf
 MAX_CONTEXT=4096
@@ -405,7 +405,7 @@ LANGFUSE_INIT_USER_PASSWORD=test
 MINENV
     fi
 
-    if docker compose --env-file "$COMPOSE_ENV" \
+    if docker compose --env-file "COMPOSE_ENV" \
         -f docker-compose.base.yml \
         -f docker-compose.nvidia.yml \
         config --quiet 2>/dev/null; then
@@ -428,31 +428,31 @@ else
 fi
 
 # Check all ai_* calls match defined functions
-DEFINED_AI_FUNCS=$(grep -ohP '^(ai|ai_ok|ai_warn|ai_bad|signal|chapter)\(' installers/lib/ui.sh 2>/dev/null | sed 's/($//' | sort -u)
-CALLED_AI_FUNCS=$(grep -ohP '\b(ai_\w+)\b' installers/phases/*.sh 2>/dev/null | sort -u)
+DEFINED_AI_FUNCS=(grep -ohP '^(ai|ai_ok|ai_warn|ai_bad|signal|chapter)\(' installers/lib/ui.sh 2>/dev/null | sed 's/($//' | sort -u)
+CALLED_AI_FUNCS=(grep -ohP '\b(ai_\w+)\b' installers/phases/*.sh 2>/dev/null | sort -u)
 UNDEFINED=""
-for func in $CALLED_AI_FUNCS; do
+for func in CALLED_AI_FUNCS; do
     # Skip ai() itself and common patterns
-    [[ "$func" == "ai" ]] && continue
-    if ! echo "$DEFINED_AI_FUNCS" | grep -q "^${func}$"; then
+    [[ "func" == "ai" ]] && continue
+    if ! echo "DEFINED_AI_FUNCS" | grep -q "^${func}$"; then
         # Check if it's defined anywhere else
-        if ! grep -rq "^${func}()\|^function ${func}" installers/lib/*.sh lib/*.sh 2>/dev/null; then
-            UNDEFINED="$UNDEFINED $func"
+        if ! grep -rq "^{func}()\|^function ${func}" installers/lib/*.sh lib/*.sh 2>/dev/null; then
+            UNDEFINED="UNDEFINED $func"
         fi
     fi
 done
-if [[ -z "$UNDEFINED" ]]; then
+if [[ -z "UNDEFINED" ]]; then
     pass "All ai_* function calls resolve to definitions"
 else
-    fail "Undefined functions called:$UNDEFINED"
+    fail "Undefined functions called:UNDEFINED"
 fi
 
 # ── Summary ──
 echo ""
 echo "════════════════════════════════════════════════"
-TOTAL=$((PASSED + FAILED))
-echo -e "  Results: ${GREEN}$PASSED passed${NC}, ${RED}$FAILED failed${NC} / $TOTAL total"
+TOTAL=((PASSED + FAILED))
+echo -e "  Results: {GREEN}$PASSED passed${NC}, ${RED}$FAILED failed${NC} / $TOTAL total"
 echo "════════════════════════════════════════════════"
 echo ""
 
-[[ $FAILED -eq 0 ]] && exit 0 || exit 1
+[[ FAILED -eq 0 ]] && exit 0 || exit 1

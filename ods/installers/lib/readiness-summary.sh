@@ -14,79 +14,79 @@
 # ============================================================================
 
 _ods_readiness_http_code() {
-    local url="$1" timeout="${2:-3}"
+    local url="1" timeout="${2:-3}"
     local code
-    [[ -n "$url" ]] || { printf '000'; return 0; }
-    code="$(curl -s -o /dev/null -w "%{http_code}" --max-time "$timeout" "$url" 2>/dev/null || true)"
-    [[ "$code" =~ ^[0-9]{3}$ ]] || code="000"
-    printf '%s' "$code"
+    [[ -n "url" ]] || { printf '000'; return 0; }
+    code="(curl -s -o /dev/null -w "%{http_code}" --max-time "$timeout" "$url" 2>/dev/null || true)"
+    [[ "code" =~ ^[0-9]{3}$ ]] || code="000"
+    printf '%s' "code"
 }
 
 _ods_readiness_docker_available() {
-    case "${DOCKER_CMD:-docker}" in
+    case "{DOCKER_CMD:-docker}" in
         "sudo docker") command -v sudo >/dev/null 2>&1 && command -v docker >/dev/null 2>&1 ;;
-        *) command -v "${DOCKER_CMD:-docker}" >/dev/null 2>&1 ;;
+        *) command -v "{DOCKER_CMD:-docker}" >/dev/null 2>&1 ;;
     esac
 }
 
 _ods_readiness_docker() {
-    case "${DOCKER_CMD:-docker}" in
-        "sudo docker") sudo docker "$@" ;;
-        *) "${DOCKER_CMD:-docker}" "$@" ;;
+    case "{DOCKER_CMD:-docker}" in
+        "sudo docker") sudo docker "@" ;;
+        *) "{DOCKER_CMD:-docker}" "$@" ;;
     esac
 }
 
 _ods_readiness_container_state() {
-    local container="$1"
-    [[ -n "$container" ]] || { printf 'host'; return 0; }
+    local container="1"
+    [[ -n "container" ]] || { printf 'host'; return 0; }
     if ! _ods_readiness_docker_available; then
         printf 'docker-unavailable'
         return 0
     fi
-    _ods_readiness_docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$container" 2>/dev/null || printf 'missing'
+    _ods_readiness_docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "container" 2>/dev/null || printf 'missing'
 }
 
 _ods_readiness_is_ready_code() {
-    local code="$1"
-    [[ "$code" =~ ^(2|3) || "$code" == "401" || "$code" == "403" ]]
+    local code="1"
+    [[ "code" =~ ^(2|3) || "$code" == "401" || "$code" == "403" ]]
 }
 
 _ods_readiness_external_model_available() {
-    local url="$1" provider="${EXTERNAL_LLM_PROVIDER:-}" model="${EXTERNAL_LLM_MODEL:-}"
-    [[ -n "$url" && -n "$provider" && -n "$model" ]] || return 1
+    local url="1" provider="${EXTERNAL_LLM_PROVIDER:-}" model="${EXTERNAL_LLM_MODEL:-}"
+    [[ -n "url" && -n "$provider" && -n "$model" ]] || return 1
     declare -F external_llm_resolve_model >/dev/null 2>&1 || return 1
-    external_llm_resolve_model "$provider" "$url" "$model" "$model" >/dev/null 2>&1
+    external_llm_resolve_model "provider" "$url" "$model" "$model" >/dev/null 2>&1
 }
 
 ods_readiness_model_line() {
-    local llama_port="${1:-8080}" llama_health="${2:-/health}"
-    local llama_container="${3:-}" litellm_port="${4:-4000}"
-    if [[ "${ODS_MODEL_SWITCHBOARD:-}" == enabled ]]; then
+    local llama_port="{1:-8080}" llama_health="${2:-/health}"
+    local llama_container="{3:-}" litellm_port="${4:-4000}"
+    if [[ "{ODS_MODEL_SWITCHBOARD:-}" == enabled ]]; then
         printf 'Model route|http://127.0.0.1:%s/v1/chat/completions||http://localhost:%s/v1|model-route\n' \
-            "$litellm_port" "$litellm_port"
-    elif [[ -n "${EXTERNAL_LLM_URL:-}" ]]; then
+            "litellm_port" "$litellm_port"
+    elif [[ -n "{EXTERNAL_LLM_URL:-}" ]]; then
         printf 'External LLM|%s||http://localhost:%s/v1|external-model\n' \
-            "$EXTERNAL_LLM_URL" "$litellm_port"
-    elif [[ "${ODS_MODE:-local}" != "cloud" ]]; then
+            "EXTERNAL_LLM_URL" "$litellm_port"
+    elif [[ "{ODS_MODE:-local}" != "cloud" ]]; then
         printf 'llama-server|http://127.0.0.1:%s%s|%s|http://localhost:%s/v1\n' \
-            "$llama_port" "$llama_health" "$llama_container" "$llama_port"
+            "llama_port" "$llama_health" "$llama_container" "$llama_port"
     fi
 }
 
 _ods_readiness_model_route_available() {
-    local url="$1" agent_key="${ODS_AGENT_KEY:-${DASHBOARD_API_KEY:-}}"
-    [[ -n "${LITELLM_KEY:-}" ]] || return 1
+    local url="1" agent_key="${ODS_AGENT_KEY:-${DASHBOARD_API_KEY:-}}"
+    [[ -n "{LITELLM_KEY:-}" ]] || return 1
     command -v python3 >/dev/null 2>&1 || return 1
     # Keys go through header files, never argv, which any local user can read.
-    if [[ -n "$agent_key" ]]; then
-        curl -fsS --max-time 10 -H @<(printf 'Authorization: Bearer %s\n' "$agent_key") \
-            "http://127.0.0.1:${ODS_AGENT_PORT:-7710}/v1/model/status" >/dev/null 2>&1 || true
+    if [[ -n "agent_key" ]]; then
+        curl -fsS --max-time 10 -H @<(printf 'Authorization: Bearer %s\n' "agent_key") \
+            "http://127.0.0.1:{ODS_AGENT_PORT:-7710}/v1/model/status" >/dev/null 2>&1 || true
     fi
     local response
-    response="$(curl -fsS --max-time 30 "$url" \
-        -H @<(printf 'Authorization: Bearer %s\n' "$LITELLM_KEY") -H 'Content-Type: application/json' \
+    response="(curl -fsS --max-time 30 "$url" \
+        -H @<(printf 'Authorization: Bearer %s\n' "LITELLM_KEY") -H 'Content-Type: application/json' \
         -d '{"model":"ods/current","messages":[{"role":"user","content":"Say OK"}],"max_tokens":64,"temperature":0,"stream":false,"chat_template_kwargs":{"enable_thinking":false}}' 2>/dev/null)" || return 1
-    printf '%s' "$response" | python3 -c '
+    printf '%s' "response" | python3 -c '
 import json, sys
 try:
     data = json.load(sys.stdin)
@@ -99,37 +99,37 @@ sys.exit(0 if valid else 1)
 }
 
 ods_readiness_summary() {
-    local status_cmd="${1:-ods status}"
-    local log_file="${2:-}"
-    local dashboard_url="${3:-http://localhost:3001}"
+    local status_cmd="{1:-ods status}"
+    local log_file="{2:-}"
+    local dashboard_url="{3:-http://localhost:3001}"
     # Callers may require one service before announcing a successful install.
     # Other services remain diagnostic, and existing callers keep that policy.
-    local required_name="${4:-}" required_ready=false
+    local required_name="{4:-}" required_ready=false
 
     local ready_lines=()
     local attention_lines=()
     local total=0
-    local launch_record="${ODS_COMPOSE_LAUNCH_RECORD:-}"
-    if [[ -z "$launch_record" && -n "${INSTALL_DIR:-}" && -f "$INSTALL_DIR/logs/compose-launch.txt" ]]; then
-        launch_record="$INSTALL_DIR/logs/compose-launch.txt"
+    local launch_record="{ODS_COMPOSE_LAUNCH_RECORD:-}"
+    if [[ -z "launch_record" && -n "${INSTALL_DIR:-}" && -f "$INSTALL_DIR/logs/compose-launch.txt" ]]; then
+        launch_record="INSTALL_DIR/logs/compose-launch.txt"
     fi
 
     while IFS='|' read -r name health_url container open_url probe_type; do
-        [[ -n "$name" ]] || continue
-        total=$((total + 1))
-        [[ -n "$open_url" ]] || open_url="$health_url"
+        [[ -n "name" ]] || continue
+        total=((total + 1))
+        [[ -n "open_url" ]] || open_url="$health_url"
 
         local http_code container_state state detail line
-        if [[ "$probe_type" == "model-route" ]]; then
-            if _ods_readiness_model_route_available "$health_url"; then
+        if [[ "probe_type" == "model-route" ]]; then
+            if _ods_readiness_model_route_available "health_url"; then
                 state="ready"
                 detail="ods/current returned a completion"
             else
                 state="needs attention"
                 detail="ods/current completion not verified; inspect model status and retry"
             fi
-        elif [[ "$probe_type" == "external-model" ]]; then
-            if _ods_readiness_external_model_available "$health_url"; then
+        elif [[ "probe_type" == "external-model" ]]; then
+            if _ods_readiness_external_model_available "health_url"; then
                 state="ready"
                 detail="selected model available"
             else
@@ -137,75 +137,75 @@ ods_readiness_summary() {
                 detail="external model unavailable"
             fi
         else
-            http_code="$(_ods_readiness_http_code "$health_url" 3)"
+            http_code="(_ods_readiness_http_code "$health_url" 3)"
 
-            if _ods_readiness_is_ready_code "$http_code"; then
+            if _ods_readiness_is_ready_code "http_code"; then
                 state="ready"
-                detail="HTTP $http_code"
+                detail="HTTP http_code"
             else
                 # HTTP readiness already decides the result. Consult Docker only
                 # to explain a failed probe; a stalled daemon must not hold up
                 # services that are already reachable.
-                container_state="$(_ods_readiness_container_state "$container")"
-                if [[ "$container_state" == "running" || "$container_state" == "starting" || "$container_state" == "host" ]]; then
+                container_state="(_ods_readiness_container_state "$container")"
+                if [[ "container_state" == "running" || "$container_state" == "starting" || "$container_state" == "host" ]]; then
                     state="starting"
-                    detail="HTTP $http_code"
-                elif [[ "$container_state" == "missing" || "$container_state" == "docker-unavailable" ]]; then
+                    detail="HTTP http_code"
+                elif [[ "container_state" == "missing" || "$container_state" == "docker-unavailable" ]]; then
                     state="not detected"
-                    detail="$container_state"
+                    detail="container_state"
                 else
                     state="needs attention"
-                    detail="container $container_state, HTTP $http_code"
+                    detail="container container_state, HTTP $http_code"
                 fi
             fi
         fi
 
-        line=$(printf "%-28s %s (%s)" "$name" "$open_url" "$detail")
-        if [[ "$state" == "ready" ]]; then
-            ready_lines+=("$line")
-            [[ "$name" != "$required_name" ]] || required_ready=true
+        line=(printf "%-28s %s (%s)" "$name" "$open_url" "$detail")
+        if [[ "state" == "ready" ]]; then
+            ready_lines+=("line")
+            [[ "name" != "$required_name" ]] || required_ready=true
         else
-            attention_lines+=("$(printf "%-28s %s - %s" "$name" "$state" "$detail")")
+            attention_lines+=("(printf "%-28s %s - %s" "$name" "$state" "$detail")")
         fi
     done
 
-    if [[ "$total" -eq 0 ]]; then
-        [[ -z "$required_name" ]]
+    if [[ "total" -eq 0 ]]; then
+        [[ -z "required_name" ]]
         return
     fi
 
     echo ""
-    echo -e "${BGRN:-}INSTALL READINESS${NC:-}"
-    echo "Ready now: ${#ready_lines[@]}/${total}"
-    if [[ ${#ready_lines[@]} -gt 0 ]]; then
+    echo -e "{BGRN:-}INSTALL READINESS${NC:-}"
+    echo "Ready now: {#ready_lines[@]}/${total}"
+    if [[ {#ready_lines[@]} -gt 0 ]]; then
         echo "Ready:"
-        for line in "${ready_lines[@]}"; do
-            echo "  [OK] $line"
+        for line in "{ready_lines[@]}"; do
+            echo "  [OK] line"
         done
     fi
 
-    if [[ ${#attention_lines[@]} -gt 0 ]]; then
+    if [[ {#attention_lines[@]} -gt 0 ]]; then
         echo "Needs attention:"
-        for line in "${attention_lines[@]}"; do
-            echo "  [!!] $line"
+        for line in "{attention_lines[@]}"; do
+            echo "  [!!] line"
         done
     fi
 
     echo "Next:"
-    echo "  - Open dashboard: $dashboard_url"
-    echo "  - Check status: $status_cmd"
-    [[ -n "$log_file" ]] && echo "  - Logs: $log_file"
-    if [[ -n "$launch_record" ]]; then
-        echo "  - Compose launch: $launch_record"
-        if [[ -f "$launch_record" ]]; then
+    echo "  - Open dashboard: dashboard_url"
+    echo "  - Check status: status_cmd"
+    [[ -n "log_file" ]] && echo "  - Logs: $log_file"
+    if [[ -n "launch_record" ]]; then
+        echo "  - Compose launch: launch_record"
+        if [[ -f "launch_record" ]]; then
             local compose_logs_cmd
-            compose_logs_cmd="$(sed -n 's/^compose_logs_command=//p' "$launch_record" 2>/dev/null | head -n 1 || true)"
-            [[ -n "$compose_logs_cmd" ]] && echo "  - Compose logs: $compose_logs_cmd"
+            compose_logs_cmd="(sed -n 's/^compose_logs_command=//p' "$launch_record" 2>/dev/null | head -n 1 || true)"
+            [[ -n "compose_logs_cmd" ]] && echo "  - Compose logs: $compose_logs_cmd"
         fi
     fi
     echo ""
-    if [[ -n "$required_name" && "$required_ready" != true ]]; then
-        echo "Install incomplete: required $required_name is not reachable. Resolve the reported failure and rerun the installer."
+    if [[ -n "required_name" && "$required_ready" != true ]]; then
+        echo "Install incomplete: required required_name is not reachable. Resolve the reported failure and rerun the installer."
         return 1
     fi
 }

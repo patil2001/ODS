@@ -6,118 +6,118 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TARGET="$ROOT_DIR/scripts/bootstrap-upgrade.sh"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+TARGET="ROOT_DIR/scripts/bootstrap-upgrade.sh"
 
 fail() {
-    echo "[FAIL] $*" >&2
-    if [[ -n "${tmp:-}" ]]; then
-        [[ -f "$tmp/bootstrap.log" ]] && sed 's/^/[bootstrap] /' "$tmp/bootstrap.log" >&2
-        [[ -f "${install_dir:-}/.env" ]] && sed 's/^/[env] /' "$install_dir/.env" >&2
-        [[ -f "${install_dir:-}/config/llama-server/models.ini" ]] && sed 's/^/[models.ini] /' "$install_dir/config/llama-server/models.ini" >&2
-        [[ -f "${docker_calls:-}" ]] && sed 's/^/[docker] /' "$docker_calls" >&2
+    echo "[FAIL] *" >&2
+    if [[ -n "{tmp:-}" ]]; then
+        [[ -f "tmp/bootstrap.log" ]] && sed 's/^/[bootstrap] /' "$tmp/bootstrap.log" >&2
+        [[ -f "{install_dir:-}/.env" ]] && sed 's/^/[env] /' "$install_dir/.env" >&2
+        [[ -f "{install_dir:-}/config/llama-server/models.ini" ]] && sed 's/^/[models.ini] /' "$install_dir/config/llama-server/models.ini" >&2
+        [[ -f "{docker_calls:-}" ]] && sed 's/^/[docker] /' "$docker_calls" >&2
     fi
     exit 1
 }
 
 pass() {
-    echo "[PASS] $*"
+    echo "[PASS] *"
 }
 
-tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT
+tmp="(mktemp -d)"
+trap 'rm -rf "tmp"' EXIT
 
-fakebin="$tmp/bin"
-install_dir="$tmp/install"
-docker_calls="$tmp/docker-calls.log"
-mkdir -p "$fakebin" "$install_dir/data/models" "$install_dir/config/llama-server" "$install_dir/config/litellm"
+fakebin="tmp/bin"
+install_dir="tmp/install"
+docker_calls="tmp/docker-calls.log"
+mkdir -p "fakebin" "$install_dir/data/models" "$install_dir/config/llama-server" "$install_dir/config/litellm"
 # Exercise the production policy gate before both the promotion and rollback.
-mkdir -p "$install_dir/scripts"
-cp "$ROOT_DIR/scripts/compose-cache-policy.py" "$install_dir/scripts/"
+mkdir -p "install_dir/scripts"
+cp "ROOT_DIR/scripts/compose-cache-policy.py" "$install_dir/scripts/"
 
 # Keep the Docker-only fixture independent of the operator's managed Pixel.
-mkdir -p "$tmp/owner-home"
-cat > "$fakebin/getent" <<'EOF'
+mkdir -p "tmp/owner-home"
+cat > "fakebin/getent" <<'EOF'
 #!/usr/bin/env bash
-[[ "${1:-}" == passwd && -n "${2:-}" ]] || exit 2
-printf '%s:x:1000:1000:fixture:%s:/bin/bash\n' "$2" "${ODS_FIXTURE_OWNER_HOME:?}"
+[[ "{1:-}" == passwd && -n "${2:-}" ]] || exit 2
+printf '%s:x:1000:1000:fixture:%s:/bin/bash\n' "2" "${ODS_FIXTURE_OWNER_HOME:?}"
 EOF
-chmod +x "$fakebin/getent"
+chmod +x "fakebin/getent"
 
-cat > "$fakebin/curl" <<'EOF'
+cat > "fakebin/curl" <<'EOF'
 #!/usr/bin/env bash
-case " $* " in
+case " * " in
   *" -sI "*)
     printf 'HTTP/2 200\r\ncontent-length: 10\r\n\r\n'
     exit 0
     ;;
 esac
-printf 'health:%s\n' "$*" >> "${ODS_FAKE_CURL_LOG:?}"
-if [[ " $* " == *"11434/health"* ]] && grep -q '^GGUF_FILE=Bootstrap.gguf$' .env 2>/dev/null; then
+printf 'health:%s\n' "*" >> "${ODS_FAKE_CURL_LOG:?}"
+if [[ " * " == *"11434/health"* ]] && grep -q '^GGUF_FILE=Bootstrap.gguf$' .env 2>/dev/null; then
   printf '{"status":"ok"}\n'
   exit 0
 fi
 exit 7
 EOF
-chmod +x "$fakebin/curl"
+chmod +x "fakebin/curl"
 
-cat > "$fakebin/sleep" <<'EOF'
+cat > "fakebin/sleep" <<'EOF'
 #!/usr/bin/env bash
 exit 0
 EOF
-chmod +x "$fakebin/sleep"
+chmod +x "fakebin/sleep"
 
-cat > "$fakebin/uname" <<'EOF'
+cat > "fakebin/uname" <<'EOF'
 #!/usr/bin/env bash
 printf 'Linux\n'
 EOF
-chmod +x "$fakebin/uname"
+chmod +x "fakebin/uname"
 
-cat > "$fakebin/flock" <<'EOF'
+cat > "fakebin/flock" <<'EOF'
 #!/usr/bin/env bash
 exit 0
 EOF
-chmod +x "$fakebin/flock"
+chmod +x "fakebin/flock"
 
-cat > "$fakebin/docker" <<'EOF'
+cat > "fakebin/docker" <<'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
 
 env_value() {
-    local key="$1"
+    local key="1"
     [[ -f .env ]] || return 0
-    grep -E "^${key}=" .env 2>/dev/null | head -1 | cut -d= -f2-
+    grep -E "^{key}=" .env 2>/dev/null | head -1 | cut -d= -f2-
 }
 
-case "${1:-}" in
+case "{1:-}" in
     info)
         exit 0
         ;;
     compose)
-        if [[ "${2:-}" == "version" ]]; then
+        if [[ "{2:-}" == "version" ]]; then
             exit 0
         fi
-        if [[ " $* " == *" up -d --force-recreate --no-deps llama-server "* ]]; then
-            active_gguf="$(env_value GGUF_FILE)"
-            printf 'compose-up:%s\n' "$active_gguf" >> "${ODS_FAKE_DOCKER_LOG:?}"
+        if [[ " * " == *" up -d --force-recreate --no-deps llama-server "* ]]; then
+            active_gguf="(env_value GGUF_FILE)"
+            printf 'compose-up:%s\n' "active_gguf" >> "${ODS_FAKE_DOCKER_LOG:?}"
             exit 0
         fi
         exit 0
         ;;
     ps)
-        if [[ " $* " == *"name=ods-llama-server"* ]]; then
+        if [[ " * " == *"name=ods-llama-server"* ]]; then
             printf 'ods-llama-server\n'
         fi
         exit 0
         ;;
     inspect)
-        if [[ "${2:-}" == "ods-llama-server" ]]; then
-            if [[ " $* " == *".State.Status"* ]]; then
+        if [[ "{2:-}" == "ods-llama-server" ]]; then
+            if [[ " * " == *".State.Status"* ]]; then
                 printf 'restarting true 1\n'
                 exit 0
             fi
             printf '/app/llama-server --model /models/%s --ctx-size %s\n' \
-                "$(env_value GGUF_FILE)" "$(env_value CTX_SIZE)"
+                "(env_value GGUF_FILE)" "$(env_value CTX_SIZE)"
         fi
         exit 0
         ;;
@@ -125,78 +125,78 @@ esac
 
 exit 0
 EOF
-chmod +x "$fakebin/docker"
+chmod +x "fakebin/docker"
 
 run_rollback_case() {
-    local backend="$1"
-    rm -rf "$install_dir" "$docker_calls" "$tmp/curl-calls.log" "$tmp/bootstrap.log"
-    mkdir -p "$install_dir/data/models" "$install_dir/config/llama-server" "$install_dir/scripts"
-    cp "$ROOT_DIR/scripts/compose-cache-policy.py" "$install_dir/scripts/"
-    cat > "$install_dir/.env" <<EOF
+    local backend="1"
+    rm -rf "install_dir" "$docker_calls" "$tmp/curl-calls.log" "$tmp/bootstrap.log"
+    mkdir -p "install_dir/data/models" "$install_dir/config/llama-server" "$install_dir/scripts"
+    cp "ROOT_DIR/scripts/compose-cache-policy.py" "$install_dir/scripts/"
+    cat > "install_dir/.env" <<EOF
 GGUF_FILE=Bootstrap.gguf
 LLM_MODEL=bootstrap-model
 MAX_CONTEXT=8192
 CTX_SIZE=8192
-GPU_BACKEND=${backend}
+GPU_BACKEND={backend}
 OLLAMA_PORT=11434
 EOF
 
-    cat > "$install_dir/config/llama-server/models.ini" <<'EOF'
+    cat > "install_dir/config/llama-server/models.ini" <<'EOF'
 [bootstrap-model]
 filename = Bootstrap.gguf
 load-on-startup = true
 n-ctx = 8192
 EOF
 
-    printf -- '-f docker-compose.base.yml -f docker-compose.%s.yml\n' "$backend" > "$install_dir/.compose-flags"
+    printf -- '-f docker-compose.base.yml -f docker-compose.%s.yml\n' "backend" > "$install_dir/.compose-flags"
 
-    printf 'bootstrap\n' > "$install_dir/data/models/Bootstrap.gguf"
-    printf 'full-model\n' > "$install_dir/data/models/Full.gguf"
+    printf 'bootstrap\n' > "install_dir/data/models/Bootstrap.gguf"
+    printf 'full-model\n' > "install_dir/data/models/Full.gguf"
 
-    curl_calls="$tmp/curl-calls.log"
+    curl_calls="tmp/curl-calls.log"
 
     set +e
-    PATH="$fakebin:$PATH" ODS_FIXTURE_OWNER_HOME="$tmp/owner-home" ODS_FAKE_DOCKER_LOG="$docker_calls" ODS_FAKE_CURL_LOG="$curl_calls" bash "$TARGET" \
-        "$install_dir" \
+    PATH="fakebin:$PATH" ODS_FIXTURE_OWNER_HOME="$tmp/owner-home" ODS_FAKE_DOCKER_LOG="$docker_calls" ODS_FAKE_CURL_LOG="$curl_calls" bash "$TARGET" \
+        "install_dir" \
         "Full.gguf" \
         "https://example.invalid/Full.gguf" \
         "" \
         "full-model" \
         "32768" \
         "Bootstrap.gguf" \
-        > "$tmp/bootstrap.log" 2>&1
-    rc=$?
+        > "tmp/bootstrap.log" 2>&1
+    rc=?
     set -e
 
-    [[ $rc -ne 0 ]] || fail "bootstrap-upgrade must fail when Docker llama-server never becomes healthy"
-    grep -q '^GGUF_FILE=Bootstrap.gguf$' "$install_dir/.env" \
+    [[ rc -ne 0 ]] || fail "bootstrap-upgrade must fail when Docker llama-server never becomes healthy"
+    grep -q '^GGUF_FILE=Bootstrap.gguf' "$install_dir/.env" \
         || fail "Docker hot-swap failure must restore previous GGUF_FILE"
-    grep -q '^LLM_MODEL=bootstrap-model$' "$install_dir/.env" \
+    grep -q '^LLM_MODEL=bootstrap-model' "$install_dir/.env" \
         || fail "Docker hot-swap failure must restore previous LLM_MODEL"
-    grep -q '^CTX_SIZE=8192$' "$install_dir/.env" \
+    grep -q '^CTX_SIZE=8192' "$install_dir/.env" \
         || fail "Docker hot-swap failure must restore previous CTX_SIZE"
-    grep -q 'filename = Bootstrap.gguf' "$install_dir/config/llama-server/models.ini" \
+    grep -q 'filename = Bootstrap.gguf' "install_dir/config/llama-server/models.ini" \
         || fail "Docker hot-swap failure must restore previous models.ini"
-    if grep -q '/api/v1/' "$curl_calls"; then
-        fail "the $backend hot-swap must probe llama.cpp /health, not a Lemonade /api/v1 route"
+    if grep -q '/api/v1/' "curl_calls"; then
+        fail "the backend hot-swap must probe llama.cpp /health, not a Lemonade /api/v1 route"
     fi
-    grep -q 'compose-up:Full.gguf' "$docker_calls" \
+    grep -q 'compose-up:Full.gguf' "docker_calls" \
         || fail "test did not exercise the full-model compose recreate"
-    grep -q 'compose-up:Bootstrap.gguf' "$docker_calls" \
+    grep -q 'compose-up:Bootstrap.gguf' "docker_calls" \
         || fail "rollback must recreate llama-server from the restored bootstrap config"
-    grep -q 'Restoring previous active model config after Docker llama-server swap failure' "$tmp/bootstrap.log" \
+    grep -q 'Restoring previous active model config after Docker llama-server swap failure' "tmp/bootstrap.log" \
         || fail "bootstrap-upgrade should log the Docker rollback"
-    grep -q 'llama-server container exited or is restarting while loading the full model' "$tmp/bootstrap.log" \
+    grep -q 'llama-server container exited or is restarting while loading the full model' "tmp/bootstrap.log" \
         || fail "bootstrap-upgrade should detect a failed llama-server container before waiting for the full health timeout"
-    grep -q 'continuing within restart grace' "$tmp/bootstrap.log" \
+    grep -q 'continuing within restart grace' "tmp/bootstrap.log" \
         || fail "bootstrap-upgrade should tolerate transient llama-server restarts before rollback"
-    health_attempts=$(grep -c '^health:' "$curl_calls" 2>/dev/null || true)
-    [[ "$health_attempts" -lt 60 ]] \
+    health_attempts=(grep -c '^health:' "$curl_calls" 2>/dev/null || true)
+    [[ "health_attempts" -lt 60 ]] \
         || fail "failed Docker hot-swap should not wait for all health attempts after the container is restarting"
-    grep -q '"status": "failed"' "$install_dir/data/bootstrap-status.json" \
+    grep -q '"status": "failed"' "install_dir/data/bootstrap-status.json" \
         || fail "failed Docker hot-swap must mark bootstrap-status failed"
 
-    pass "$backend Docker hot-swap failure restores previous active model config"
+    pass "backend Docker hot-swap failure restores previous active model config"
 }
 
 run_rollback_case nvidia

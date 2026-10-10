@@ -7,21 +7,21 @@ echo "M8 Complete Test Suite"
 echo "======================================"
 echo ""
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PASSED=0
 FAILED=0
 SKIPPED=0
 
 run_test() {
-  local TEST_NAME="$1"
-  local TEST_SCRIPT="$2"
+  local TEST_NAME="1"
+  local TEST_SCRIPT="2"
   
   echo "---"
-  echo "Running: $TEST_NAME"
-  if bash "$SCRIPT_DIR/$TEST_SCRIPT"; then
-    PASSED=$((PASSED+1))
+  echo "Running: TEST_NAME"
+  if bash "SCRIPT_DIR/$TEST_SCRIPT"; then
+    PASSED=((PASSED+1))
   else
-    FAILED=$((FAILED+1))
+    FAILED=((FAILED+1))
   fi
   echo ""
 }
@@ -37,12 +37,12 @@ run_test "Concurrency Test" "test-concurrency.sh"
 echo "======================================"
 echo "M8 Test Summary"
 echo "======================================"
-echo "Passed: $PASSED"
-echo "Failed: $FAILED"
-echo "Total:  $((PASSED+FAILED))"
+echo "Passed: PASSED"
+echo "Failed: FAILED"
+echo "Total:  ((PASSED+FAILED))"
 echo ""
 
-if [ $FAILED -eq 0 ]; then
+if [ FAILED -eq 0 ]; then
   echo "✅ All M8 tests passed!"
   exit 0
 else

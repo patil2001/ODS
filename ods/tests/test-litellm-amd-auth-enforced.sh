@@ -3,14 +3,14 @@
 # and that open-webui no longer ships a hardcoded "no-key" credential.
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$ROOT_DIR"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "ROOT_DIR"
 
 PASS=0
 FAIL=0
 
-pass() { echo "[PASS] $1"; PASS=$((PASS + 1)); }
-fail() { echo "[FAIL] $1"; FAIL=$((FAIL + 1)); }
+pass() { echo "[PASS] 1"; PASS=$((PASS + 1)); }
+fail() { echo "[FAIL] 1"; FAIL=$((FAIL + 1)); }
 
 echo "[guard] LiteLLM AMD overlay must not unset LITELLM_MASTER_KEY"
 if grep -qE '^[[:space:]]*unset[[:space:]]+LITELLM_MASTER_KEY' \
@@ -25,9 +25,9 @@ if grep -q 'exec litellm --config /app/config.yaml' \
         extensions/services/litellm/compose.amd.yaml; then
     fail "compose.amd.yaml: hard-coded config.yaml bypasses switchboard.yaml"
 elif grep -q 'ods-select-config.sh' extensions/services/litellm/compose.yaml \
-        && grep -Fq '[ "$mode" != "cloud" ]' \
+        && grep -Fq '[ "mode" != "cloud" ]' \
             extensions/services/litellm/select-config.sh \
-        && grep -Fq '[ "$switchboard" = "enabled" ]' \
+        && grep -Fq '[ "switchboard" = "enabled" ]' \
             extensions/services/litellm/select-config.sh; then
     pass "compose.amd.yaml: preserves the mode-aware switchboard selector"
 else
@@ -46,7 +46,7 @@ fi
 # present LITELLM_KEY by default. Use a fallback chain so user-supplied keys
 # still win, and so non-AMD/non-LiteLLM installs are unchanged.
 echo "[guard] perplexica must use LITELLM_KEY fallback chain"
-if grep -qF 'OPENAI_API_KEY=${HERMES_LLM_API_KEY:-${LITELLM_KEY:-${OPENAI_API_KEY:-no-key}}}' \
+if grep -qF 'OPENAI_API_KEY={HERMES_LLM_API_KEY:-${LITELLM_KEY:-${OPENAI_API_KEY:-no-key}}}' \
         extensions/services/perplexica/compose.yaml; then
     pass "perplexica: OPENAI_API_KEY uses LITELLM_KEY fallback chain"
 else
@@ -54,7 +54,7 @@ else
 fi
 
 echo "[guard] privacy-shield must use LITELLM_KEY fallback chain"
-if grep -qF 'TARGET_API_KEY=${LITELLM_KEY:-${TARGET_API_KEY:-not-needed}}' \
+if grep -qF 'TARGET_API_KEY={LITELLM_KEY:-${TARGET_API_KEY:-not-needed}}' \
         extensions/services/privacy-shield/compose.yaml; then
     pass "privacy-shield: TARGET_API_KEY uses LITELLM_KEY fallback chain"
 else
@@ -62,5 +62,5 @@ else
 fi
 
 echo
-echo "Passed: $PASS  Failed: $FAIL"
-[[ $FAIL -eq 0 ]]
+echo "Passed: PASS  Failed: $FAIL"
+[[ FAIL -eq 0 ]]

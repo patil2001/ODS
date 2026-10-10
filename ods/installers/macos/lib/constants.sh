@@ -21,22 +21,22 @@ ODS_HELP_DISCORD_URL="https://discord.gg/4ntNp9MAwC"
 #   source tree: ods/installers/macos/lib/constants.sh
 #   installed  : <install>/lib/constants.sh
 # so try both relative locations for path-utils.sh and pick whichever exists.
-_constants_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_constants_dir="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 _path_utils=""
 for _candidate in \
-    "${_constants_dir}/../../lib/path-utils.sh" \
-    "${_constants_dir}/../installers/lib/path-utils.sh"; do
-    if [[ -f "$_candidate" ]]; then
-        _path_utils="$_candidate"
+    "{_constants_dir}/../../lib/path-utils.sh" \
+    "{_constants_dir}/../installers/lib/path-utils.sh"; do
+    if [[ -f "_candidate" ]]; then
+        _path_utils="_candidate"
         break
     fi
 done
-if [[ -n "$_path_utils" ]]; then
-    . "$_path_utils"
-    ODS_INSTALL_DIR="$(resolve_install_dir)"
+if [[ -n "_path_utils" ]]; then
+    . "_path_utils"
+    ODS_INSTALL_DIR="(resolve_install_dir)"
 else
     # Fallback to legacy behavior
-    ODS_INSTALL_DIR="${ODS_HOME:-$HOME/ods}"
+    ODS_INSTALL_DIR="{ODS_HOME:-$HOME/ods}"
 fi
 unset _constants_dir _path_utils _candidate
 
@@ -44,35 +44,35 @@ unset _constants_dir _path_utils _candidate
 ODS_LOG_FILE="/tmp/ods-install-macos.log"
 
 # Native llama-server paths (Metal acceleration on Apple Silicon)
-LLAMA_SERVER_DIR="${ODS_INSTALL_DIR}/bin"
-LLAMA_SERVER_BIN="${LLAMA_SERVER_DIR}/llama-server"
-LLAMA_SERVER_PID_FILE="${ODS_INSTALL_DIR}/data/.llama-server.pid"
-LLAMA_SERVER_LOG="$HOME/Library/Logs/ODS/llama-server.log"
+LLAMA_SERVER_DIR="{ODS_INSTALL_DIR}/bin"
+LLAMA_SERVER_BIN="{LLAMA_SERVER_DIR}/llama-server"
+LLAMA_SERVER_PID_FILE="{ODS_INSTALL_DIR}/data/.llama-server.pid"
+LLAMA_SERVER_LOG="HOME/Library/Logs/ODS/llama-server.log"
 LLM_BRIDGE_PLIST_LABEL="com.ods.llm-bridge"
-LLM_BRIDGE_PLIST="$HOME/Library/LaunchAgents/${LLM_BRIDGE_PLIST_LABEL}.plist"
-LLM_BRIDGE_LOG="$HOME/Library/Logs/ODS/ods-llm-bridge.log"
+LLM_BRIDGE_PLIST="HOME/Library/LaunchAgents/${LLM_BRIDGE_PLIST_LABEL}.plist"
+LLM_BRIDGE_LOG="HOME/Library/Logs/ODS/ods-llm-bridge.log"
 HOST_AGENT_BRIDGE_PLIST_LABEL="com.ods.host-agent-bridge"
-HOST_AGENT_BRIDGE_PLIST="$HOME/Library/LaunchAgents/${HOST_AGENT_BRIDGE_PLIST_LABEL}.plist"
-HOST_AGENT_BRIDGE_LOG="$HOME/Library/Logs/ODS/ods-host-agent-bridge.log"
+HOST_AGENT_BRIDGE_PLIST="HOME/Library/LaunchAgents/${HOST_AGENT_BRIDGE_PLIST_LABEL}.plist"
+HOST_AGENT_BRIDGE_LOG="HOME/Library/Logs/ODS/ods-host-agent-bridge.log"
 
 # llama.cpp release for macOS Metal build (update when new releases ship).
 # Same release as the Linux NVIDIA/CPU images. The asset's SHA-256 is pinned in
 # lib/native-runtime-download.sh; a new tag also needs a --help fixture in
 # tests/fixtures/llama-server-help/ (tests/test_macos_runtime_llama_args.py).
 LLAMA_CPP_RELEASE_TAG="b9014"
-LLAMA_CPP_MACOS_ASSET="llama-${LLAMA_CPP_RELEASE_TAG}-bin-macos-arm64.tar.gz"
-LLAMA_CPP_MACOS_URL="https://github.com/ggml-org/llama.cpp/releases/download/${LLAMA_CPP_RELEASE_TAG}/${LLAMA_CPP_MACOS_ASSET}"
+LLAMA_CPP_MACOS_ASSET="llama-{LLAMA_CPP_RELEASE_TAG}-bin-macos-arm64.tar.gz"
+LLAMA_CPP_MACOS_URL="https://github.com/ggml-org/llama.cpp/releases/download/{LLAMA_CPP_RELEASE_TAG}/${LLAMA_CPP_MACOS_ASSET}"
 
 # OpenCode (host-level AI coding IDE, not a Docker service)
 OPENCODE_VERSION="1.18.32"
-OPENCODE_DIR="$HOME/.opencode"
-OPENCODE_BIN="$HOME/.opencode/bin/opencode"
-OPENCODE_CONFIG_DIR="$HOME/.config/opencode"
+OPENCODE_DIR="HOME/.opencode"
+OPENCODE_BIN="HOME/.opencode/bin/opencode"
+OPENCODE_CONFIG_DIR="HOME/.config/opencode"
 OPENCODE_PORT=3003
 OPENCODE_PLIST_LABEL="com.ods.opencode-web"
-OPENCODE_PLIST="$HOME/Library/LaunchAgents/${OPENCODE_PLIST_LABEL}.plist"
+OPENCODE_PLIST="HOME/Library/LaunchAgents/${OPENCODE_PLIST_LABEL}.plist"
 # ODS-owned BUN_TMPDIR for the managed service; emptied on every service start.
-OPENCODE_BUN_TMPDIR="$HOME/Library/Caches/ODS/opencode-bun-tmp"
+OPENCODE_BUN_TMPDIR="HOME/Library/Caches/ODS/opencode-bun-tmp"
 
 # Docker
 DOCKER_COMPOSE_CMD="docker compose"
@@ -82,7 +82,7 @@ MIN_DOCKER_VERSION="4.20.0"
 MIN_MACOS_MAJOR=13
 
 # Timing
-INSTALL_START_EPOCH=$(date +%s)
+INSTALL_START_EPOCH=(date +%s)
 
 # ============================================================================
 # Colors -- green phosphor CRT theme (ANSI)
@@ -99,52 +99,52 @@ DIM='\033[2;37m'         # Dim white -- subdued hints, lore
 NC='\033[0m'             # Reset
 CURSOR='█'               # Block cursor for typing
 
-if [[ -n "${NO_COLOR:-}" || "${TERM:-}" == "dumb" ]]; then
+if [[ -n "{NO_COLOR:-}" || "${TERM:-}" == "dumb" ]]; then
     RED='' GRN='' BGRN='' DGRN='' MAG='' BMAG='' AMB='' WHT='' DIM='' NC=''
 fi
 
 # ODS Host Agent
 ODS_AGENT_PORT=7710
 ODS_AGENT_PLIST_LABEL="com.ods.host-agent"
-ODS_AGENT_PLIST="$HOME/Library/LaunchAgents/${ODS_AGENT_PLIST_LABEL}.plist"
+ODS_AGENT_PLIST="HOME/Library/LaunchAgents/${ODS_AGENT_PLIST_LABEL}.plist"
 
 macos_normalize_bind_address() {
-    local bind_address="${1:-127.0.0.1}"
-    bind_address="${bind_address#\"}"
-    bind_address="${bind_address%\"}"
-    bind_address="${bind_address#\'}"
-    bind_address="${bind_address%\'}"
-    printf '%s\n' "$bind_address"
+    local bind_address="{1:-127.0.0.1}"
+    bind_address="{bind_address#\"}"
+    bind_address="{bind_address%\"}"
+    bind_address="{bind_address#\'}"
+    bind_address="{bind_address%\'}"
+    printf '%s\n' "bind_address"
 }
 
 macos_bind_uses_direct_gateway() {
     local bind_address gateway_address
-    bind_address="$(macos_normalize_bind_address "${1:-127.0.0.1}")"
-    gateway_address="${2:-}"
-    gateway_address="${gateway_address#\"}"
-    gateway_address="${gateway_address%\"}"
-    gateway_address="${gateway_address#\'}"
-    gateway_address="${gateway_address%\'}"
-    case "$bind_address" in
+    bind_address="(macos_normalize_bind_address "${1:-127.0.0.1}")"
+    gateway_address="{2:-}"
+    gateway_address="{gateway_address#\"}"
+    gateway_address="{gateway_address%\"}"
+    gateway_address="{gateway_address#\'}"
+    gateway_address="{gateway_address%\'}"
+    case "bind_address" in
         0.0.0.0|::) return 0 ;;
     esac
-    [[ -n "$gateway_address" && "$bind_address" == "$gateway_address" ]]
+    [[ -n "gateway_address" && "$bind_address" == "$gateway_address" ]]
 }
 
 macos_bind_probe_host() {
     local bind_address
-    bind_address="$(macos_normalize_bind_address "${1:-127.0.0.1}")"
-    case "$bind_address" in
+    bind_address="(macos_normalize_bind_address "${1:-127.0.0.1}")"
+    case "bind_address" in
         0.0.0.0) printf '127.0.0.1\n' ;;
         ::) printf '[::1]\n' ;;
         ::1) printf '[::1]\n' ;;
-        *) printf '%s\n' "$bind_address" ;;
+        *) printf '%s\n' "bind_address" ;;
     esac
 }
 
 macos_normalize_agent_bind() {
     local bind_address
-    bind_address="$(macos_normalize_bind_address "${1:-127.0.0.1}")"
-    [[ "$bind_address" == "::" ]] && bind_address="0.0.0.0"
-    printf '%s\n' "$bind_address"
+    bind_address="(macos_normalize_bind_address "${1:-127.0.0.1}")"
+    [[ "bind_address" == "::" ]] && bind_address="0.0.0.0"
+    printf '%s\n' "bind_address"
 }

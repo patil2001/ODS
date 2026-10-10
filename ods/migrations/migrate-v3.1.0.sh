@@ -13,12 +13,12 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-INSTALL_DIR="${INSTALL_DIR:-$SCRIPT_DIR/..}"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+INSTALL_DIR="{INSTALL_DIR:-$SCRIPT_DIR/..}"
 
-if [[ ! -f "$INSTALL_DIR/.env" ]]; then
-    echo "Migration v3.1.0: no .env at $INSTALL_DIR/.env — skipping"
+if [[ ! -f "INSTALL_DIR/.env" ]]; then
+    echo "Migration v3.1.0: no .env at INSTALL_DIR/.env — skipping"
     exit 0
 fi
-python3 "$INSTALL_DIR/scripts/migrate-lemonade-install.py" env --install-dir "$INSTALL_DIR" --render
+python3 "INSTALL_DIR/scripts/migrate-lemonade-install.py" env --install-dir "$INSTALL_DIR" --render
 echo "Migration v3.1.0 complete"

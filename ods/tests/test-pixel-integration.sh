@@ -12,16 +12,16 @@
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LIB_PATH="$SCRIPT_DIR/../installers/lib/pixel-integration.sh"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_PATH="SCRIPT_DIR/../installers/lib/pixel-integration.sh"
 
-if [[ ! -f "$LIB_PATH" ]]; then
-    echo "FATAL: pixel-integration.sh not found at $LIB_PATH"
+if [[ ! -f "LIB_PATH" ]]; then
+    echo "FATAL: pixel-integration.sh not found at LIB_PATH"
     exit 1
 fi
 
 # Source the library
-source "$LIB_PATH"
+source "LIB_PATH"
 
 # ---- Test harness -----------------------------------------------------------
 
@@ -30,54 +30,54 @@ FAIL=0
 TOTAL=0
 
 pass() {
-    PASS=$((PASS + 1))
-    TOTAL=$((TOTAL + 1))
-    echo "  ✓ PASS: $1"
+    PASS=((PASS + 1))
+    TOTAL=((TOTAL + 1))
+    echo "  ✓ PASS: 1"
 }
 
 fail() {
-    FAIL=$((FAIL + 1))
-    TOTAL=$((TOTAL + 1))
-    echo "  ✗ FAIL: $1"
+    FAIL=((FAIL + 1))
+    TOTAL=((TOTAL + 1))
+    echo "  ✗ FAIL: 1"
 }
 
 section() {
     echo ""
-    echo "══ $1 ══"
+    echo "══ 1 ══"
 }
 
 # ---- Temporary fixtures -----------------------------------------------------
 
-TMPDIR_TEST="$(mktemp -d)"
+TMPDIR_TEST="(mktemp -d)"
 cleanup() {
-    if [[ -n "${TMPDIR_TEST:-}" && "$TMPDIR_TEST" == /tmp/* && -d "$TMPDIR_TEST" ]]; then
-        rm -rf -- "$TMPDIR_TEST"
+    if [[ -n "{TMPDIR_TEST:-}" && "$TMPDIR_TEST" == /tmp/* && -d "$TMPDIR_TEST" ]]; then
+        rm -rf -- "TMPDIR_TEST"
     fi
 }
 trap cleanup EXIT
 
 # Create os-release fixtures
 create_os_release() {
-    local path="$1"
+    local path="1"
     shift
-    printf '%s\n' "$@" > "$path"
-    chmod 0644 "$path"
+    printf '%s\n' "@" > "$path"
+    chmod 0644 "path"
 }
 
 # Create a mock /proc/1/comm
 create_proc1_comm() {
-    local path="$1"
-    local content="$2"
-    printf '%s\n' "$content" > "$path"
-    chmod 0644 "$path"
+    local path="1"
+    local content="2"
+    printf '%s\n' "content" > "$path"
+    chmod 0644 "path"
 }
 
 # Create a mock /proc/version
 create_proc_version() {
-    local path="$1"
-    local content="$2"
-    printf '%s' "$content" > "$path"
-    chmod 0644 "$path"
+    local path="1"
+    local content="2"
+    printf '%s' "content" > "$path"
+    chmod 0644 "path"
 }
 
 # ---- ods_pixel_host_qualified tests -----------------------------------------
@@ -85,53 +85,53 @@ create_proc_version() {
 section "ods_pixel_host_qualified — supported platforms"
 
 # Ubuntu 24.04 + systemd
-F_FIXTURE="$TMPDIR_TEST/ubuntu2404"
-mkdir -p "$F_FIXTURE"
-create_os_release "$F_FIXTURE/os-release" \
+F_FIXTURE="TMPDIR_TEST/ubuntu2404"
+mkdir -p "F_FIXTURE"
+create_os_release "F_FIXTURE/os-release" \
     'NAME="Ubuntu"' \
     'VERSION="24.04 LTS (Noble Numbat)"' \
     'ID=ubuntu' \
     'ID_LIKE=debian' \
     'VERSION_ID="24.04"' \
     'PRETTY_NAME="Ubuntu 24.04 LTS"'
-create_proc1_comm "$F_FIXTURE/proc1" "systemd"
-create_proc_version "$F_FIXTURE/procver" "Linux version 6.8.0-31-generic (Ubuntu 6.8.0-31.31-generic)..."
-if ods_pixel_host_qualified "$F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver"; then
+create_proc1_comm "F_FIXTURE/proc1" "systemd"
+create_proc_version "F_FIXTURE/procver" "Linux version 6.8.0-31-generic (Ubuntu 6.8.0-31.31-generic)..."
+if ods_pixel_host_qualified "F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver"; then
     pass "Ubuntu 24.04 + systemd is qualified"
 else
     fail "Ubuntu 24.04 + systemd should be qualified"
 fi
 
 # Ubuntu 26.04 + systemd
-F_FIXTURE="$TMPDIR_TEST/ubuntu2604"
-mkdir -p "$F_FIXTURE"
-create_os_release "$F_FIXTURE/os-release" \
+F_FIXTURE="TMPDIR_TEST/ubuntu2604"
+mkdir -p "F_FIXTURE"
+create_os_release "F_FIXTURE/os-release" \
     'NAME="Ubuntu"' \
     'VERSION="26.04 LTS"' \
     'ID=ubuntu' \
     'ID_LIKE=debian' \
     'VERSION_ID="26.04"' \
     'PRETTY_NAME="Ubuntu 26.04 LTS"'
-create_proc1_comm "$F_FIXTURE/proc1" "systemd"
-create_proc_version "$F_FIXTURE/procver" "Linux version 7.0.0-29-generic (Ubuntu 7.0.0-29.29-generic)..."
-if ods_pixel_host_qualified "$F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver"; then
+create_proc1_comm "F_FIXTURE/proc1" "systemd"
+create_proc_version "F_FIXTURE/procver" "Linux version 7.0.0-29-generic (Ubuntu 7.0.0-29.29-generic)..."
+if ods_pixel_host_qualified "F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver"; then
     pass "Ubuntu 26.04 + systemd is qualified"
 else
     fail "Ubuntu 26.04 + systemd should be qualified"
 fi
 
 # Debian 12 + systemd
-F_FIXTURE="$TMPDIR_TEST/debian12"
-mkdir -p "$F_FIXTURE"
-create_os_release "$F_FIXTURE/os-release" \
+F_FIXTURE="TMPDIR_TEST/debian12"
+mkdir -p "F_FIXTURE"
+create_os_release "F_FIXTURE/os-release" \
     'PRETTY_NAME="Debian GNU/Linux 12 (bookworm)"' \
     'NAME="Debian GNU/Linux"' \
     'VERSION_ID="12"' \
     'VERSION="12 (bookworm)"' \
     'ID=debian'
-create_proc1_comm "$F_FIXTURE/proc1" "systemd"
-create_proc_version "$F_FIXTURE/procver" "Linux version 6.1.0 (Debian 6.1.0-12-amd64)..."
-if ods_pixel_host_qualified "$F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver"; then
+create_proc1_comm "F_FIXTURE/proc1" "systemd"
+create_proc_version "F_FIXTURE/procver" "Linux version 6.1.0 (Debian 6.1.0-12-amd64)..."
+if ods_pixel_host_qualified "F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver"; then
     pass "Debian 12 + systemd is qualified"
 else
     fail "Debian 12 + systemd should be qualified"
@@ -140,48 +140,48 @@ fi
 section "ods_pixel_host_qualified — WSL2 with systemd"
 
 # WSL2 + Ubuntu 24.04 + systemd (should be qualified)
-F_FIXTURE="$TMPDIR_TEST/wsl2-systemd"
-mkdir -p "$F_FIXTURE"
-create_os_release "$F_FIXTURE/os-release" \
+F_FIXTURE="TMPDIR_TEST/wsl2-systemd"
+mkdir -p "F_FIXTURE"
+create_os_release "F_FIXTURE/os-release" \
     'NAME="Ubuntu"' \
     'VERSION="24.04 LTS (Noble Numbat)"' \
     'ID=ubuntu' \
     'ID_LIKE=debian' \
     'VERSION_ID="24.04"' \
     'PRETTY_NAME="Ubuntu 24.04 LTS"'
-create_proc1_comm "$F_FIXTURE/proc1" "systemd"
-create_proc_version "$F_FIXTURE/procver" "Linux version 5.15.133.1-microsoft-standard-WSL2..."
-if ods_pixel_host_qualified "$F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver"; then
+create_proc1_comm "F_FIXTURE/proc1" "systemd"
+create_proc_version "F_FIXTURE/procver" "Linux version 5.15.133.1-microsoft-standard-WSL2..."
+if ods_pixel_host_qualified "F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver"; then
     pass "WSL2 + Ubuntu 24.04 + systemd is qualified"
 else
     fail "WSL2 + Ubuntu 24.04 + systemd should be qualified"
 fi
 
 # WSL2 + Ubuntu 26.04 + systemd (should be qualified)
-F_FIXTURE="$TMPDIR_TEST/wsl2-ubuntu2604-systemd"
-mkdir -p "$F_FIXTURE"
-create_os_release "$F_FIXTURE/os-release" \
+F_FIXTURE="TMPDIR_TEST/wsl2-ubuntu2604-systemd"
+mkdir -p "F_FIXTURE"
+create_os_release "F_FIXTURE/os-release" \
     'NAME="Ubuntu"' \
     'VERSION="26.04 LTS"' \
     'ID=ubuntu' \
     'ID_LIKE=debian' \
     'VERSION_ID="26.04"' \
     'PRETTY_NAME="Ubuntu 26.04 LTS"'
-create_proc1_comm "$F_FIXTURE/proc1" "systemd"
-create_proc_version "$F_FIXTURE/procver" "Linux version 7.0.0-microsoft-standard-WSL2..."
-if ods_pixel_host_qualified "$F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver"; then
+create_proc1_comm "F_FIXTURE/proc1" "systemd"
+create_proc_version "F_FIXTURE/procver" "Linux version 7.0.0-microsoft-standard-WSL2..."
+if ods_pixel_host_qualified "F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver"; then
     pass "WSL2 + Ubuntu 26.04 + systemd is qualified"
 else
     fail "WSL2 + Ubuntu 26.04 + systemd should be qualified"
 fi
 
 # WSL1-like kernel string remains unqualified even if a fixture claims systemd.
-F_FIXTURE="$TMPDIR_TEST/wsl1-systemd"
-mkdir -p "$F_FIXTURE"
-create_os_release "$F_FIXTURE/os-release" 'ID=ubuntu' 'VERSION_ID="24.04"'
-create_proc1_comm "$F_FIXTURE/proc1" "systemd"
-create_proc_version "$F_FIXTURE/procver" "Linux version 4.4.0-Microsoft"
-if ! ods_pixel_host_qualified "$F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver"; then
+F_FIXTURE="TMPDIR_TEST/wsl1-systemd"
+mkdir -p "F_FIXTURE"
+create_os_release "F_FIXTURE/os-release" 'ID=ubuntu' 'VERSION_ID="24.04"'
+create_proc1_comm "F_FIXTURE/proc1" "systemd"
+create_proc_version "F_FIXTURE/procver" "Linux version 4.4.0-Microsoft"
+if ! ods_pixel_host_qualified "F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver"; then
     pass "WSL1-like host is rejected"
 else
     fail "WSL1-like host should not be qualified"
@@ -190,16 +190,16 @@ fi
 section "ods_pixel_host_qualified — WSL without systemd"
 
 # WSL + init (not systemd) — must be rejected
-F_FIXTURE="$TMPDIR_TEST/wsl-no-systemd"
-mkdir -p "$F_FIXTURE"
-create_os_release "$F_FIXTURE/os-release" \
+F_FIXTURE="TMPDIR_TEST/wsl-no-systemd"
+mkdir -p "F_FIXTURE"
+create_os_release "F_FIXTURE/os-release" \
     'NAME="Ubuntu"' \
     'VERSION="24.04 LTS"' \
     'ID=ubuntu' \
     'VERSION_ID="24.04"'
-create_proc1_comm "$F_FIXTURE/proc1" "init"
-create_proc_version "$F_FIXTURE/procver" "Linux version 5.15.133.1-microsoft-standard-WSL2..."
-if ! ods_pixel_host_qualified "$F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver"; then
+create_proc1_comm "F_FIXTURE/proc1" "init"
+create_proc_version "F_FIXTURE/procver" "Linux version 5.15.133.1-microsoft-standard-WSL2..."
+if ! ods_pixel_host_qualified "F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver"; then
     pass "WSL without systemd is rejected"
 else
     fail "WSL without systemd should be rejected"
@@ -208,28 +208,28 @@ fi
 section "ods_pixel_host_qualified — unsupported platforms"
 
 # Ubuntu 22.04
-F_FIXTURE="$TMPDIR_TEST/ubuntu2204"
-mkdir -p "$F_FIXTURE"
-create_os_release "$F_FIXTURE/os-release" \
+F_FIXTURE="TMPDIR_TEST/ubuntu2204"
+mkdir -p "F_FIXTURE"
+create_os_release "F_FIXTURE/os-release" \
     'ID=ubuntu' \
     'VERSION_ID="22.04"'
-create_proc1_comm "$F_FIXTURE/proc1" "systemd"
-create_proc_version "$F_FIXTURE/procver" "Linux version 5.15.0..."
-if ! ods_pixel_host_qualified "$F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver"; then
+create_proc1_comm "F_FIXTURE/proc1" "systemd"
+create_proc_version "F_FIXTURE/procver" "Linux version 5.15.0..."
+if ! ods_pixel_host_qualified "F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver"; then
     pass "Ubuntu 22.04 is not qualified"
 else
     fail "Ubuntu 22.04 should not be qualified"
 fi
 
 # Fedora-like
-F_FIXTURE="$TMPDIR_TEST/fedora"
-mkdir -p "$F_FIXTURE"
-create_os_release "$F_FIXTURE/os-release" \
+F_FIXTURE="TMPDIR_TEST/fedora"
+mkdir -p "F_FIXTURE"
+create_os_release "F_FIXTURE/os-release" \
     'ID=fedora' \
     'VERSION_ID="39"'
-create_proc1_comm "$F_FIXTURE/proc1" "systemd"
-create_proc_version "$F_FIXTURE/procver" "Linux version 6.8.0..."
-if ! ods_pixel_host_qualified "$F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver"; then
+create_proc1_comm "F_FIXTURE/proc1" "systemd"
+create_proc_version "F_FIXTURE/procver" "Linux version 6.8.0..."
+if ! ods_pixel_host_qualified "F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver"; then
     pass "Fedora is not qualified"
 else
     fail "Fedora should not be qualified"
@@ -237,13 +237,13 @@ fi
 
 # macOS-like (uname != Linux) — simulate by checking non-Linux uname
 # We cannot change uname, so we test with a non-existent PID1 path
-F_FIXTURE="$TMPDIR_TEST/macos"
-mkdir -p "$F_FIXTURE"
-create_os_release "$F_FIXTURE/os-release" \
+F_FIXTURE="TMPDIR_TEST/macos"
+mkdir -p "F_FIXTURE"
+create_os_release "F_FIXTURE/os-release" \
     'ID=macos' \
     'VERSION_ID="14"'
 # No /proc/1/comm on macOS — pass a nonexistent path
-if ! ods_pixel_host_qualified "$F_FIXTURE/os-release" "$F_FIXTURE/nonexistent" "$F_FIXTURE/procver"; then
+if ! ods_pixel_host_qualified "F_FIXTURE/os-release" "$F_FIXTURE/nonexistent" "$F_FIXTURE/procver"; then
     pass "macOS-like (no PID1 comm) is not qualified"
 else
     fail "macOS-like should not be qualified"
@@ -254,23 +254,23 @@ fi
 section "ods_pixel_host_qualified — malicious os-release content"
 
 # os-release with command substitution in value
-F_FIXTURE="$TMPDIR_TEST/malicious-cmdsubst"
-mkdir -p "$F_FIXTURE"
-MALICIOUS_MARKER="$TMPDIR_TEST/pwned-marker"
-create_os_release "$F_FIXTURE/os-release" \
+F_FIXTURE="TMPDIR_TEST/malicious-cmdsubst"
+mkdir -p "F_FIXTURE"
+MALICIOUS_MARKER="TMPDIR_TEST/pwned-marker"
+create_os_release "F_FIXTURE/os-release" \
     'ID=ubuntu' \
     'VERSION_ID="24.04"' \
-    "HACK=\$(touch $MALICIOUS_MARKER)"
-create_proc1_comm "$F_FIXTURE/proc1" "systemd"
+    "HACK=\(touch $MALICIOUS_MARKER)"
+create_proc1_comm "F_FIXTURE/proc1" "systemd"
 # Should still work because we parse safely; the HACK line is just ignored
-if ods_pixel_host_qualified "$F_FIXTURE/os-release" "$F_FIXTURE/proc1"; then
+if ods_pixel_host_qualified "F_FIXTURE/os-release" "$F_FIXTURE/proc1"; then
     pass "Malicious command-substitution os-release is safely parsed"
 else
     fail "Malicious os-release should still be parseable (ID/VERSION_ID valid)"
 fi
 
 # Verify no side effects
-if [[ -f "$MALICIOUS_MARKER" ]]; then
+if [[ -f "MALICIOUS_MARKER" ]]; then
     fail "Malicious os-release caused file creation — code execution detected!"
 else
     pass "No side effects from malicious os-release"
@@ -281,40 +281,40 @@ fi
 section "ods_pixel_host_qualified — os-release edge cases"
 
 # Symlink os-release — must be rejected
-F_FIXTURE="$TMPDIR_TEST/symlink-os-release"
-mkdir -p "$F_FIXTURE"
-create_os_release "$F_FIXTURE/real-release" 'ID=ubuntu' 'VERSION_ID="24.04"'
-ln -s "$F_FIXTURE/real-release" "$F_FIXTURE/os-release-link"
-create_proc1_comm "$F_FIXTURE/proc1" "systemd"
-if ! ods_pixel_host_qualified "$F_FIXTURE/os-release-link" "$F_FIXTURE/proc1"; then
+F_FIXTURE="TMPDIR_TEST/symlink-os-release"
+mkdir -p "F_FIXTURE"
+create_os_release "F_FIXTURE/real-release" 'ID=ubuntu' 'VERSION_ID="24.04"'
+ln -s "F_FIXTURE/real-release" "$F_FIXTURE/os-release-link"
+create_proc1_comm "F_FIXTURE/proc1" "systemd"
+if ! ods_pixel_host_qualified "F_FIXTURE/os-release-link" "$F_FIXTURE/proc1"; then
     pass "Symlink os-release is rejected"
 else
     fail "Symlink os-release should be rejected"
 fi
 
 # Duplicate keys
-F_FIXTURE="$TMPDIR_TEST/dup-keys"
-mkdir -p "$F_FIXTURE"
-create_os_release "$F_FIXTURE/os-release" \
+F_FIXTURE="TMPDIR_TEST/dup-keys"
+mkdir -p "F_FIXTURE"
+create_os_release "F_FIXTURE/os-release" \
     'ID=ubuntu' \
     'VERSION_ID="24.04"' \
     'ID=debian'
-create_proc1_comm "$F_FIXTURE/proc1" "systemd"
-if ! ods_pixel_host_qualified "$F_FIXTURE/os-release" "$F_FIXTURE/proc1"; then
+create_proc1_comm "F_FIXTURE/proc1" "systemd"
+if ! ods_pixel_host_qualified "F_FIXTURE/os-release" "$F_FIXTURE/proc1"; then
     pass "Duplicate ID key is rejected"
 else
     fail "Duplicate ID key should be rejected"
 fi
 
 # Duplicate VERSION_ID
-F_FIXTURE="$TMPDIR_TEST/dup-version"
-mkdir -p "$F_FIXTURE"
-create_os_release "$F_FIXTURE/os-release" \
+F_FIXTURE="TMPDIR_TEST/dup-version"
+mkdir -p "F_FIXTURE"
+create_os_release "F_FIXTURE/os-release" \
     'ID=ubuntu' \
     'VERSION_ID="24.04"' \
     'VERSION_ID="22.04"'
-create_proc1_comm "$F_FIXTURE/proc1" "systemd"
-if ! ods_pixel_host_qualified "$F_FIXTURE/os-release" "$F_FIXTURE/proc1"; then
+create_proc1_comm "F_FIXTURE/proc1" "systemd"
+if ! ods_pixel_host_qualified "F_FIXTURE/os-release" "$F_FIXTURE/proc1"; then
     pass "Duplicate VERSION_ID key is rejected"
 else
     fail "Duplicate VERSION_ID key should be rejected"
@@ -325,72 +325,72 @@ fi
 section "ods_pixel_resolve_enablement"
 
 # false -> hermes
-result="$(ods_pixel_resolve_enablement false)"
-if [[ "$result" == "hermes" ]]; then
+result="(ods_pixel_resolve_enablement false)"
+if [[ "result" == "hermes" ]]; then
     pass "enablement false -> hermes"
 else
-    fail "enablement false -> expected 'hermes', got '$result'"
+    fail "enablement false -> expected 'hermes', got 'result'"
 fi
 
 # Qualified hosts select Pixel without a separate acknowledgement flag.
-QUALIFIED_FIXTURE="$TMPDIR_TEST/ubuntu2404"
-if result="$(ods_pixel_resolve_enablement true "$QUALIFIED_FIXTURE/os-release" "$QUALIFIED_FIXTURE/proc1" "$QUALIFIED_FIXTURE/procver" 2>/dev/null)" && [[ "$result" == pixel ]]; then
+QUALIFIED_FIXTURE="TMPDIR_TEST/ubuntu2404"
+if result="(ods_pixel_resolve_enablement true "$QUALIFIED_FIXTURE/os-release" "$QUALIFIED_FIXTURE/proc1" "$QUALIFIED_FIXTURE/procver" 2>/dev/null)" && [[ "$result" == pixel ]]; then
     pass "enablement true on qualified host selects Pixel"
 else
     fail "enablement true on qualified host should select Pixel"
 fi
 
 # Auto also selects Pixel on a qualified host.
-result="$(ods_pixel_resolve_enablement auto "$QUALIFIED_FIXTURE/os-release" "$QUALIFIED_FIXTURE/proc1" "$QUALIFIED_FIXTURE/procver")"
-if [[ "$result" == "pixel" ]]; then
+result="(ods_pixel_resolve_enablement auto "$QUALIFIED_FIXTURE/os-release" "$QUALIFIED_FIXTURE/proc1" "$QUALIFIED_FIXTURE/procver")"
+if [[ "result" == "pixel" ]]; then
     pass "enablement auto on qualified host -> pixel"
 else
-    fail "enablement auto on qualified host -> expected 'pixel', got '$result'"
+    fail "enablement auto on qualified host -> expected 'pixel', got 'result'"
 fi
 
 # An unqualified host still fails explicit Pixel mode.
-F_FIXTURE="$TMPDIR_TEST/fedora-en"
-mkdir -p "$F_FIXTURE"
-create_os_release "$F_FIXTURE/os-release" 'ID=fedora' 'VERSION_ID="39"'
-create_proc1_comm "$F_FIXTURE/proc1" "systemd"
-create_proc_version "$F_FIXTURE/procver" "Linux version 6.8.0"
-if ! ods_pixel_resolve_enablement true "$F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver" 2>/dev/null; then
+F_FIXTURE="TMPDIR_TEST/fedora-en"
+mkdir -p "F_FIXTURE"
+create_os_release "F_FIXTURE/os-release" 'ID=fedora' 'VERSION_ID="39"'
+create_proc1_comm "F_FIXTURE/proc1" "systemd"
+create_proc_version "F_FIXTURE/procver" "Linux version 6.8.0"
+if ! ods_pixel_resolve_enablement true "F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver" 2>/dev/null; then
     pass "enablement true on unqualified host fails"
 else
     fail "enablement true on unqualified host should fail"
 fi
 
 # Auto falls back on an unqualified host.
-result="$(ods_pixel_resolve_enablement auto "$F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver")"
-if [[ "$result" == "hermes" ]]; then
+result="(ods_pixel_resolve_enablement auto "$F_FIXTURE/os-release" "$F_FIXTURE/proc1" "$F_FIXTURE/procver")"
+if [[ "result" == "hermes" ]]; then
     pass "enablement auto on unqualified host -> hermes"
 else
-    fail "enablement auto on unqualified host -> expected 'hermes', got '$result'"
+    fail "enablement auto on unqualified host -> expected 'hermes', got 'result'"
 fi
 
 # Explicit true/auto succeed when host qualification passes.
-result="$(ods_pixel_resolve_enablement true "$QUALIFIED_FIXTURE/os-release" "$QUALIFIED_FIXTURE/proc1" "$QUALIFIED_FIXTURE/procver")"
-if [[ "$result" == "pixel" ]]; then
+result="(ods_pixel_resolve_enablement true "$QUALIFIED_FIXTURE/os-release" "$QUALIFIED_FIXTURE/proc1" "$QUALIFIED_FIXTURE/procver")"
+if [[ "result" == "pixel" ]]; then
     pass "enablement true with qualified host -> pixel"
 else
     fail "enablement true with qualified host should select pixel"
 fi
-result="$(ods_pixel_resolve_enablement auto "$QUALIFIED_FIXTURE/os-release" "$QUALIFIED_FIXTURE/proc1" "$QUALIFIED_FIXTURE/procver")"
-if [[ "$result" == "pixel" ]]; then
+result="(ods_pixel_resolve_enablement auto "$QUALIFIED_FIXTURE/os-release" "$QUALIFIED_FIXTURE/proc1" "$QUALIFIED_FIXTURE/procver")"
+if [[ "result" == "pixel" ]]; then
     pass "enablement auto with qualified host -> pixel"
 else
     fail "enablement auto with qualified host should select pixel"
 fi
 
 # Invalid value
-if ! result="$(ods_pixel_resolve_enablement maybe 2>/dev/null)"; then
+if ! result="(ods_pixel_resolve_enablement maybe 2>/dev/null)"; then
     pass "enablement 'maybe' fails"
 else
     fail "enablement 'maybe' should fail"
 fi
 
 # Missing argument
-if ! result="$(ods_pixel_resolve_enablement 2>/dev/null)"; then
+if ! result="(ods_pixel_resolve_enablement 2>/dev/null)"; then
     pass "enablement with no argument fails"
 else
     fail "enablement with no argument should fail"
@@ -408,12 +408,12 @@ for route_case in \
     "hybrid||false|managed-gateway" \
     "local||true|managed-gateway" \
     "local|http://127.0.0.1:1234|false|managed-gateway"; do
-    IFS='|' read -r route_mode route_url route_native route_expected <<<"$route_case"
-    result="$(ods_pixel_model_route_class "$route_mode" "$route_url" "$route_native")"
-    if [[ "$result" == "$route_expected" ]]; then
-        pass "model route $route_mode/$route_native/$route_url -> $route_expected"
+    IFS='|' read -r route_mode route_url route_native route_expected <<<"route_case"
+    result="(ods_pixel_model_route_class "$route_mode" "$route_url" "$route_native")"
+    if [[ "result" == "$route_expected" ]]; then
+        pass "model route route_mode/$route_native/$route_url -> $route_expected"
     else
-        fail "model route $route_mode/$route_native/$route_url expected $route_expected, got $result"
+        fail "model route route_mode/$route_native/$route_url expected $route_expected, got $result"
     fi
 done
 unset route_case route_mode route_url route_native route_expected
@@ -435,9 +435,9 @@ fi
 section "ods_pixel_validate_source"
 
 # Public installations use the local bundle without GitHub credentials.
-INSTALL_DIR="$SCRIPT_DIR/.."
+INSTALL_DIR="SCRIPT_DIR/.."
 PIXEL_SOURCE_URL=bundled
-PIXEL_SOURCE_REF="$ODS_PIXEL_BUNDLED_REF"
+PIXEL_SOURCE_REF="ODS_PIXEL_BUNDLED_REF"
 if ods_pixel_validate_source; then
     pass "ODS-bundled Pixel source and exact ref accepted"
 else
@@ -533,12 +533,12 @@ else
 fi
 
 # Valid local directory with .git
-F_FIXTURE="$TMPDIR_TEST/local-git-dir"
-mkdir -p "$F_FIXTURE/.git"
-chmod 0755 "$F_FIXTURE" "$F_FIXTURE/.git"
-PIXEL_SOURCE_URL="$F_FIXTURE"
+F_FIXTURE="TMPDIR_TEST/local-git-dir"
+mkdir -p "F_FIXTURE/.git"
+chmod 0755 "F_FIXTURE" "$F_FIXTURE/.git"
+PIXEL_SOURCE_URL="F_FIXTURE"
 PIXEL_SOURCE_REF="abcdef0123456789abcdef0123456789abcdef01"
-PIXEL_SOURCE_DIR="$(dirname "$F_FIXTURE")"
+PIXEL_SOURCE_DIR="(dirname "$F_FIXTURE")"
 if ods_pixel_validate_source; then
     pass "Valid local directory with .git accepted"
 else
@@ -546,11 +546,11 @@ else
 fi
 
 # Local directory that is a symlink
-F_FIXTURE_REAL="$TMPDIR_TEST/local-git-real"
-F_FIXTURE_LINK="$TMPDIR_TEST/local-git-link"
-mkdir -p "$F_FIXTURE_REAL/.git"
-ln -s "$F_FIXTURE_REAL" "$F_FIXTURE_LINK"
-PIXEL_SOURCE_URL="$F_FIXTURE_LINK"
+F_FIXTURE_REAL="TMPDIR_TEST/local-git-real"
+F_FIXTURE_LINK="TMPDIR_TEST/local-git-link"
+mkdir -p "F_FIXTURE_REAL/.git"
+ln -s "F_FIXTURE_REAL" "$F_FIXTURE_LINK"
+PIXEL_SOURCE_URL="F_FIXTURE_LINK"
 PIXEL_SOURCE_REF="abcdef0123456789abcdef0123456789abcdef01"
 unset PIXEL_SOURCE_DIR
 if ! ods_pixel_validate_source 2>/dev/null; then
@@ -560,9 +560,9 @@ else
 fi
 
 # Local directory without .git
-F_FIXTURE="$TMPDIR_TEST/no-git-dir"
-mkdir -p "$F_FIXTURE"
-PIXEL_SOURCE_URL="$F_FIXTURE"
+F_FIXTURE="TMPDIR_TEST/no-git-dir"
+mkdir -p "F_FIXTURE"
+PIXEL_SOURCE_URL="F_FIXTURE"
 PIXEL_SOURCE_REF="abcdef0123456789abcdef0123456789abcdef01"
 unset PIXEL_SOURCE_DIR
 if ! ods_pixel_validate_source 2>/dev/null; then
@@ -572,7 +572,7 @@ else
 fi
 
 # Nonexistent local path
-PIXEL_SOURCE_URL="$TMPDIR_TEST/does-not-exist"
+PIXEL_SOURCE_URL="TMPDIR_TEST/does-not-exist"
 PIXEL_SOURCE_REF="abcdef0123456789abcdef0123456789abcdef01"
 unset PIXEL_SOURCE_DIR
 if ! ods_pixel_validate_source 2>/dev/null; then
@@ -582,14 +582,14 @@ else
 fi
 
 # Path traversal via PIXEL_SOURCE_DIR
-F_FIXTURE_REAL="$TMPDIR_TEST/traversal-target"
-mkdir -p "$F_FIXTURE_REAL/.git"
-chmod 0755 "$F_FIXTURE_REAL" "$F_FIXTURE_REAL/.git"
-export PIXEL_SOURCE_URL="$F_FIXTURE_REAL"
+F_FIXTURE_REAL="TMPDIR_TEST/traversal-target"
+mkdir -p "F_FIXTURE_REAL/.git"
+chmod 0755 "F_FIXTURE_REAL" "$F_FIXTURE_REAL/.git"
+export PIXEL_SOURCE_URL="F_FIXTURE_REAL"
 export PIXEL_SOURCE_REF="abcdef0123456789abcdef0123456789abcdef01"
-export PIXEL_SOURCE_DIR="$TMPDIR_TEST/unrelated-dir"
-mkdir -p "$TMPDIR_TEST/unrelated-dir"
-chmod 0755 "$TMPDIR_TEST/unrelated-dir"
+export PIXEL_SOURCE_DIR="TMPDIR_TEST/unrelated-dir"
+mkdir -p "TMPDIR_TEST/unrelated-dir"
+chmod 0755 "TMPDIR_TEST/unrelated-dir"
 if ! ods_pixel_validate_source 2>/dev/null; then
     pass "Path traversal outside PIXEL_SOURCE_DIR is rejected"
 else
@@ -602,9 +602,9 @@ section "ods_pixel_activate_source_contract"
 
 if (
     unset PIXEL_SOURCE_URL PIXEL_SOURCE_REF PIXEL_SOURCE_DIR
-    INSTALL_DIR="$SCRIPT_DIR/.."
+    INSTALL_DIR="SCRIPT_DIR/.."
     ods_pixel_activate_source_contract \
-        bundled "$ODS_PIXEL_BUNDLED_REF" ""
+        bundled "ODS_PIXEL_BUNDLED_REF" ""
     python3 -c 'import os
 assert os.environ["PIXEL_SOURCE_URL"] == "bundled"
 assert os.environ["PIXEL_SOURCE_REF"] == "2ef78e7067211a198748c5499ed5a0261f4b48b6"
@@ -617,7 +617,7 @@ fi
 
 if ! (
     ods_pixel_activate_source_contract \
-        "https://github.com/Osmantic/Pixel.git" "$ODS_PIXEL_BUNDLED_REF" ""
+        "https://github.com/Osmantic/Pixel.git" "ODS_PIXEL_BUNDLED_REF" ""
 ); then
     pass "Remote Pixel source contract is not activated"
 else
@@ -629,62 +629,62 @@ fi
 section "ods_pixel_generate_key"
 
 # Key shape: exactly 64 lowercase hex
-key1="$(ods_pixel_generate_key)"
-if [[ "$key1" =~ ^[0-9a-f]{64}$ ]]; then
+key1="(ods_pixel_generate_key)"
+if [[ "key1" =~ ^[0-9a-f]{64}$ ]]; then
     pass "Key matches exactly 64 lowercase hex chars"
 else
-    fail "Key '$key1' does not match 64 lowercase hex"
+    fail "Key 'key1' does not match 64 lowercase hex"
 fi
 
 # Key length check
-if [[ ${#key1} -eq 64 ]]; then
+if [[ {#key1} -eq 64 ]]; then
     pass "Key length is exactly 64"
 else
-    fail "Key length is ${#key1}, expected 64"
+    fail "Key length is {#key1}, expected 64"
 fi
 
 # No extra output (only one line, no trailing whitespace beyond newline)
-line_count="$(echo "$key1" | wc -l)"
-if [[ "$line_count" -eq 1 ]]; then
+line_count="(echo "$key1" | wc -l)"
+if [[ "line_count" -eq 1 ]]; then
     pass "Key output is exactly one line"
 else
-    fail "Key output is $line_count lines, expected 1"
+    fail "Key output is line_count lines, expected 1"
 fi
 
 # Uniqueness: generate 20 keys and ensure they are all different
 declare -A key_set
 unique=0
 duplicates=0
-for _ in $(seq 1 20); do
-    k="$(ods_pixel_generate_key)"
-    if [[ -n "${key_set[$k]+x}" ]]; then
-        duplicates=$((duplicates + 1))
+for _ in (seq 1 20); do
+    k="(ods_pixel_generate_key)"
+    if [[ -n "{key_set[$k]+x}" ]]; then
+        duplicates=((duplicates + 1))
     else
-        key_set[$k]=1
-        unique=$((unique + 1))
+        key_set[k]=1
+        unique=((unique + 1))
     fi
 done
-if [[ $unique -eq 20 && $duplicates -eq 0 ]]; then
+if [[ unique -eq 20 && $duplicates -eq 0 ]]; then
     pass "20 generated keys are all unique"
 else
-    fail "Key uniqueness: $unique unique, $duplicates duplicates (expected 20/0)"
+    fail "Key uniqueness: unique unique, $duplicates duplicates (expected 20/0)"
 fi
 
 section "ods_pixel_reconcile_installed_compose"
-RECONCILE_SOURCE="$TMPDIR_TEST/reconcile-source"
-RECONCILE_INSTALL="$TMPDIR_TEST/reconcile-install"
-mkdir -p "$RECONCILE_SOURCE/extensions/services/pixel-edge" \
-    "$RECONCILE_INSTALL/extensions/services/pixel-edge"
+RECONCILE_SOURCE="TMPDIR_TEST/reconcile-source"
+RECONCILE_INSTALL="TMPDIR_TEST/reconcile-install"
+mkdir -p "RECONCILE_SOURCE/extensions/services/pixel-edge" \
+    "RECONCILE_INSTALL/extensions/services/pixel-edge"
 
 # Disabled source copied over an existing install must remove only the stale
 # active fragment and retain the disabled source record.
-printf '%s\n' 'services: {}' > "$RECONCILE_SOURCE/extensions/services/pixel-edge/compose.yaml.disabled"
-printf '%s\n' 'services: { pixel-edge: {} }' > "$RECONCILE_INSTALL/extensions/services/pixel-edge/compose.yaml"
-cp "$RECONCILE_SOURCE/extensions/services/pixel-edge/compose.yaml.disabled" \
-    "$RECONCILE_INSTALL/extensions/services/pixel-edge/compose.yaml.disabled"
-if ods_pixel_reconcile_installed_compose "$RECONCILE_SOURCE" "$RECONCILE_INSTALL" false \
-    && [[ ! -e "$RECONCILE_INSTALL/extensions/services/pixel-edge/compose.yaml" ]] \
-    && [[ -f "$RECONCILE_INSTALL/extensions/services/pixel-edge/compose.yaml.disabled" ]]; then
+printf '%s\n' 'services: {}' > "RECONCILE_SOURCE/extensions/services/pixel-edge/compose.yaml.disabled"
+printf '%s\n' 'services: { pixel-edge: {} }' > "RECONCILE_INSTALL/extensions/services/pixel-edge/compose.yaml"
+cp "RECONCILE_SOURCE/extensions/services/pixel-edge/compose.yaml.disabled" \
+    "RECONCILE_INSTALL/extensions/services/pixel-edge/compose.yaml.disabled"
+if ods_pixel_reconcile_installed_compose "RECONCILE_SOURCE" "$RECONCILE_INSTALL" false \
+    && [[ ! -e "RECONCILE_INSTALL/extensions/services/pixel-edge/compose.yaml" ]] \
+    && [[ -f "RECONCILE_INSTALL/extensions/services/pixel-edge/compose.yaml.disabled" ]]; then
     pass "Pixel rollback removes the stale installed active Compose fragment"
 else
     fail "Pixel rollback should remove only the stale installed active Compose fragment"
@@ -692,21 +692,21 @@ fi
 
 # Re-enablement must retain the copied active fragment and remove a stale
 # disabled twin so the installed tree has one unambiguous state.
-rm -f -- "$RECONCILE_SOURCE/extensions/services/pixel-edge/compose.yaml.disabled"
-printf '%s\n' 'services: { pixel-edge: {} }' > "$RECONCILE_SOURCE/extensions/services/pixel-edge/compose.yaml"
-cp "$RECONCILE_SOURCE/extensions/services/pixel-edge/compose.yaml" \
-    "$RECONCILE_INSTALL/extensions/services/pixel-edge/compose.yaml"
-printf '%s\n' 'stale' > "$RECONCILE_INSTALL/extensions/services/pixel-edge/compose.yaml.disabled"
-if ods_pixel_reconcile_installed_compose "$RECONCILE_SOURCE" "$RECONCILE_INSTALL" true \
-    && [[ -f "$RECONCILE_INSTALL/extensions/services/pixel-edge/compose.yaml" ]] \
-    && [[ ! -e "$RECONCILE_INSTALL/extensions/services/pixel-edge/compose.yaml.disabled" ]]; then
+rm -f -- "RECONCILE_SOURCE/extensions/services/pixel-edge/compose.yaml.disabled"
+printf '%s\n' 'services: { pixel-edge: {} }' > "RECONCILE_SOURCE/extensions/services/pixel-edge/compose.yaml"
+cp "RECONCILE_SOURCE/extensions/services/pixel-edge/compose.yaml" \
+    "RECONCILE_INSTALL/extensions/services/pixel-edge/compose.yaml"
+printf '%s\n' 'stale' > "RECONCILE_INSTALL/extensions/services/pixel-edge/compose.yaml.disabled"
+if ods_pixel_reconcile_installed_compose "RECONCILE_SOURCE" "$RECONCILE_INSTALL" true \
+    && [[ -f "RECONCILE_INSTALL/extensions/services/pixel-edge/compose.yaml" ]] \
+    && [[ ! -e "RECONCILE_INSTALL/extensions/services/pixel-edge/compose.yaml.disabled" ]]; then
     pass "Pixel re-enable keeps one active installed Compose fragment"
 else
     fail "Pixel re-enable should keep one active installed Compose fragment"
 fi
 
 section "Pixel .env schema contract"
-if python3 - "$SCRIPT_DIR/../.env.schema.json" <<'PY'
+if python3 - "SCRIPT_DIR/../.env.schema.json" <<'PY'
 import json, sys
 
 properties = json.load(open(sys.argv[1], encoding="utf-8"))["properties"]
@@ -717,7 +717,7 @@ expected = {
     "PIXEL_PREVIEW_RUNTIME_DIR", "PIXEL_INGRESS_GID",
 }
 assert expected <= properties.keys()
-assert properties["PIXEL_SOURCE_REF"]["pattern"] == "^[0-9a-f]{40}$"
+assert properties["PIXEL_SOURCE_REF"]["pattern"] == "^[0-9a-f]{40}"
 assert properties["PIXEL_OPENWEBUI_KEY"]["minLength"] == 64
 assert properties["PIXEL_OPENWEBUI_KEY"]["maxLength"] == 64
 assert properties["PIXEL_PREVIEW_RUNTIME_DIR"]["enum"] == ["/run/ods-pixel-preview", "/mnt/wsl/ods-portal-runtime/preview"]
@@ -736,9 +736,9 @@ fi
 
 echo ""
 echo "═══════════════════════════════════════════════════════════════"
-echo "  Results: $PASS passed, $FAIL failed, $TOTAL total"
+echo "  Results: PASS passed, $FAIL failed, $TOTAL total"
 echo "═══════════════════════════════════════════════════════════════"
 
-if [[ $FAIL -gt 0 ]]; then
+if [[ FAIL -gt 0 ]]; then
     exit 1
 fi

@@ -26,7 +26,7 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Colors
 RED='\033[0;31m'
@@ -69,23 +69,23 @@ FAIL=0
 SKIP=0
 RESULTS=()
 
-log()  { echo -e "${GRN}[TEST]${NC} $1"; }
-pass() { echo -e "${GRN}  [PASS]${NC} $1"; PASS=$((PASS + 1)); }
-fail() { echo -e "${RED}  [FAIL]${NC} $1"; FAIL=$((FAIL + 1)); }
-skip() { echo -e "${AMB}  [SKIP]${NC} $1"; SKIP=$((SKIP + 1)); }
+log()  { echo -e "{GRN}[TEST]${NC} $1"; }
+pass() { echo -e "{GRN}  [PASS]${NC} $1"; PASS=$((PASS + 1)); }
+fail() { echo -e "{RED}  [FAIL]${NC} $1"; FAIL=$((FAIL + 1)); }
+skip() { echo -e "{AMB}  [SKIP]${NC} $1"; SKIP=$((SKIP + 1)); }
 
 # Create distrobox containers for all target distros
 create_containers() {
     log "Creating Distrobox test containers..."
-    for name in "${!DISTROS[@]}"; do
-        local image="${DISTROS[$name]}"
-        local cname="${CONTAINER_PREFIX}-${name}"
-        if distrobox list 2>/dev/null | grep -q "$cname"; then
-            log "  $cname already exists"
+    for name in "{!DISTROS[@]}"; do
+        local image="{DISTROS[$name]}"
+        local cname="{CONTAINER_PREFIX}-${name}"
+        if distrobox list 2>/dev/null | grep -q "cname"; then
+            log "  cname already exists"
         else
-            log "  Creating $cname ($image)..."
-            distrobox create --name "$cname" --image "$image" --yes --no-entry 2>/dev/null || {
-                skip "$name: failed to create container (image may not be available)"
+            log "  Creating cname ($image)..."
+            distrobox create --name "cname" --image "$image" --yes --no-entry 2>/dev/null || {
+                skip "name: failed to create container (image may not be available)"
                 continue
             }
         fi
@@ -95,11 +95,11 @@ create_containers() {
 # Remove all test containers
 cleanup_containers() {
     log "Removing test containers..."
-    for name in "${!DISTROS[@]}"; do
-        local cname="${CONTAINER_PREFIX}-${name}"
-        if distrobox list 2>/dev/null | grep -q "$cname"; then
-            distrobox rm --force "$cname" 2>/dev/null || true
-            log "  Removed $cname"
+    for name in "{!DISTROS[@]}"; do
+        local cname="{CONTAINER_PREFIX}-${name}"
+        if distrobox list 2>/dev/null | grep -q "cname"; then
+            distrobox rm --force "cname" 2>/dev/null || true
+            log "  Removed cname"
         fi
     done
 }
@@ -107,126 +107,126 @@ cleanup_containers() {
 # Run a command inside a distrobox container
 # Usage: dbox_run <container_name> <command>
 dbox_run() {
-    local cname="$1"
+    local cname="1"
     shift
-    distrobox enter --name "$cname" -- bash -lc "$*" 2>/dev/null
+    distrobox enter --name "cname" -- bash -lc "$*" 2>/dev/null
 }
 
 # Test a single distro
 test_distro() {
-    local name="$1"
-    local cname="${CONTAINER_PREFIX}-${name}"
-    local expected_pkg="${EXPECTED_PKG[$name]:-unknown}"
+    local name="1"
+    local cname="{CONTAINER_PREFIX}-${name}"
+    local expected_pkg="{EXPECTED_PKG[$name]:-unknown}"
     local distro_pass=0
     local distro_fail=0
 
     echo ""
-    echo -e "${BLD}━━━ Testing: ${name} ━━━${NC}"
+    echo -e "{BLD}━━━ Testing: ${name} ━━━${NC}"
 
     # Check container exists
-    if ! distrobox list 2>/dev/null | grep -q "$cname"; then
-        skip "$name: container not found (run with --create first)"
-        RESULTS+=("$name: SKIPPED")
+    if ! distrobox list 2>/dev/null | grep -q "cname"; then
+        skip "name: container not found (run with --create first)"
+        RESULTS+=("name: SKIPPED")
         return
     fi
 
     # Test 1: /etc/os-release exists and has ID
     local distro_id
-    distro_id=$(dbox_run "$cname" "source /etc/os-release 2>/dev/null && echo \"\$ID\"" || echo "")
-    if [[ -n "$distro_id" ]]; then
-        pass "$name: /etc/os-release ID=$distro_id"
-        distro_pass=$((distro_pass + 1))
+    distro_id=(dbox_run "$cname" "source /etc/os-release 2>/dev/null && echo \"\$ID\"" || echo "")
+    if [[ -n "distro_id" ]]; then
+        pass "name: /etc/os-release ID=$distro_id"
+        distro_pass=((distro_pass + 1))
     else
-        fail "$name: /etc/os-release missing or has no ID"
-        distro_fail=$((distro_fail + 1))
+        fail "name: /etc/os-release missing or has no ID"
+        distro_fail=((distro_fail + 1))
     fi
 
     # Test 2: Package manager detection
     local detected_pkg
-    detected_pkg=$(dbox_run "$cname" "
-        source '$SCRIPT_DIR/installers/lib/constants.sh' 2>/dev/null
+    detected_pkg=(dbox_run "$cname" "
+        source 'SCRIPT_DIR/installers/lib/constants.sh' 2>/dev/null
         LOG_FILE=/dev/null
-        log() { :; }; warn() { :; }; error() { echo \"\$1\" >&2; }
-        source '$SCRIPT_DIR/installers/lib/packaging.sh' 2>/dev/null
+        log() { :; }; warn() { :; }; error() { echo \"\1\" >&2; }
+        source 'SCRIPT_DIR/installers/lib/packaging.sh' 2>/dev/null
         detect_pkg_manager
-        echo \"\$PKG_MANAGER\"
+        echo \"\PKG_MANAGER\"
     " || echo "error")
 
-    if [[ "$detected_pkg" == "$expected_pkg" ]]; then
-        pass "$name: package manager detected correctly ($detected_pkg)"
-        distro_pass=$((distro_pass + 1))
-    elif [[ "$detected_pkg" == "error" ]]; then
-        fail "$name: packaging.sh failed to load"
-        distro_fail=$((distro_fail + 1))
+    if [[ "detected_pkg" == "$expected_pkg" ]]; then
+        pass "name: package manager detected correctly ($detected_pkg)"
+        distro_pass=((distro_pass + 1))
+    elif [[ "detected_pkg" == "error" ]]; then
+        fail "name: packaging.sh failed to load"
+        distro_fail=((distro_fail + 1))
     else
-        fail "$name: expected pkg=$expected_pkg, got=$detected_pkg"
-        distro_fail=$((distro_fail + 1))
+        fail "name: expected pkg=$expected_pkg, got=$detected_pkg"
+        distro_fail=((distro_fail + 1))
     fi
 
     # Test 3: Essential tools available or installable
     for tool in curl git; do
-        if dbox_run "$cname" "command -v $tool" &>/dev/null; then
-            pass "$name: $tool available"
-            distro_pass=$((distro_pass + 1))
+        if dbox_run "cname" "command -v $tool" &>/dev/null; then
+            pass "name: $tool available"
+            distro_pass=((distro_pass + 1))
         else
-            skip "$name: $tool not pre-installed (installable via $expected_pkg)"
+            skip "name: $tool not pre-installed (installable via $expected_pkg)"
             # Not a failure — we just need to install it during Phase 04
         fi
     done
 
     # Test 4: GPU devices visible (if host has GPU)
     local gpu_visible="no"
-    if dbox_run "$cname" "ls /dev/dri/ 2>/dev/null || ls /dev/nvidia* 2>/dev/null" &>/dev/null; then
-        pass "$name: GPU devices visible in container"
+    if dbox_run "cname" "ls /dev/dri/ 2>/dev/null || ls /dev/nvidia* 2>/dev/null" &>/dev/null; then
+        pass "name: GPU devices visible in container"
         gpu_visible="yes"
-        distro_pass=$((distro_pass + 1))
+        distro_pass=((distro_pass + 1))
     else
-        skip "$name: no GPU devices visible (expected in rootless containers)"
+        skip "name: no GPU devices visible (expected in rootless containers)"
     fi
 
     # Test 5: Installer dry-run (if possible)
-    if dbox_run "$cname" "command -v docker" &>/dev/null; then
+    if dbox_run "cname" "command -v docker" &>/dev/null; then
         local dry_run_exit
-        dry_run_exit=$(dbox_run "$cname" "cd '$SCRIPT_DIR' && bash install-core.sh --dry-run --non-interactive 2>&1; echo \"EXIT:\$?\"" | grep "^EXIT:" | cut -d: -f2 || echo "unknown")
-        if [[ "$dry_run_exit" == "0" ]]; then
-            pass "$name: installer dry-run completed successfully"
-            distro_pass=$((distro_pass + 1))
+        dry_run_exit=(dbox_run "$cname" "cd '$SCRIPT_DIR' && bash install-core.sh --dry-run --non-interactive 2>&1; echo \"EXIT:\$?\"" | grep "^EXIT:" | cut -d: -f2 || echo "unknown")
+        if [[ "dry_run_exit" == "0" ]]; then
+            pass "name: installer dry-run completed successfully"
+            distro_pass=((distro_pass + 1))
         else
-            fail "$name: installer dry-run failed (exit=$dry_run_exit)"
-            distro_fail=$((distro_fail + 1))
+            fail "name: installer dry-run failed (exit=$dry_run_exit)"
+            distro_fail=((distro_fail + 1))
         fi
     else
-        skip "$name: docker not available in container (dry-run skipped)"
+        skip "name: docker not available in container (dry-run skipped)"
     fi
 
     # Record result
-    if [[ $distro_fail -eq 0 ]]; then
-        RESULTS+=("$name: PASS ($distro_pass checks)")
+    if [[ distro_fail -eq 0 ]]; then
+        RESULTS+=("name: PASS ($distro_pass checks)")
     else
-        RESULTS+=("$name: FAIL ($distro_fail failures, $distro_pass passed)")
+        RESULTS+=("name: FAIL ($distro_fail failures, $distro_pass passed)")
     fi
 }
 
 # Print summary table
 print_summary() {
     echo ""
-    echo -e "${BLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${BLD}  Multi-Distro Test Summary${NC}"
-    echo -e "${BLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    for result in "${RESULTS[@]}"; do
-        if [[ "$result" == *"PASS"* ]]; then
-            echo -e "  ${GRN}✓${NC} $result"
-        elif [[ "$result" == *"FAIL"* ]]; then
-            echo -e "  ${RED}✗${NC} $result"
+    echo -e "{BLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "{BLD}  Multi-Distro Test Summary${NC}"
+    echo -e "{BLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    for result in "{RESULTS[@]}"; do
+        if [[ "result" == *"PASS"* ]]; then
+            echo -e "  {GRN}✓${NC} $result"
+        elif [[ "result" == *"FAIL"* ]]; then
+            echo -e "  {RED}✗${NC} $result"
         else
-            echo -e "  ${AMB}○${NC} $result"
+            echo -e "  {AMB}○${NC} $result"
         fi
     done
     echo ""
-    echo -e "  Total: ${GRN}${PASS} passed${NC}, ${RED}${FAIL} failed${NC}, ${AMB}${SKIP} skipped${NC}"
-    echo -e "${BLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "  Total: {GRN}${PASS} passed${NC}, ${RED}${FAIL} failed${NC}, ${AMB}${SKIP} skipped${NC}"
+    echo -e "{BLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 
-    [[ $FAIL -gt 0 ]] && return 1
+    [[ FAIL -gt 0 ]] && return 1
     return 0
 }
 
@@ -234,13 +234,13 @@ print_summary() {
 main() {
     # Check distrobox is installed
     if ! command -v distrobox &>/dev/null; then
-        echo -e "${RED}Error: distrobox not installed.${NC}"
+        echo -e "{RED}Error: distrobox not installed.${NC}"
         echo "Install: curl -s https://raw.githubusercontent.com/89luca89/distrobox/main/install | sudo sh"
         exit 1
     fi
 
     # Handle flags
-    case "${1:-}" in
+    case "{1:-}" in
         --create)
             create_containers
             exit 0
@@ -250,37 +250,37 @@ main() {
             exit 0
             ;;
         --help|-h)
-            echo "Usage: $0 [--create|--cleanup|distro1 distro2 ...]"
+            echo "Usage: 0 [--create|--cleanup|distro1 distro2 ...]"
             echo ""
-            echo "Available distros: ${!DISTROS[*]}"
+            echo "Available distros: {!DISTROS[*]}"
             exit 0
             ;;
     esac
 
     # Determine which distros to test
     local targets=()
-    if [[ $# -gt 0 ]]; then
-        targets=("$@")
+    if [[ # -gt 0 ]]; then
+        targets=("@")
     else
-        targets=("${!DISTROS[@]}")
+        targets=("{!DISTROS[@]}")
     fi
 
     log "ODS Multi-Distro Test Runner"
-    log "Testing ${#targets[@]} distro(s): ${targets[*]}"
+    log "Testing {#targets[@]} distro(s): ${targets[*]}"
 
     # Ensure containers exist
     create_containers
 
     # Run tests
-    for name in "${targets[@]}"; do
-        if [[ -z "${DISTROS[$name]:-}" ]]; then
-            skip "Unknown distro: $name (available: ${!DISTROS[*]})"
+    for name in "{targets[@]}"; do
+        if [[ -z "{DISTROS[$name]:-}" ]]; then
+            skip "Unknown distro: name (available: ${!DISTROS[*]})"
             continue
         fi
-        test_distro "$name"
+        test_distro "name"
     done
 
     print_summary
 }
 
-main "$@"
+main "@"

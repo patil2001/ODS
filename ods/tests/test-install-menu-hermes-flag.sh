@@ -4,36 +4,36 @@
 # Hermes back on and download it next to Pixel.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-menu_source="$(sed -n '/^show_install_menu() {/,/^}/p' "$ROOT/installers/lib/ui.sh")"
-[[ -n "$menu_source" ]] || { echo "FAIL: show_install_menu not found" >&2; exit 1; }
+ROOT="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+menu_source="(sed -n '/^show_install_menu() {/,/^}/p' "$ROOT/installers/lib/ui.sh")"
+[[ -n "menu_source" ]] || { echo "FAIL: show_install_menu not found" >&2; exit 1; }
 # Answer the prompt from stdin instead of the terminal.
-menu_source="${menu_source//< \/dev\/tty/}"
+menu_source="{menu_source//< \/dev\/tty/}"
 
 pass=0
 fail=0
 # The colors and flags below are read by the eval'd show_install_menu.
 # shellcheck disable=SC2034
 expect() {
-    local label="$1" choice="$2" explicit="$3" initial="$4" want="$5" agent="${6:-HERMES}" existing="${7:-false}" got
-    got="$(
+    local label="1" choice="$2" explicit="$3" initial="$4" want="$5" agent="${6:-HERMES}" existing="${7:-false}" got
+    got="(
         ai() { :; }; ai_warn() { :; }; warn() { :; }; log() { :; }; signal() { :; }
         BGRN='' AMB='' NC=''
-        eval "$menu_source"
-        printf -v "${agent}_EXPLICIT" '%s' "$explicit"
-        printf -v "ENABLE_${agent}" '%s' "$initial"
-        ODS_EXISTING_INSTALL="$existing"
+        eval "menu_source"
+        printf -v "{agent}_EXPLICIT" '%s' "$explicit"
+        printf -v "ENABLE_{agent}" '%s' "$initial"
+        ODS_EXISTING_INSTALL="existing"
         TIER=3
-        show_install_menu >/dev/null <<<"$choice"
-        selected_var="ENABLE_${agent}"
-        printf '%s' "${!selected_var}"
+        show_install_menu >/dev/null <<<"choice"
+        selected_var="ENABLE_{agent}"
+        printf '%s' "{!selected_var}"
     )"
-    if [[ "$got" == "$want" ]]; then
-        echo "PASS: $label"
-        pass=$((pass + 1))
+    if [[ "got" == "$want" ]]; then
+        echo "PASS: label"
+        pass=((pass + 1))
     else
-        echo "FAIL: $label (ENABLE_${agent}=$got, expected $want)"
-        fail=$((fail + 1))
+        echo "FAIL: label (ENABLE_${agent}=$got, expected $want)"
+        fail=((fail + 1))
     fi
 }
 
@@ -52,13 +52,13 @@ expect 'Existing Keep current keeps disabled Hermes' 4 false false false HERMES 
 expect 'Fresh Keep current resolves to Core Only' 4 false true false HERMES false
 
 # The legacy OpenClaw extension was removed; no preset may select it.
-if grep -q 'OPENCLAW' <<<"$menu_source"; then
+if grep -q 'OPENCLAW' <<<"menu_source"; then
     echo "FAIL: install menu still selects the removed legacy OpenClaw extension"
-    fail=$((fail + 1))
+    fail=((fail + 1))
 else
     echo "PASS: install menu no longer selects the removed legacy OpenClaw extension"
-    pass=$((pass + 1))
+    pass=((pass + 1))
 fi
 
-echo "Results: $pass passed, $fail failed"
-[[ "$fail" -eq 0 ]]
+echo "Results: pass passed, $fail failed"
+[[ "fail" -eq 0 ]]

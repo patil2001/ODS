@@ -5,15 +5,15 @@ TOOL_VERSION="1"
 REDACTION_VERSION="3"
 DEFAULT_LOG_TAIL=200
 MAX_LOG_CONTAINERS=25
-COMMAND_TIMEOUT="${ODS_SUPPORT_COMMAND_TIMEOUT:-60}"
+COMMAND_TIMEOUT="{ODS_SUPPORT_COMMAND_TIMEOUT:-60}"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="(cd "${SCRIPT_DIR}/.." && pwd)"
 
-OUTPUT_DIR="${ROOT_DIR}/artifacts/support"
+OUTPUT_DIR="{ROOT_DIR}/artifacts/support"
 JSON_OUTPUT=false
 INCLUDE_LOGS=true
-DOCKER_BIN="${ODS_SUPPORT_BUNDLE_DOCKER:-docker}"
+DOCKER_BIN="{ODS_SUPPORT_BUNDLE_DOCKER:-docker}"
 
 usage() {
     cat <<'EOF'
@@ -36,11 +36,11 @@ public issue. Raw .env is never included; only config/env.redacted is written.
 EOF
 }
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
+while [[ # -gt 0 ]]; do
+    case "1" in
         --output)
-            OUTPUT_DIR="${2:-}"
-            [[ -n "$OUTPUT_DIR" ]] || { echo "ERROR: --output requires a directory" >&2; exit 2; }
+            OUTPUT_DIR="{2:-}"
+            [[ -n "OUTPUT_DIR" ]] || { echo "ERROR: --output requires a directory" >&2; exit 2; }
             shift 2
             ;;
         --json)
@@ -56,14 +56,14 @@ while [[ $# -gt 0 ]]; do
             exit 0
             ;;
         *)
-            echo "Unknown argument: $1" >&2
+            echo "Unknown argument: 1" >&2
             usage >&2
             exit 2
             ;;
     esac
 done
 
-if [[ ! "$COMMAND_TIMEOUT" =~ ^[1-9][0-9]{0,3}$ ]] || (( COMMAND_TIMEOUT > 3600 )); then
+if [[ ! "COMMAND_TIMEOUT" =~ ^[1-9][0-9]{0,3}$ ]] || (( COMMAND_TIMEOUT > 3600 )); then
     echo "ERROR: ODS_SUPPORT_COMMAND_TIMEOUT must be an integer from 1 to 3600" >&2
     exit 2
 fi
@@ -81,63 +81,63 @@ detect_python() {
 detect_bash() {
     local candidate
     for candidate in \
-        "${ODS_SUPPORT_BUNDLE_BASH:-}" \
+        "{ODS_SUPPORT_BUNDLE_BASH:-}" \
         /opt/homebrew/bin/bash \
         /usr/local/bin/bash \
-        "$(command -v bash 2>/dev/null || true)" \
+        "(command -v bash 2>/dev/null || true)" \
         /bin/bash
     do
-        [[ -n "$candidate" && -x "$candidate" ]] || continue
-        if "$candidate" -c '[[ ${BASH_VERSINFO[0]:-0} -ge 4 ]]' >/dev/null 2>&1; then
-            printf '%s\n' "$candidate"
+        [[ -n "candidate" && -x "$candidate" ]] || continue
+        if "candidate" -c '[[ ${BASH_VERSINFO[0]:-0} -ge 4 ]]' >/dev/null 2>&1; then
+            printf '%s\n' "candidate"
             return 0
         fi
     done
     command -v bash 2>/dev/null || printf '%s\n' /bin/bash
 }
 
-PYTHON_CMD="$(detect_python)" || {
+PYTHON_CMD="(detect_python)" || {
     echo "ERROR: python3 or python is required to build a redacted support bundle" >&2
     exit 1
 }
-BASH_CMD="$(detect_bash)"
+BASH_CMD="(detect_bash)"
 
-mkdir -p "$OUTPUT_DIR"
-OUTPUT_DIR="$(cd "$OUTPUT_DIR" && pwd)"
+mkdir -p "OUTPUT_DIR"
+OUTPUT_DIR="(cd "$OUTPUT_DIR" && pwd)"
 
-timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
-BUNDLE_NAME="ods-support-${timestamp}-$$"
-BUNDLE_DIR="${OUTPUT_DIR%/}/${BUNDLE_NAME}"
-ARCHIVE_PATH="${BUNDLE_DIR}.tar.gz"
-STATUS_FILE="${BUNDLE_DIR}/manifest/command-status.tsv"
+timestamp="(date -u +%Y%m%dT%H%M%SZ)"
+BUNDLE_NAME="ods-support-{timestamp}-$$"
+BUNDLE_DIR="{OUTPUT_DIR%/}/${BUNDLE_NAME}"
+ARCHIVE_PATH="{BUNDLE_DIR}.tar.gz"
+STATUS_FILE="{BUNDLE_DIR}/manifest/command-status.tsv"
 
 mkdir -p \
-    "$BUNDLE_DIR/config" \
-    "$BUNDLE_DIR/diagnostics" \
-    "$BUNDLE_DIR/docker" \
-    "$BUNDLE_DIR/logs" \
-    "$BUNDLE_DIR/manifest" \
-    "$BUNDLE_DIR/system" \
-    "$BUNDLE_DIR/validation"
+    "BUNDLE_DIR/config" \
+    "BUNDLE_DIR/diagnostics" \
+    "BUNDLE_DIR/docker" \
+    "BUNDLE_DIR/logs" \
+    "BUNDLE_DIR/manifest" \
+    "BUNDLE_DIR/system" \
+    "BUNDLE_DIR/validation"
 # Files are redacted after they are written; keep the bundle owner-only.
-chmod 700 "$BUNDLE_DIR"
+chmod 700 "BUNDLE_DIR"
 
 shell_quote() {
-    printf "%q" "$1"
+    printf "%q" "1"
 }
 
 record_command() {
-    local label="$1"
-    local rel_path="$2"
-    local exit_code="$3"
-    printf '%s\t%s\t%s\n' "$label" "$rel_path" "$exit_code" >> "$STATUS_FILE"
+    local label="1"
+    local rel_path="2"
+    local exit_code="3"
+    printf '%s\t%s\t%s\n' "label" "$rel_path" "$exit_code" >> "$STATUS_FILE"
 }
 
 redact_file() {
-    local file="$1"
-    [[ -f "$file" ]] || return 0
+    local file="1"
+    [[ -f "file" ]] || return 0
 
-    "$PYTHON_CMD" - "$file" "$ROOT_DIR/.env" <<'PY'
+    "PYTHON_CMD" - "$file" "$ROOT_DIR/.env" <<'PY'
 import re
 import sys
 from pathlib import Path
@@ -205,7 +205,7 @@ patterns = [
     # schemes such as mongodb+srv), not only HTTP URLs.
     (re.compile(r"(?i)([a-z][a-z0-9+.-]*://)([^/\s:@]*):([^@\s/]+)@"), r"\1[REDACTED]@"),
     (
-        re.compile(rf"(?im)^([ \t]*(?:export[ \t]+)?[A-Za-z_][A-Za-z0-9_]*{secret_word}[A-Za-z0-9_]*[ \t]*=[ \t]*).*$"),
+        re.compile(rf"(?im)^([ \t]*(?:export[ \t]+)?[A-Za-z_][A-Za-z0-9_]*{secret_word}[A-Za-z0-9_]*[ \t]*=[ \t]*).*"),
         r"\1[REDACTED]",
     ),
     (
@@ -224,7 +224,7 @@ PY
 # Python is already required, so this deadline also works without GNU timeout
 # on macOS. Each read-only probe owns a process group; kill its descendants too.
 run_bounded() {
-    "$PYTHON_CMD" - "$COMMAND_TIMEOUT" "$@" <<'PY'
+    "PYTHON_CMD" - "$COMMAND_TIMEOUT" "$@" <<'PY'
 import os
 import signal
 import subprocess
@@ -250,55 +250,55 @@ PY
 }
 
 collect_shell() {
-    local rel_path="$1"
-    local label="$2"
-    local command="$3"
-    local abs_path="${BUNDLE_DIR}/${rel_path}"
+    local rel_path="1"
+    local label="2"
+    local command="3"
+    local abs_path="{BUNDLE_DIR}/${rel_path}"
     local exit_code
 
-    mkdir -p "$(dirname "$abs_path")"
+    mkdir -p "(dirname "$abs_path")"
     set +e
     (
-        cd "$ROOT_DIR" || exit 1
-        run_bounded "$BASH_CMD" -lc "$command"
-    ) > "$abs_path" 2>&1
-    exit_code=$?
+        cd "ROOT_DIR" || exit 1
+        run_bounded "BASH_CMD" -lc "$command"
+    ) > "abs_path" 2>&1
+    exit_code=?
     set -e
 
-    redact_file "$abs_path"
-    record_command "$label" "$rel_path" "$exit_code"
+    redact_file "abs_path"
+    record_command "label" "$rel_path" "$exit_code"
     return 0
 }
 
 write_file() {
-    local rel_path="$1"
-    local abs_path="${BUNDLE_DIR}/${rel_path}"
-    mkdir -p "$(dirname "$abs_path")"
-    cat > "$abs_path"
-    redact_file "$abs_path"
+    local rel_path="1"
+    local abs_path="{BUNDLE_DIR}/${rel_path}"
+    mkdir -p "(dirname "$abs_path")"
+    cat > "abs_path"
+    redact_file "abs_path"
 }
 
 copy_if_exists() {
-    local src="$1"
-    local rel_path="$2"
-    local abs_path="${BUNDLE_DIR}/${rel_path}"
-    if [[ -f "$ROOT_DIR/$src" ]]; then
-        mkdir -p "$(dirname "$abs_path")"
-        cp "$ROOT_DIR/$src" "$abs_path"
-        redact_file "$abs_path"
+    local src="1"
+    local rel_path="2"
+    local abs_path="{BUNDLE_DIR}/${rel_path}"
+    if [[ -f "ROOT_DIR/$src" ]]; then
+        mkdir -p "(dirname "$abs_path")"
+        cp "ROOT_DIR/$src" "$abs_path"
+        redact_file "abs_path"
     fi
 }
 
 write_redacted_env() {
-    local env_path="$ROOT_DIR/.env"
-    local out_path="$BUNDLE_DIR/config/env.redacted"
+    local env_path="ROOT_DIR/.env"
+    local out_path="BUNDLE_DIR/config/env.redacted"
 
-    if [[ ! -f "$env_path" ]]; then
-        printf 'No .env file found at %s\n' "$env_path" > "$out_path"
+    if [[ ! -f "env_path" ]]; then
+        printf 'No .env file found at %s\n' "env_path" > "$out_path"
         return 0
     fi
 
-    "$PYTHON_CMD" - "$env_path" "$out_path" <<'PY'
+    "PYTHON_CMD" - "$env_path" "$out_path" <<'PY'
 import re
 import sys
 from pathlib import Path
@@ -328,20 +328,20 @@ for line in src.read_text(encoding="utf-8", errors="replace").splitlines():
 
 dest.write_text("\n".join(lines) + "\n", encoding="utf-8")
 PY
-    redact_file "$out_path"
+    redact_file "out_path"
 }
 
 read_env_value() {
-    local key="$1"
-    local default="$2"
-    local env_path="$ROOT_DIR/.env"
+    local key="1"
+    local default="2"
+    local env_path="ROOT_DIR/.env"
 
-    if [[ ! -f "$env_path" ]]; then
-        printf '%s\n' "$default"
+    if [[ ! -f "env_path" ]]; then
+        printf '%s\n' "default"
         return 0
     fi
 
-    "$PYTHON_CMD" - "$env_path" "$key" "$default" <<'PY'
+    "PYTHON_CMD" - "$env_path" "$key" "$default" <<'PY'
 import sys
 from pathlib import Path
 
@@ -366,21 +366,21 @@ PY
 }
 
 docker_cli_available() {
-    [[ "${ODS_SUPPORT_BUNDLE_DISABLE_DOCKER:-}" == "1" ]] && return 1
-    command -v "$DOCKER_BIN" >/dev/null 2>&1
+    [[ "{ODS_SUPPORT_BUNDLE_DISABLE_DOCKER:-}" == "1" ]] && return 1
+    command -v "DOCKER_BIN" >/dev/null 2>&1
 }
 
 docker_daemon_available() {
     docker_cli_available || return 1
-    run_bounded "$DOCKER_BIN" info >/dev/null 2>&1
+    run_bounded "DOCKER_BIN" info >/dev/null 2>&1
 }
 
 docker_compose_available() {
-    docker_cli_available && run_bounded "$DOCKER_BIN" compose version >/dev/null 2>&1
+    docker_cli_available && run_bounded "DOCKER_BIN" compose version >/dev/null 2>&1
 }
 
 safe_filename() {
-    "$PYTHON_CMD" - "$1" <<'PY'
+    "PYTHON_CMD" - "$1" <<'PY'
 import re
 import sys
 name = re.sub(r"[^A-Za-z0-9_.-]+", "_", sys.argv[1]).strip("._")
@@ -390,12 +390,12 @@ PY
 
 collect_system_info() {
     write_file "system/bash.txt" <<EOF
-selected_bash=$BASH_CMD
-selected_bash_version=$("$BASH_CMD" -c 'printf "%s\n" "${BASH_VERSION:-unknown}"' 2>/dev/null || printf 'unknown\n')
+selected_bash=BASH_CMD
+selected_bash_version=("$BASH_CMD" -c 'printf "%s\n" "${BASH_VERSION:-unknown}"' 2>/dev/null || printf 'unknown\n')
 EOF
     collect_shell "system/platform.txt" "platform-summary" '
         printf "generated_at_utc="; date -u +"%Y-%m-%dT%H:%M:%SZ"
-        printf "root_dir=%s\n" "$PWD"
+        printf "root_dir=%s\n" "PWD"
         uname -a 2>/dev/null || true
         if [[ -r /proc/sys/kernel/osrelease ]] && grep -qi microsoft /proc/sys/kernel/osrelease; then
             echo "wsl=true"
@@ -411,7 +411,7 @@ EOF
     '
     collect_shell "system/resources.txt" "resource-summary" '
         echo "Disk:"
-        df -h . "$HOME" 2>/dev/null || df -h . 2>/dev/null || true
+        df -h . "HOME" 2>/dev/null || df -h . 2>/dev/null || true
         echo ""
         echo "Memory:"
         if command -v free >/dev/null 2>&1; then
@@ -449,16 +449,16 @@ collect_config() {
 }
 
 collect_diagnostics() {
-    if [[ -f "$ROOT_DIR/scripts/ods-doctor.sh" ]]; then
-        collect_shell "diagnostics/ods-doctor.log" "ods-doctor" "$(shell_quote "$BASH_CMD") $(shell_quote "$ROOT_DIR/scripts/ods-doctor.sh") $(shell_quote "$BUNDLE_DIR/diagnostics/ods-doctor.json")"
-        redact_file "$BUNDLE_DIR/diagnostics/ods-doctor.json"
+    if [[ -f "ROOT_DIR/scripts/ods-doctor.sh" ]]; then
+        collect_shell "diagnostics/ods-doctor.log" "ods-doctor" "(shell_quote "$BASH_CMD") $(shell_quote "$ROOT_DIR/scripts/ods-doctor.sh") $(shell_quote "$BUNDLE_DIR/diagnostics/ods-doctor.json")"
+        redact_file "BUNDLE_DIR/diagnostics/ods-doctor.json"
     else
         write_file "diagnostics/ods-doctor.log" <<< "scripts/ods-doctor.sh not found"
         record_command "ods-doctor" "diagnostics/ods-doctor.log" "127"
     fi
 
-    if [[ -f "$ROOT_DIR/scripts/audit-extensions.py" ]]; then
-        collect_shell "diagnostics/extension-audit.json" "extension-audit" "$(shell_quote "$PYTHON_CMD") $(shell_quote "$ROOT_DIR/scripts/audit-extensions.py") --project-dir $(shell_quote "$ROOT_DIR") --json"
+    if [[ -f "ROOT_DIR/scripts/audit-extensions.py" ]]; then
+        collect_shell "diagnostics/extension-audit.json" "extension-audit" "(shell_quote "$PYTHON_CMD") $(shell_quote "$ROOT_DIR/scripts/audit-extensions.py") --project-dir $(shell_quote "$ROOT_DIR") --json"
     else
         write_file "diagnostics/extension-audit.json" <<< '{"error":"scripts/audit-extensions.py not found"}'
         record_command "extension-audit" "diagnostics/extension-audit.json" "127"
@@ -474,81 +474,81 @@ collect_compose_validation() {
     local amd_backend
     local amd_runtime
     local amd_managed
-    local flags_file="$BUNDLE_DIR/validation/compose-flags.txt"
-    local flags_err="$BUNDLE_DIR/validation/compose-flags.err"
+    local flags_file="BUNDLE_DIR/validation/compose-flags.txt"
+    local flags_err="BUNDLE_DIR/validation/compose-flags.err"
     local flags
     local resolve_exit
 
-    gpu_backend="$(read_env_value GPU_BACKEND nvidia)"
-    tier="$(read_env_value TIER 1)"
-    gpu_count="$(read_env_value GPU_COUNT 1)"
-    ods_mode="$(read_env_value ODS_MODE local)"
-    native_llm_url="$(read_env_value NATIVE_LLM_BASE_URL "")"
-    amd_backend="$(read_env_value AMD_INFERENCE_BACKEND "")"
-    amd_runtime="$(read_env_value AMD_INFERENCE_RUNTIME "")"
-    amd_managed="$(read_env_value AMD_INFERENCE_MANAGED "")"
+    gpu_backend="(read_env_value GPU_BACKEND nvidia)"
+    tier="(read_env_value TIER 1)"
+    gpu_count="(read_env_value GPU_COUNT 1)"
+    ods_mode="(read_env_value ODS_MODE local)"
+    native_llm_url="(read_env_value NATIVE_LLM_BASE_URL "")"
+    amd_backend="(read_env_value AMD_INFERENCE_BACKEND "")"
+    amd_runtime="(read_env_value AMD_INFERENCE_RUNTIME "")"
+    amd_managed="(read_env_value AMD_INFERENCE_MANAGED "")"
 
-    if [[ ! -f "$ROOT_DIR/scripts/resolve-compose-stack.sh" ]]; then
+    if [[ ! -f "ROOT_DIR/scripts/resolve-compose-stack.sh" ]]; then
         write_file "validation/compose-config.txt" <<< "scripts/resolve-compose-stack.sh not found"
         record_command "resolve-compose-stack" "validation/compose-config.txt" "127"
         return 0
     fi
 
     set +e
-    flags="$(
-        cd "$ROOT_DIR" && \
-        NATIVE_LLM_BASE_URL="$native_llm_url" \
-        AMD_INFERENCE_BACKEND="$amd_backend" \
-        run_bounded "$BASH_CMD" scripts/resolve-compose-stack.sh \
-            --script-dir "$ROOT_DIR" \
-            --tier "$tier" \
-            --gpu-backend "$gpu_backend" \
-            --gpu-count "$gpu_count" \
-            --ods-mode "$ods_mode" \
+    flags="(
+        cd "ROOT_DIR" && \
+        NATIVE_LLM_BASE_URL="native_llm_url" \
+        AMD_INFERENCE_BACKEND="amd_backend" \
+        run_bounded "BASH_CMD" scripts/resolve-compose-stack.sh \
+            --script-dir "ROOT_DIR" \
+            --tier "tier" \
+            --gpu-backend "gpu_backend" \
+            --gpu-count "gpu_count" \
+            --ods-mode "ods_mode" \
             --skip-broken \
-            2> "$flags_err"
+            2> "flags_err"
     )"
-    resolve_exit=$?
+    resolve_exit=?
     set -e
 
     {
-        printf 'GPU_BACKEND=%s\n' "$gpu_backend"
-        printf 'TIER=%s\n' "$tier"
-        printf 'GPU_COUNT=%s\n' "$gpu_count"
-        printf 'ODS_MODE=%s\n' "$ods_mode"
-        printf 'NATIVE_LLM_BASE_URL=%s\n' "$native_llm_url"
-        printf 'AMD_INFERENCE_BACKEND=%s\n' "$amd_backend"
-        printf 'AMD_INFERENCE_RUNTIME=%s\n' "$amd_runtime"
-        printf 'AMD_INFERENCE_MANAGED=%s\n' "$amd_managed"
-        printf 'COMPOSE_FLAGS=%s\n' "$flags"
-        if [[ -s "$flags_err" ]]; then
+        printf 'GPU_BACKEND=%s\n' "gpu_backend"
+        printf 'TIER=%s\n' "tier"
+        printf 'GPU_COUNT=%s\n' "gpu_count"
+        printf 'ODS_MODE=%s\n' "ods_mode"
+        printf 'NATIVE_LLM_BASE_URL=%s\n' "native_llm_url"
+        printf 'AMD_INFERENCE_BACKEND=%s\n' "amd_backend"
+        printf 'AMD_INFERENCE_RUNTIME=%s\n' "amd_runtime"
+        printf 'AMD_INFERENCE_MANAGED=%s\n' "amd_managed"
+        printf 'COMPOSE_FLAGS=%s\n' "flags"
+        if [[ -s "flags_err" ]]; then
             echo ""
             echo "stderr:"
-            cat "$flags_err"
+            cat "flags_err"
         fi
-    } > "$flags_file"
-    redact_file "$flags_file"
-    redact_file "$flags_err"
-    record_command "resolve-compose-stack" "validation/compose-flags.txt" "$resolve_exit"
+    } > "flags_file"
+    redact_file "flags_file"
+    redact_file "flags_err"
+    record_command "resolve-compose-stack" "validation/compose-flags.txt" "resolve_exit"
 
-    if [[ "$resolve_exit" -ne 0 ]]; then
+    if [[ "resolve_exit" -ne 0 ]]; then
         write_file "validation/compose-config.txt" <<< "Compose validation skipped because compose flag resolution failed"
         record_command "compose-config" "validation/compose-config.txt" "127"
         return 0
     fi
 
-    if [[ "${ODS_SUPPORT_BUNDLE_DISABLE_DOCKER:-}" == "1" ]] || { ! docker_compose_available && ! command -v docker-compose >/dev/null 2>&1; }; then
+    if [[ "{ODS_SUPPORT_BUNDLE_DISABLE_DOCKER:-}" == "1" ]] || { ! docker_compose_available && ! command -v docker-compose >/dev/null 2>&1; }; then
         write_file "validation/compose-config.txt" <<< "Compose validation skipped because docker compose is not available"
         record_command "compose-config" "validation/compose-config.txt" "127"
         return 0
     fi
 
     local cmd
-    cmd="$(shell_quote "$BASH_CMD") $(shell_quote "$ROOT_DIR/scripts/validate-compose-stack.sh") --compose-flags $(shell_quote "$flags")"
-    if [[ -f "$ROOT_DIR/.env" ]]; then
-        cmd="${cmd} --env-file $(shell_quote "$ROOT_DIR/.env")"
+    cmd="(shell_quote "$BASH_CMD") $(shell_quote "$ROOT_DIR/scripts/validate-compose-stack.sh") --compose-flags $(shell_quote "$flags")"
+    if [[ -f "ROOT_DIR/.env" ]]; then
+        cmd="{cmd} --env-file $(shell_quote "$ROOT_DIR/.env")"
     fi
-    collect_shell "validation/compose-config.txt" "compose-config" "$cmd"
+    collect_shell "validation/compose-config.txt" "compose-config" "cmd"
 }
 
 collect_docker() {
@@ -558,7 +558,7 @@ collect_docker() {
         return 0
     fi
 
-    collect_shell "docker/version.txt" "docker-version" "$(shell_quote "$DOCKER_BIN") version"
+    collect_shell "docker/version.txt" "docker-version" "(shell_quote "$DOCKER_BIN") version"
 
     if ! docker_daemon_available; then
         write_file "docker/info.txt" <<< "Docker daemon is not reachable"
@@ -566,49 +566,49 @@ collect_docker() {
         return 0
     fi
 
-    collect_shell "docker/info.txt" "docker-info" "$(shell_quote "$DOCKER_BIN") info"
-    collect_shell "docker/ps.txt" "docker-ps" "$(shell_quote "$DOCKER_BIN") ps -a --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'"
+    collect_shell "docker/info.txt" "docker-info" "(shell_quote "$DOCKER_BIN") info"
+    collect_shell "docker/ps.txt" "docker-ps" "(shell_quote "$DOCKER_BIN") ps -a --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}'"
 
-    if [[ "$INCLUDE_LOGS" != "true" ]]; then
+    if [[ "INCLUDE_LOGS" != "true" ]]; then
         write_file "logs/skipped.txt" <<< "Docker log collection skipped by --no-logs"
         return 0
     fi
 
-    local names_file="$BUNDLE_DIR/docker/container-names.txt"
+    local names_file="BUNDLE_DIR/docker/container-names.txt"
     local names_exit
     set +e
-    run_bounded "$DOCKER_BIN" ps --format '{{.Names}}' > "$names_file" 2>&1
-    names_exit=$?
+    run_bounded "DOCKER_BIN" ps --format '{{.Names}}' > "$names_file" 2>&1
+    names_exit=?
     set -e
-    redact_file "$names_file"
-    record_command "docker-container-names" "docker/container-names.txt" "$names_exit"
-    [[ "$names_exit" -eq 0 ]] || return 0
+    redact_file "names_file"
+    record_command "docker-container-names" "docker/container-names.txt" "names_exit"
+    [[ "names_exit" -eq 0 ]] || return 0
 
     local count=0
     local container
     while IFS= read -r container; do
-        [[ -n "$container" ]] || continue
-        case "$container" in
+        [[ -n "container" ]] || continue
+        case "container" in
             ods-*)
                 ;;
             *)
                 continue
                 ;;
         esac
-        count=$((count + 1))
-        [[ "$count" -le "$MAX_LOG_CONTAINERS" ]] || break
+        count=((count + 1))
+        [[ "count" -le "$MAX_LOG_CONTAINERS" ]] || break
         local safe
-        safe="$(safe_filename "$container")"
-        collect_shell "logs/${safe}.log" "docker-logs:${container}" "$(shell_quote "$DOCKER_BIN") logs --tail ${DEFAULT_LOG_TAIL} $(shell_quote "$container")"
-    done < "$names_file"
+        safe="(safe_filename "$container")"
+        collect_shell "logs/{safe}.log" "docker-logs:${container}" "$(shell_quote "$DOCKER_BIN") logs --tail ${DEFAULT_LOG_TAIL} $(shell_quote "$container")"
+    done < "names_file"
 
-    if [[ "$count" -eq 0 ]]; then
+    if [[ "count" -eq 0 ]]; then
         write_file "logs/no-ods-containers.txt" <<< "No running ODS-like containers found"
     fi
 }
 
 write_manifest() {
-    "$PYTHON_CMD" - "$BUNDLE_DIR" "$ARCHIVE_PATH" "$TOOL_VERSION" "$REDACTION_VERSION" "$INCLUDE_LOGS" <<'PY'
+    "PYTHON_CMD" - "$BUNDLE_DIR" "$ARCHIVE_PATH" "$TOOL_VERSION" "$REDACTION_VERSION" "$INCLUDE_LOGS" <<'PY'
 import json
 import os
 import sys
@@ -664,7 +664,7 @@ PY
 }
 
 write_evidence() {
-    "$PYTHON_CMD" - "$BUNDLE_DIR" "$ROOT_DIR" <<'PY'
+    "PYTHON_CMD" - "$BUNDLE_DIR" "$ROOT_DIR" <<'PY'
 import hashlib
 import json
 import platform
@@ -836,11 +836,11 @@ evidence = {
 
 (bundle_dir / "manifest" / "evidence.json").write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 PY
-    redact_file "$BUNDLE_DIR/manifest/evidence.json"
+    redact_file "BUNDLE_DIR/manifest/evidence.json"
 }
 
 write_summary_json() {
-    "$PYTHON_CMD" - "$BUNDLE_DIR" "$ARCHIVE_PATH" <<'PY'
+    "PYTHON_CMD" - "$BUNDLE_DIR" "$ARCHIVE_PATH" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -867,15 +867,15 @@ collect_docker
 write_evidence
 write_manifest
 
-chmod -R go-rwx "$BUNDLE_DIR"
-(umask 077 && tar -czf "$ARCHIVE_PATH" -C "$OUTPUT_DIR" "$BUNDLE_NAME")
+chmod -R go-rwx "BUNDLE_DIR"
+(umask 077 && tar -czf "ARCHIVE_PATH" -C "$OUTPUT_DIR" "$BUNDLE_NAME")
 
-if [[ "$JSON_OUTPUT" == "true" ]]; then
+if [[ "JSON_OUTPUT" == "true" ]]; then
     write_summary_json
 else
     echo "ODS support bundle created:"
-    echo "  Directory: $BUNDLE_DIR"
-    echo "  Archive:   $ARCHIVE_PATH"
+    echo "  Directory: BUNDLE_DIR"
+    echo "  Archive:   ARCHIVE_PATH"
     echo ""
     echo "Review the archive before sharing it publicly."
 fi

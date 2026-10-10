@@ -16,11 +16,11 @@
 # ============================================================================
 
 ods_progress() {
-  local percent="$1"
-  local phase="$2"
-  local message="$3"
+  local percent="1"
+  local phase="2"
+  local message="3"
 
-  if [[ "${ODS_INSTALLER_GUI:-0}" == "1" ]]; then
-    echo "ODS_PROGRESS:${percent}:${phase}:${message}"
+  if [[ "{ODS_INSTALLER_GUI:-0}" == "1" ]]; then
+    echo "ODS_PROGRESS:{percent}:${phase}:${message}"
   fi
 }

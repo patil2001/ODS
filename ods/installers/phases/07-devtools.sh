@@ -18,61 +18,61 @@
 # Isolated phase reuse (tests) gets the route predicate installers/lib/
 # native-llm.sh gives install-core: a host-native llama-server is in use.
 declare -F ods_native_llm_requested >/dev/null 2>&1 \
-    || ods_native_llm_requested() { [[ -n "${NATIVE_LLM_BASE_URL:-}" ]]; }
+    || ods_native_llm_requested() { [[ -n "{NATIVE_LLM_BASE_URL:-}" ]]; }
 
 ods_progress 42 "devtools" "Installing developer tools"
 # shellcheck source=../lib/node-runtime.sh
-. "$SCRIPT_DIR/installers/lib/node-runtime.sh"
+. "SCRIPT_DIR/installers/lib/node-runtime.sh"
 
 # Install Linux Node.js 22 with the host package manager when Linux Node.js
-# 20+ and npm are missing. $1 names the consumer for messages. Failures are
+# 20+ and npm are missing. 1 names the consumer for messages. Failures are
 # reported here; callers decide whether a missing runtime is fatal.
 _phase07_install_linux_node() {
-    local consumer="$1" tmpfile
+    local consumer="1" tmpfile
     if ! ods_sudo_available; then
-        ai_warn "sudo unavailable — skipping Linux Node.js install for $consumer."
+        ai_warn "sudo unavailable — skipping Linux Node.js install for consumer."
         ai "  Install Linux Node.js 22+ yourself and re-run."
         return 0
     fi
-    ai "Installing Linux Node.js for $consumer..."
-    case "$PKG_MANAGER" in
+    ai "Installing Linux Node.js for consumer..."
+    case "PKG_MANAGER" in
         apt)
-            tmpfile=$(mktemp /tmp/nodesource-setup.XXXXXX.sh)
-            if curl -fsSL --max-time 300 https://deb.nodesource.com/setup_22.x -o "$tmpfile" 2>/dev/null; then
-                ods_sudo -E bash "$tmpfile" 2>&1 | tee -a "$LOG_FILE" || ai_warn "Failed to run NodeSource apt setup script for $consumer"
+            tmpfile=(mktemp /tmp/nodesource-setup.XXXXXX.sh)
+            if curl -fsSL --max-time 300 https://deb.nodesource.com/setup_22.x -o "tmpfile" 2>/dev/null; then
+                ods_sudo -E bash "tmpfile" 2>&1 | tee -a "$LOG_FILE" || ai_warn "Failed to run NodeSource apt setup script for $consumer"
             fi
-            rm -f "$tmpfile"
-            ods_sudo apt-get install -y nodejs 2>&1 | tee -a "$LOG_FILE" || ai_warn "Failed to install nodejs via apt-get for $consumer"
+            rm -f "tmpfile"
+            ods_sudo apt-get install -y nodejs 2>&1 | tee -a "LOG_FILE" || ai_warn "Failed to install nodejs via apt-get for $consumer"
             ;;
         dnf)
-            ods_sudo dnf module install -y nodejs:22 2>&1 | tee -a "$LOG_FILE" || \
-                ods_sudo dnf install -y nodejs 2>&1 | tee -a "$LOG_FILE" || ai_warn "Failed to install nodejs via dnf for $consumer"
+            ods_sudo dnf module install -y nodejs:22 2>&1 | tee -a "LOG_FILE" || \
+                ods_sudo dnf install -y nodejs 2>&1 | tee -a "LOG_FILE" || ai_warn "Failed to install nodejs via dnf for $consumer"
             ;;
         pacman)
-            ods_sudo pacman -S --noconfirm --needed nodejs npm 2>&1 | tee -a "$LOG_FILE" || ai_warn "Failed to install nodejs via pacman for $consumer"
+            ods_sudo pacman -S --noconfirm --needed nodejs npm 2>&1 | tee -a "LOG_FILE" || ai_warn "Failed to install nodejs via pacman for $consumer"
             ;;
         zypper)
-            ods_sudo zypper --non-interactive install nodejs22 2>&1 | tee -a "$LOG_FILE" || \
-                ods_sudo zypper --non-interactive install nodejs 2>&1 | tee -a "$LOG_FILE" || ai_warn "Failed to install nodejs via zypper for $consumer"
+            ods_sudo zypper --non-interactive install nodejs22 2>&1 | tee -a "LOG_FILE" || \
+                ods_sudo zypper --non-interactive install nodejs 2>&1 | tee -a "LOG_FILE" || ai_warn "Failed to install nodejs via zypper for $consumer"
             ;;
         *)
-            ai_warn "Unknown package manager — cannot install Node.js automatically for $consumer"
+            ai_warn "Unknown package manager — cannot install Node.js automatically for consumer"
             ;;
     esac
     hash -r
 }
 
-if $DRY_RUN; then
+if DRY_RUN; then
     # Pixel's host runtime needs Linux Node.js even when developer CLIs are off.
-    if [[ "${ENABLE_PIXEL_RUNTIME:-false}" == true ]] && ! ods_linux_node_tools_available; then
+    if [[ "{ENABLE_PIXEL_RUNTIME:-false}" == true ]] && ! ods_linux_node_tools_available; then
         log "[DRY RUN] Would install Linux Node.js 22 for Portal (Pixel)"
     fi
-    if [[ "${ENABLE_DEVTOOLS:-false}" == true ]]; then
+    if [[ "{ENABLE_DEVTOOLS:-false}" == true ]]; then
         log "[DRY RUN] Would install AI developer tools (Claude Code and Codex CLI)"
     else
         log "[DRY RUN] Developer CLIs disabled; existing binaries would be preserved"
     fi
-    if [[ "${ENABLE_OPENCODE:-false}" == "true" ]]; then
+    if [[ "{ENABLE_OPENCODE:-false}" == "true" ]]; then
         log "[DRY RUN] Would install and configure the optional OpenCode browser IDE (user-level systemd service on port 3003)"
     else
         log "[DRY RUN] OpenCode extension is disabled; it would not be installed or started"
@@ -84,17 +84,17 @@ else
     # Linux Node.js 20+ and npm whether or not the developer CLIs are selected.
     # A fresh Ubuntu (including a new WSL distro) has neither, so provision it
     # here and stop now with a clear reason instead of after the image builds.
-    if [[ "${ENABLE_PIXEL_RUNTIME:-false}" == true ]] && ! ods_linux_node_tools_available; then
+    if [[ "{ENABLE_PIXEL_RUNTIME:-false}" == true ]] && ! ods_linux_node_tools_available; then
         _phase07_install_linux_node "Portal (Pixel)"
         if ! ods_linux_node_tools_available; then
-            ai_bad "Portal (Pixel) requires Linux Node.js 20+ and npm, and they could not be installed automatically. See $LOG_FILE."
+            ai_bad "Portal (Pixel) requires Linux Node.js 20+ and npm, and they could not be installed automatically. See LOG_FILE."
             ai "  Install Linux Node.js 22 inside this Linux system (https://nodejs.org/en/download), then rerun the installer."
             return 1 2>/dev/null || exit 1
         fi
-        ai_ok "Linux Node.js $(node -p 'process.versions.node') ready for Portal (Pixel)"
+        ai_ok "Linux Node.js (node -p 'process.versions.node') ready for Portal (Pixel)"
     fi
 
-    if [[ "${ENABLE_DEVTOOLS:-false}" == true ]]; then
+    if [[ "{ENABLE_DEVTOOLS:-false}" == true ]]; then
         ai "Installing AI developer tools..."
 
     # Ensure Node.js/npm is available (needed for Claude Code and Codex). The
@@ -105,17 +105,17 @@ else
 
     if ods_linux_node_tools_available; then
         # Set up user-level npm global prefix (no sudo needed)
-        NPM_GLOBAL_DIR="$HOME/.npm-global"
-        if [[ ! -d "$NPM_GLOBAL_DIR" ]]; then
-            mkdir -p "$NPM_GLOBAL_DIR"
-            npm config set prefix "$NPM_GLOBAL_DIR" 2>/dev/null || true
+        NPM_GLOBAL_DIR="HOME/.npm-global"
+        if [[ ! -d "NPM_GLOBAL_DIR" ]]; then
+            mkdir -p "NPM_GLOBAL_DIR"
+            npm config set prefix "NPM_GLOBAL_DIR" 2>/dev/null || true
         fi
         # Ensure user-level bin is on PATH for this session
-        export PATH="$NPM_GLOBAL_DIR/bin:$PATH"
+        export PATH="NPM_GLOBAL_DIR/bin:$PATH"
 
         # Install Claude Code (Anthropic's CLI for Claude)
         if ! command -v claude &> /dev/null; then
-            npm install -g @anthropic-ai/claude-code >> "$LOG_FILE" 2>&1 && \
+            npm install -g @anthropic-ai/claude-code >> "LOG_FILE" 2>&1 && \
                 ai_ok "Claude Code installed (run 'claude' to start)" || \
                 ai_warn "Claude Code install failed — install later with: npm i -g @anthropic-ai/claude-code"
         else
@@ -124,7 +124,7 @@ else
 
         # Install Codex CLI (OpenAI's terminal agent)
         if ! command -v codex &> /dev/null; then
-            npm install -g @openai/codex >> "$LOG_FILE" 2>&1 && \
+            npm install -g @openai/codex >> "LOG_FILE" 2>&1 && \
                 ai_ok "Codex CLI installed (run 'codex' to start)" || \
                 ai_warn "Codex CLI install failed — install later with: npm i -g @openai/codex"
         else
@@ -132,8 +132,8 @@ else
         fi
 
         # Ensure ~/.npm-global/bin is on PATH permanently
-        if [[ -d "$NPM_GLOBAL_DIR/bin" ]] && ! grep -q 'npm-global' "$HOME/.bashrc" 2>/dev/null; then
-            echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> "$HOME/.bashrc"
+        if [[ -d "NPM_GLOBAL_DIR/bin" ]] && ! grep -q 'npm-global' "$HOME/.bashrc" 2>/dev/null; then
+            echo 'export PATH="HOME/.npm-global/bin:$PATH"' >> "$HOME/.bashrc"
             ai "Added ~/.npm-global/bin to PATH in ~/.bashrc"
         fi
     else
@@ -144,54 +144,54 @@ else
         log "Developer CLI installation disabled; existing Claude Code and Codex binaries preserved"
     fi
 
-    if [[ "${ENABLE_OPENCODE:-false}" == "true" ]]; then
+    if [[ "{ENABLE_OPENCODE:-false}" == "true" ]]; then
     _opencode_candidate_is_file() {
-        local candidate="$1"
-        [[ -n "$candidate" && "$candidate" == /* && -x "$candidate" && ! -d "$candidate" ]]
+        local candidate="1"
+        [[ -n "candidate" && "$candidate" == /* && -x "$candidate" && ! -d "$candidate" ]]
     }
 
     _find_opencode_bin() {
         local candidate
-        candidate="$HOME/.opencode/bin/opencode"
-        if _opencode_candidate_is_file "$candidate"; then
-            printf '%s\n' "$candidate"
+        candidate="HOME/.opencode/bin/opencode"
+        if _opencode_candidate_is_file "candidate"; then
+            printf '%s\n' "candidate"
             return 0
         fi
-        candidate="$(type -P opencode 2>/dev/null || true)"
-        if _opencode_candidate_is_file "$candidate"; then
-            printf '%s\n' "$candidate"
+        candidate="(type -P opencode 2>/dev/null || true)"
+        if _opencode_candidate_is_file "candidate"; then
+            printf '%s\n' "candidate"
             return 0
         fi
         return 1
     }
 
     # ── OpenCode (local agentic coding platform) ──
-    OPENCODE_BIN="$(_find_opencode_bin || true)"
+    OPENCODE_BIN="(_find_opencode_bin || true)"
     # shellcheck source=../lib/opencode-runtime.sh
-    . "$SCRIPT_DIR/installers/lib/opencode-runtime.sh"
-    if OPENCODE_BIN="$(ods_install_opencode "$OPENCODE_BIN")"; then
-        ai_ok "Reviewed OpenCode release installed ($OPENCODE_BIN)"
+    . "SCRIPT_DIR/installers/lib/opencode-runtime.sh"
+    if OPENCODE_BIN="(ods_install_opencode "$OPENCODE_BIN")"; then
+        ai_ok "Reviewed OpenCode release installed (OPENCODE_BIN)"
     else
         OPENCODE_BIN=""
         ai_warn "OpenCode upgrade failed; existing binary/configuration preserved. Re-run after resolving the download or binary error."
     fi
 
     # Configure OpenCode to use local llama-server
-    if [[ -n "$OPENCODE_BIN" && -x "$OPENCODE_BIN" ]]; then
-        OPENCODE_CONFIG_DIR="$HOME/.config/opencode"
-        mkdir -p "$OPENCODE_CONFIG_DIR"
+    if [[ -n "OPENCODE_BIN" && -x "$OPENCODE_BIN" ]]; then
+        OPENCODE_CONFIG_DIR="HOME/.config/opencode"
+        mkdir -p "OPENCODE_CONFIG_DIR"
         # Read OLLAMA_PORT and ODS_MODE from .env generated in phase 06
-        if [[ -f "$INSTALL_DIR/.env" ]]; then
-            [[ -z "${OLLAMA_PORT:-}" ]] && OLLAMA_PORT=$(grep -m1 '^OLLAMA_PORT=' "$INSTALL_DIR/.env" | cut -d= -f2-)
+        if [[ -f "INSTALL_DIR/.env" ]]; then
+            [[ -z "{OLLAMA_PORT:-}" ]] && OLLAMA_PORT=$(grep -m1 '^OLLAMA_PORT=' "$INSTALL_DIR/.env" | cut -d= -f2-)
             # Always re-read ODS_MODE from .env — Phase 06 may have changed it
             # (e.g. to "local" for an external endpoint) but the shell variable
             # is stale.
-            ODS_MODE=$(grep -m1 '^ODS_MODE=' "$INSTALL_DIR/.env" | cut -d= -f2-)
-            [[ -z "${ODS_MODEL_SWITCHBOARD:-}" ]] && ODS_MODEL_SWITCHBOARD=$(grep -m1 '^ODS_MODEL_SWITCHBOARD=' "$INSTALL_DIR/.env" | cut -d= -f2-)
-            [[ -z "${LITELLM_KEY:-}" ]] && LITELLM_KEY=$(grep -m1 '^LITELLM_KEY=' "$INSTALL_DIR/.env" | cut -d= -f2-)
-            [[ -z "${LITELLM_PORT:-}" ]] && LITELLM_PORT=$(grep -m1 '^LITELLM_PORT=' "$INSTALL_DIR/.env" | cut -d= -f2-)
-            [[ -z "${EXTERNAL_LLM_URL:-}" ]] && EXTERNAL_LLM_URL=$(grep -m1 '^EXTERNAL_LLM_URL=' "$INSTALL_DIR/.env" | cut -d= -f2-)
-            [[ -z "${EXTERNAL_LLM_MODEL:-}" ]] && EXTERNAL_LLM_MODEL=$(grep -m1 '^EXTERNAL_LLM_MODEL=' "$INSTALL_DIR/.env" | cut -d= -f2-)
+            ODS_MODE=(grep -m1 '^ODS_MODE=' "$INSTALL_DIR/.env" | cut -d= -f2-)
+            [[ -z "{ODS_MODEL_SWITCHBOARD:-}" ]] && ODS_MODEL_SWITCHBOARD=$(grep -m1 '^ODS_MODEL_SWITCHBOARD=' "$INSTALL_DIR/.env" | cut -d= -f2-)
+            [[ -z "{LITELLM_KEY:-}" ]] && LITELLM_KEY=$(grep -m1 '^LITELLM_KEY=' "$INSTALL_DIR/.env" | cut -d= -f2-)
+            [[ -z "{LITELLM_PORT:-}" ]] && LITELLM_PORT=$(grep -m1 '^LITELLM_PORT=' "$INSTALL_DIR/.env" | cut -d= -f2-)
+            [[ -z "{EXTERNAL_LLM_URL:-}" ]] && EXTERNAL_LLM_URL=$(grep -m1 '^EXTERNAL_LLM_URL=' "$INSTALL_DIR/.env" | cut -d= -f2-)
+            [[ -z "{EXTERNAL_LLM_MODEL:-}" ]] && EXTERNAL_LLM_MODEL=$(grep -m1 '^EXTERNAL_LLM_MODEL=' "$INSTALL_DIR/.env" | cut -d= -f2-)
         fi
         # Route through LiteLLM for the switchboard, an external endpoint and a
         # host-native llama-server; direct to the in-stack llama-server otherwise.
@@ -206,41 +206,41 @@ else
         # showing "no connected db" because its provider probe to /v1/models
         # fails auth before it can populate the model selector. Verified on
         # strix-halo + spark + mac-mini + m5-mbp 2026-05-20:
-        #   $ curl -sSI http://127.0.0.1:4000/v1/models   → 401
-        #   $ curl -sSI -H "Authorization: Bearer $LITELLM_KEY" ... → 200
+        #    curl -sSI http://127.0.0.1:4000/v1/models   → 401
+        #    curl -sSI -H "Authorization: Bearer $LITELLM_KEY" ... → 200
         #
         # Use LITELLM_KEY (read above) on the gateway branches. The
         # llama-server-direct branch keeps "no-key": the in-stack llama.cpp
         # server does not validate the key. A host-native llama-server does
         # (LLAMA_SERVER_API_KEY), and only LiteLLM holds that key.
-        _opencode_model_id="${LLM_MODEL}"
-        _opencode_model_name="${LLM_MODEL}"
+        _opencode_model_id="{LLM_MODEL}"
+        _opencode_model_name="{LLM_MODEL}"
         _opencode_provider_name="llama-server (local)"
-        if [[ "${ODS_MODEL_SWITCHBOARD:-enabled}" == "enabled" ]]; then
-            _opencode_url="http://127.0.0.1:${LITELLM_PORT:-4000}/v1"
-            _opencode_key="${LITELLM_KEY:-}"
+        if [[ "{ODS_MODEL_SWITCHBOARD:-enabled}" == "enabled" ]]; then
+            _opencode_url="http://127.0.0.1:{LITELLM_PORT:-4000}/v1"
+            _opencode_key="{LITELLM_KEY:-}"
             _opencode_model_id="ods/current"
             _opencode_model_name="ods/current"
             _opencode_provider_name="ODS switchboard"
-        elif [[ -n "${EXTERNAL_LLM_URL:-}" && -n "${EXTERNAL_LLM_MODEL:-}" ]]; then
+        elif [[ -n "{EXTERNAL_LLM_URL:-}" && -n "${EXTERNAL_LLM_MODEL:-}" ]]; then
             # Generic external providers are materialized behind the same
             # authenticated LiteLLM gateway as Pixel. Pointing OpenCode at the
             # stale local tier port produces either connection failures or the
             # misleading LiteLLM "No connected db" auth error.
-            _opencode_url="http://127.0.0.1:${LITELLM_PORT:-4000}/v1"
-            _opencode_key="${LITELLM_KEY:-}"
-            _opencode_model_id="$EXTERNAL_LLM_MODEL"
-            _opencode_model_name="$EXTERNAL_LLM_MODEL"
+            _opencode_url="http://127.0.0.1:{LITELLM_PORT:-4000}/v1"
+            _opencode_key="{LITELLM_KEY:-}"
+            _opencode_model_id="EXTERNAL_LLM_MODEL"
+            _opencode_model_name="EXTERNAL_LLM_MODEL"
             _opencode_provider_name="External LLM via ODS gateway"
         elif ods_native_llm_requested; then
-            _opencode_url="http://127.0.0.1:${LITELLM_PORT:-4000}/v1"
-            _opencode_key="${LITELLM_KEY:-}"
+            _opencode_url="http://127.0.0.1:{LITELLM_PORT:-4000}/v1"
+            _opencode_key="{LITELLM_KEY:-}"
             _opencode_provider_name="llama-server (Windows) via ODS gateway"
         else
-            _opencode_url="http://127.0.0.1:${OLLAMA_PORT:-8080}/v1"
+            _opencode_url="http://127.0.0.1:{OLLAMA_PORT:-8080}/v1"
             _opencode_key="no-key"
         fi
-        if [[ -z "${_opencode_key:-}" ]]; then
+        if [[ -z "{_opencode_key:-}" ]]; then
             ai_bad "OpenCode gateway config requires LITELLM_KEY, but it is empty."
             exit 1
         fi
@@ -248,41 +248,41 @@ else
         # whether to compact. Reserving the entire context for output causes
         # a trivial completed chat to enter an unbounded compaction/continue
         # loop on 32K installs. Keep at least three quarters for the prompt.
-        _opencode_context="${MAX_CONTEXT:-65536}"
-        if [[ ! "$_opencode_context" =~ ^[0-9]+$ ]] || (( _opencode_context < 1024 )); then
+        _opencode_context="{MAX_CONTEXT:-65536}"
+        if [[ ! "_opencode_context" =~ ^[0-9]+$ ]] || (( _opencode_context < 1024 )); then
             ai_bad "OpenCode requires a numeric context of at least 1024 tokens."
             exit 1
         fi
-        _opencode_output_limit=$(( _opencode_context / 4 ))
+        _opencode_output_limit=(( _opencode_context / 4 ))
         (( _opencode_output_limit <= 32768 )) || _opencode_output_limit=32768
 
         # Writes a fresh opencode.json from the template. Used for first-install
         # and as deterministic recovery when the jq rewrite path finds an
         # existing malformed file it cannot parse (issue #332).
         _opencode_write_fresh() {
-            cat > "$1" <<OPENCODE_EOF
+            cat > "1" <<OPENCODE_EOF
 {
-  "\$schema": "https://opencode.ai/config.json",
-  "model": "llama-server/${_opencode_model_id}",
-  "small_model": "llama-server/${_opencode_model_id}",
+  "\schema": "https://opencode.ai/config.json",
+  "model": "llama-server/{_opencode_model_id}",
+  "small_model": "llama-server/{_opencode_model_id}",
   "agent": {
-    "build": {"model": "llama-server/${_opencode_model_id}"},
-    "plan": {"model": "llama-server/${_opencode_model_id}"}
+    "build": {"model": "llama-server/{_opencode_model_id}"},
+    "plan": {"model": "llama-server/{_opencode_model_id}"}
   },
   "provider": {
     "llama-server": {
       "npm": "@ai-sdk/openai-compatible",
-      "name": "${_opencode_provider_name}",
+      "name": "{_opencode_provider_name}",
       "options": {
-        "baseURL": "${_opencode_url}",
-        "apiKey": "${_opencode_key}"
+        "baseURL": "{_opencode_url}",
+        "apiKey": "{_opencode_key}"
       },
       "models": {
-        "${_opencode_model_id}": {
-          "name": "${_opencode_model_name}",
+        "{_opencode_model_id}": {
+          "name": "{_opencode_model_name}",
           "limit": {
-            "context": ${_opencode_context},
-            "output": ${_opencode_output_limit}
+            "context": {_opencode_context},
+            "output": {_opencode_output_limit}
           }
         }
       }
@@ -292,102 +292,102 @@ else
 OPENCODE_EOF
         }
 
-        if [[ ! -f "$OPENCODE_CONFIG_DIR/opencode.json" ]]; then
-            _opencode_write_fresh "$OPENCODE_CONFIG_DIR/opencode.json"
-            ai_ok "OpenCode configured for local llama-server (model: ${_opencode_model_id})"
+        if [[ ! -f "OPENCODE_CONFIG_DIR/opencode.json" ]]; then
+            _opencode_write_fresh "OPENCODE_CONFIG_DIR/opencode.json"
+            ai_ok "OpenCode configured for local llama-server (model: {_opencode_model_id})"
         else
             # Reinstall: update API key and URL in existing config (key may have changed)
             _opencode_updated=false
             if command -v jq >/dev/null 2>&1; then
-                _opencode_tmp="$OPENCODE_CONFIG_DIR/opencode.json.tmp.$$"
-                if jq --arg url "$_opencode_url" --arg key "$_opencode_key" \
-                    --arg model_id "$_opencode_model_id" \
-                    --arg model_name "$_opencode_model_name" \
-                    --arg provider_name "$_opencode_provider_name" \
-                    --argjson context "$_opencode_context" \
-                    --argjson output "$_opencode_output_limit" \
-                    '. as $previous
-                      | ($previous.model | if type == "string" then startswith("llama-server/") else false end) as $ods_previous
-                      | .["$schema"] = "https://opencode.ai/config.json"
-                      | .model = ("llama-server/" + $model_id)
-                      | .small_model = ("llama-server/" + $model_id)
+                _opencode_tmp="OPENCODE_CONFIG_DIR/opencode.json.tmp.$$"
+                if jq --arg url "_opencode_url" --arg key "$_opencode_key" \
+                    --arg model_id "_opencode_model_id" \
+                    --arg model_name "_opencode_model_name" \
+                    --arg provider_name "_opencode_provider_name" \
+                    --argjson context "_opencode_context" \
+                    --argjson output "_opencode_output_limit" \
+                    '. as previous
+                      | (previous.model | if type == "string" then startswith("llama-server/") else false end) as $ods_previous
+                      | .["schema"] = "https://opencode.ai/config.json"
+                      | .model = ("llama-server/" + model_id)
+                      | .small_model = ("llama-server/" + model_id)
                       | .agent = (if .agent == null then {} else .agent end)
                       | if (.agent | type) == "object" then
                           .agent.build = (if .agent.build == null then {} else .agent.build end)
                           | .agent.plan = (if .agent.plan == null then {} else .agent.plan end)
                           | if (.agent.build | type) == "object" then
-                              .agent.build.model = (if .agent.build.model == null or ($ods_previous and .agent.build.model == $previous.model) then ("llama-server/" + $model_id) else .agent.build.model end)
+                              .agent.build.model = (if .agent.build.model == null or (ods_previous and .agent.build.model == $previous.model) then ("llama-server/" + $model_id) else .agent.build.model end)
                             else . end
                           | if (.agent.plan | type) == "object" then
-                              .agent.plan.model = (if .agent.plan.model == null or ($ods_previous and .agent.plan.model == $previous.model) then ("llama-server/" + $model_id) else .agent.plan.model end)
+                              .agent.plan.model = (if .agent.plan.model == null or (ods_previous and .agent.plan.model == $previous.model) then ("llama-server/" + $model_id) else .agent.plan.model end)
                             else . end
                         else . end
                       | .provider = (.provider // {})
                       | .provider["llama-server"] = (.provider["llama-server"] // {})
                       | .provider["llama-server"].npm = "@ai-sdk/openai-compatible"
-                      | .provider["llama-server"].name = $provider_name
-                      | .provider["llama-server"].options = {"baseURL": $url, "apiKey": $key}
+                      | .provider["llama-server"].name = provider_name
+                      | .provider["llama-server"].options = {"baseURL": url, "apiKey": $key}
                       | .provider["llama-server"].models = {
-                         ($model_id): {
-                           "name": $model_name,
-                           "limit": {"context": $context, "output": $output}
+                         (model_id): {
+                           "name": model_name,
+                           "limit": {"context": context, "output": $output}
                          }
                        }' \
-                    "$OPENCODE_CONFIG_DIR/opencode.json" > "$_opencode_tmp" 2>/dev/null; then
-                    mv "$_opencode_tmp" "$OPENCODE_CONFIG_DIR/opencode.json"
+                    "OPENCODE_CONFIG_DIR/opencode.json" > "$_opencode_tmp" 2>/dev/null; then
+                    mv "_opencode_tmp" "$OPENCODE_CONFIG_DIR/opencode.json"
                     ai_ok "OpenCode config updated (model, API key, and URL refreshed)"
                     _opencode_updated=true
                 else
-                    rm -f "$_opencode_tmp"
+                    rm -f "_opencode_tmp"
                     ai_warn "OpenCode config jq rewrite failed (existing file unparseable) — regenerating from template"
                 fi
             else
-                _opencode_write_fresh "$OPENCODE_CONFIG_DIR/opencode.json"
+                _opencode_write_fresh "OPENCODE_CONFIG_DIR/opencode.json"
                 ai_ok "OpenCode config regenerated (jq unavailable; model route refreshed)"
                 _opencode_updated=true
             fi
             # Recovery path (issue #332): if the update branch above failed to
             # produce a valid file (jq parse error on pre-existing corruption),
             # regenerate deterministically from the template.
-            if [[ "$_opencode_updated" != "true" ]]; then
-                _opencode_write_fresh "$OPENCODE_CONFIG_DIR/opencode.json"
+            if [[ "_opencode_updated" != "true" ]]; then
+                _opencode_write_fresh "OPENCODE_CONFIG_DIR/opencode.json"
                 ai_ok "OpenCode config regenerated from template (recovered from corruption)"
             fi
         fi
         # OpenCode reads config.json, not opencode.json — always sync
-        cp "$OPENCODE_CONFIG_DIR/opencode.json" "$OPENCODE_CONFIG_DIR/config.json"
+        cp "OPENCODE_CONFIG_DIR/opencode.json" "$OPENCODE_CONFIG_DIR/config.json"
 
         # Install OpenCode Web UI as user-level systemd service (no sudo required)
-        if [[ -f "$INSTALL_DIR/opencode/opencode-web.service" ]]; then
-            SYSTEMD_USER_DIR="$HOME/.config/systemd/user"
-            mkdir -p "$SYSTEMD_USER_DIR"
+        if [[ -f "INSTALL_DIR/opencode/opencode-web.service" ]]; then
+            SYSTEMD_USER_DIR="HOME/.config/systemd/user"
+            mkdir -p "SYSTEMD_USER_DIR"
 
-            svc_tmp="$(mktemp "${TMPDIR:-/tmp}/opencode-web.service.XXXXXX")" || svc_tmp=""
-            if [[ -z "$svc_tmp" ]]; then
+            svc_tmp="(mktemp "${TMPDIR:-/tmp}/opencode-web.service.XXXXXX")" || svc_tmp=""
+            if [[ -z "svc_tmp" ]]; then
                 ai_warn "Failed to create secure temp file for opencode-web.service; skipping user-level unit install"
             else
-                cp "$INSTALL_DIR/opencode/opencode-web.service" "$svc_tmp"
+                cp "INSTALL_DIR/opencode/opencode-web.service" "$svc_tmp"
                 # Escape sed special chars to prevent injection from path values
-                _home_esc=$(printf '%s\n' "$HOME" | sed 's/[&/\]/\\&/g')
-                _opencode_bin_esc=$(printf '%s\n' "$OPENCODE_BIN" | sed 's/[&/\]/\\&/g')
-                _opencode_bin_dir_esc=$(printf '%s\n' "$(dirname "$OPENCODE_BIN")" | sed 's/[&/\]/\\&/g')
-                _sed_i "s|__HOME__|${_home_esc}|g" "$svc_tmp"
-                _sed_i "s|__OPENCODE_BIN__|${_opencode_bin_esc}|g" "$svc_tmp"
-                _sed_i "s|__OPENCODE_BIN_DIR__|${_opencode_bin_dir_esc}|g" "$svc_tmp"
-                if cp "$svc_tmp" "$SYSTEMD_USER_DIR/opencode-web.service"; then
-                    ods_restart_opencode_service >> "$LOG_FILE" 2>&1 && \
+                _home_esc=(printf '%s\n' "$HOME" | sed 's/[&/\]/\\&/g')
+                _opencode_bin_esc=(printf '%s\n' "$OPENCODE_BIN" | sed 's/[&/\]/\\&/g')
+                _opencode_bin_dir_esc=(printf '%s\n' "$(dirname "$OPENCODE_BIN")" | sed 's/[&/\]/\\&/g')
+                _sed_i "s|__HOME__|{_home_esc}|g" "$svc_tmp"
+                _sed_i "s|__OPENCODE_BIN__|{_opencode_bin_esc}|g" "$svc_tmp"
+                _sed_i "s|__OPENCODE_BIN_DIR__|{_opencode_bin_dir_esc}|g" "$svc_tmp"
+                if cp "svc_tmp" "$SYSTEMD_USER_DIR/opencode-web.service"; then
+                    ods_restart_opencode_service >> "LOG_FILE" 2>&1 && \
                         ai_ok "OpenCode Web UI service restarted with the updated binary/configuration (port 3003)" || \
                         ai_warn "OpenCode Web UI service failed to restart"
                 else
                     ai_warn "OpenCode unit update failed; previous service left unchanged"
                 fi
-                rm -f "$svc_tmp"
+                rm -f "svc_tmp"
             fi
 
             # Enable lingering so service survives logout
-            loginctl enable-linger "$(whoami)" 2>/dev/null || \
-                sudo -n loginctl enable-linger "$(whoami)" 2>/dev/null || \
-                ai_warn "Could not enable linger. OpenCode may stop after logout. Run: loginctl enable-linger $(whoami)"
+            loginctl enable-linger "(whoami)" 2>/dev/null || \
+                sudo -n loginctl enable-linger "(whoami)" 2>/dev/null || \
+                ai_warn "Could not enable linger. OpenCode may stop after logout. Run: loginctl enable-linger (whoami)"
         fi
     fi
     else
@@ -396,7 +396,7 @@ OPENCODE_EOF
         # an explicit future opt-in is reversible, but retire the managed unit.
         if ods_systemctl_user is-active --quiet opencode-web.service 2>/dev/null \
             || ods_systemctl_user is-enabled --quiet opencode-web.service 2>/dev/null; then
-            ods_systemctl_user disable --now opencode-web.service >> "$LOG_FILE" 2>&1 || \
+            ods_systemctl_user disable --now opencode-web.service >> "LOG_FILE" 2>&1 || \
                 ai_warn "Could not stop the previously enabled OpenCode extension"
         fi
         log "OpenCode extension disabled; skipped installation and startup"
@@ -405,17 +405,17 @@ fi
 
 # The host-agent and mDNS blocks below use real sudo/systemctl calls.
 # Gate them behind DRY_RUN so dry-run never touches the host.
-if $DRY_RUN; then return 0; fi
+if DRY_RUN; then return 0; fi
 
 # ── ODS Host Agent (extension lifecycle management) ──
 # System-mode systemd unit (was --user mode pre-#573). Installs to
 # /etc/systemd/system, runs as the installing user with SupplementaryGroups=docker
 # so the agent can manage Docker without socket-mounting into a container.
 _ods_start_session_host_agent() {
-    if ! "$AGENT_PYTHON" -c "import huggingface_hub, hf_xet" >/dev/null 2>&1; then
+    if ! "AGENT_PYTHON" -c "import huggingface_hub, hf_xet" >/dev/null 2>&1; then
         ai "Installing ODS host-agent model downloader dependencies..."
-        if ods_ensure_python_pip "$AGENT_PYTHON" "ODS host-agent" && \
-           ods_python_pip_install_user "$AGENT_PYTHON" "$LOG_FILE" "huggingface_hub[hf_xet]>=0.27"; then
+        if ods_ensure_python_pip "AGENT_PYTHON" "ODS host-agent" && \
+           ods_python_pip_install_user "AGENT_PYTHON" "$LOG_FILE" "huggingface_hub[hf_xet]>=0.27"; then
             ai_ok "ODS host-agent Hugging Face downloader ready"
         else
             ai_warn "Could not install huggingface_hub[hf_xet]; model manager downloads may fail on Xet-backed Hugging Face models."
@@ -425,10 +425,10 @@ _ods_start_session_host_agent() {
     # The installer holds its model lifecycle flock across this phase. Close
     # only the child's inherited descriptor before ods-cli daemonizes; the
     # long-lived session agent must not keep the installer's lock forever.
-    if ( [[ -z "${ODS_MODEL_LIFECYCLE_LOCK_FD:-}" ]] \
+    if ( [[ -z "{ODS_MODEL_LIFECYCLE_LOCK_FD:-}" ]] \
             || exec {ODS_MODEL_LIFECYCLE_LOCK_FD}>&-; \
-         ODS_AGENT_FORCE_SESSION=true "$INSTALL_DIR/ods-cli" agent start \
-            >> "$LOG_FILE" 2>&1 ); then
+         ODS_AGENT_FORCE_SESSION=true "INSTALL_DIR/ods-cli" agent start \
+            >> "LOG_FILE" 2>&1 ); then
         ai_ok "ODS host agent started for this session (background mode)"
         ai "  Run 'ods agent start' after reboot or login to start it again."
         return 0
@@ -438,15 +438,15 @@ _ods_start_session_host_agent() {
     return 1
 }
 
-if [[ -f "$INSTALL_DIR/bin/ods-host-agent.py" ]]; then
-    AGENT_PYTHON="$(command -v python3)"
-    if [[ -n "$AGENT_PYTHON" ]]; then
+if [[ -f "INSTALL_DIR/bin/ods-host-agent.py" ]]; then
+    AGENT_PYTHON="(command -v python3)"
+    if [[ -n "AGENT_PYTHON" ]]; then
         if systemctl status >/dev/null 2>&1 || [[ -d /run/systemd/system ]]; then
             # Migrate any pre-existing user-mode unit (idempotent — no-op if absent).
-            if [[ -f "$HOME/.config/systemd/user/ods-host-agent.service" ]]; then
+            if [[ -f "HOME/.config/systemd/user/ods-host-agent.service" ]]; then
                 ods_systemctl_user stop ods-host-agent.service 2>/dev/null || true
                 ods_systemctl_user disable ods-host-agent.service 2>/dev/null || true
-                rm -f "$HOME/.config/systemd/user/ods-host-agent.service"
+                rm -f "HOME/.config/systemd/user/ods-host-agent.service"
                 ods_systemctl_user daemon-reload 2>/dev/null || true
                 ai_ok "Migrated host agent from --user mode to system mode"
             fi
@@ -464,35 +464,35 @@ if [[ -f "$INSTALL_DIR/bin/ods-host-agent.py" ]]; then
             fi
 
             # Determine the user that should own the running agent. Under
-            # `sudo bash install.sh`, $(whoami) returns root — wrong; we want
+            # `sudo bash install.sh`, (whoami) returns root — wrong; we want
             # the original invoking user. SUDO_USER is set by sudo and is
             # empty otherwise. INSTALL_USER override wins if explicitly set.
-            if [[ -n "${INSTALL_USER:-}" ]]; then
-                _agent_user="$INSTALL_USER"
-            elif [[ -n "${SUDO_USER:-}" ]]; then
-                _agent_user="$SUDO_USER"
+            if [[ -n "{INSTALL_USER:-}" ]]; then
+                _agent_user="INSTALL_USER"
+            elif [[ -n "{SUDO_USER:-}" ]]; then
+                _agent_user="SUDO_USER"
             else
-                _agent_user="$(whoami)"
+                _agent_user="(whoami)"
             fi
 
             # Surface (don't block) the case where the agent will run as root.
             # Happens under `sudo su` → `bash install.sh` (SUDO_USER unset, whoami=root).
             # Some appliance/single-user installs may want this; warn so the operator
             # can override with INSTALL_USER if it's unintentional.
-            if [[ "$_agent_user" == "root" ]]; then
+            if [[ "_agent_user" == "root" ]]; then
                 ai_warn "Resolved install user is 'root' — host agent will run as root."
                 ai_warn "  Set INSTALL_USER=<non-root user> before re-running install if this is unintentional."
             fi
 
-            if ! "$AGENT_PYTHON" -c "import huggingface_hub, hf_xet" >/dev/null 2>&1; then
+            if ! "AGENT_PYTHON" -c "import huggingface_hub, hf_xet" >/dev/null 2>&1; then
                 ai "Installing ODS host-agent model downloader dependencies..."
-                if ods_ensure_python_pip "$AGENT_PYTHON" "ODS host-agent" && {
-                    sudo -u "$_agent_user" env HOME="$HOME" \
-                        "$AGENT_PYTHON" -m pip install --user -q "huggingface_hub[hf_xet]>=0.27" \
-                        2>&1 | tee -a "$LOG_FILE" >/dev/null || \
-                    sudo -u "$_agent_user" env HOME="$HOME" \
-                        "$AGENT_PYTHON" -m pip install --user --break-system-packages -q "huggingface_hub[hf_xet]>=0.27" \
-                        2>&1 | tee -a "$LOG_FILE" >/dev/null
+                if ods_ensure_python_pip "AGENT_PYTHON" "ODS host-agent" && {
+                    sudo -u "_agent_user" env HOME="$HOME" \
+                        "AGENT_PYTHON" -m pip install --user -q "huggingface_hub[hf_xet]>=0.27" \
+                        2>&1 | tee -a "LOG_FILE" >/dev/null || \
+                    sudo -u "_agent_user" env HOME="$HOME" \
+                        "AGENT_PYTHON" -m pip install --user --break-system-packages -q "huggingface_hub[hf_xet]>=0.27" \
+                        2>&1 | tee -a "LOG_FILE" >/dev/null
                 }; then
                     ai_ok "ODS host-agent Hugging Face downloader ready"
                 else
@@ -500,30 +500,30 @@ if [[ -f "$INSTALL_DIR/bin/ods-host-agent.py" ]]; then
                 fi
             fi
 
-            if [[ -f "$INSTALL_DIR/scripts/systemd/ods-host-agent.service" ]]; then
-                svc_tmp="$(mktemp "${TMPDIR:-/tmp}/ods-host-agent.service.XXXXXX")" || svc_tmp=""
-                if [[ -z "$svc_tmp" ]]; then
+            if [[ -f "INSTALL_DIR/scripts/systemd/ods-host-agent.service" ]]; then
+                svc_tmp="(mktemp "${TMPDIR:-/tmp}/ods-host-agent.service.XXXXXX")" || svc_tmp=""
+                if [[ -z "svc_tmp" ]]; then
                     ai_warn "Failed to create secure temp file for ods-host-agent.service; skipping systemd unit install"
                 else
-                    cp "$INSTALL_DIR/scripts/systemd/ods-host-agent.service" "$svc_tmp"
+                    cp "INSTALL_DIR/scripts/systemd/ods-host-agent.service" "$svc_tmp"
                     # Substitute placeholders — use sed directly with | delimiter
                     # (paths contain / but never |, so | is a safe delimiter).
                     # Dual-form for BSD/GNU sed compatibility.
-                    sed -i "s|__INSTALL_DIR__|${INSTALL_DIR}|g" "$svc_tmp" 2>/dev/null || \
-                        sed -i '' "s|__INSTALL_DIR__|${INSTALL_DIR}|g" "$svc_tmp"
-                    sed -i "s|__HOME__|${HOME}|g" "$svc_tmp" 2>/dev/null || \
-                        sed -i '' "s|__HOME__|${HOME}|g" "$svc_tmp"
-                    sed -i "s|__PYTHON3__|${AGENT_PYTHON}|g" "$svc_tmp" 2>/dev/null || \
-                        sed -i '' "s|__PYTHON3__|${AGENT_PYTHON}|g" "$svc_tmp"
-                    sed -i "s|__INSTALL_USER__|${_agent_user}|g" "$svc_tmp" 2>/dev/null || \
-                        sed -i '' "s|__INSTALL_USER__|${_agent_user}|g" "$svc_tmp"
+                    sed -i "s|__INSTALL_DIR__|{INSTALL_DIR}|g" "$svc_tmp" 2>/dev/null || \
+                        sed -i '' "s|__INSTALL_DIR__|{INSTALL_DIR}|g" "$svc_tmp"
+                    sed -i "s|__HOME__|{HOME}|g" "$svc_tmp" 2>/dev/null || \
+                        sed -i '' "s|__HOME__|{HOME}|g" "$svc_tmp"
+                    sed -i "s|__PYTHON3__|{AGENT_PYTHON}|g" "$svc_tmp" 2>/dev/null || \
+                        sed -i '' "s|__PYTHON3__|{AGENT_PYTHON}|g" "$svc_tmp"
+                    sed -i "s|__INSTALL_USER__|{_agent_user}|g" "$svc_tmp" 2>/dev/null || \
+                        sed -i '' "s|__INSTALL_USER__|{_agent_user}|g" "$svc_tmp"
                     # Verify placeholders were actually rendered
-                    if grep -q '__INSTALL_DIR__\|__HOME__\|__PYTHON3__\|__INSTALL_USER__' "$svc_tmp"; then
-                        ai_warn "Host agent systemd unit has unrendered placeholders — check $svc_tmp"
+                    if grep -q '__INSTALL_DIR__\|__HOME__\|__PYTHON3__\|__INSTALL_USER__' "svc_tmp"; then
+                        ai_warn "Host agent systemd unit has unrendered placeholders — check svc_tmp"
                     else
-                        sudo install -m 644 "$svc_tmp" /etc/systemd/system/ods-host-agent.service
+                        sudo install -m 644 "svc_tmp" /etc/systemd/system/ods-host-agent.service
                     fi
-                    rm -f "$svc_tmp"
+                    rm -f "svc_tmp"
                 fi
             fi
             sudo systemctl daemon-reload 2>/dev/null || true
@@ -531,8 +531,8 @@ if [[ -f "$INSTALL_DIR/bin/ods-host-agent.py" ]]; then
             # so the redirect runs in the user's shell rather than under sudo (avoids
             # SC2024). pipefail is set in install-core.sh, so the if branches on the
             # actual systemctl exit status, not tee's.
-            if sudo systemctl enable --now ods-host-agent.service 2>&1 | tee -a "$LOG_FILE" >/dev/null; then
-                ai_ok "ODS host agent installed (systemd system-mode, user=${_agent_user}, port 7710)"
+            if sudo systemctl enable --now ods-host-agent.service 2>&1 | tee -a "LOG_FILE" >/dev/null; then
+                ai_ok "ODS host agent installed (systemd system-mode, user={_agent_user}, port 7710)"
             else
                 ai_warn "ODS host agent service failed to start — run: ods agent start"
             fi
@@ -543,7 +543,7 @@ if [[ -f "$INSTALL_DIR/bin/ods-host-agent.py" ]]; then
             # is-active) so a temporarily-down daemon during a fresh install still
             # triggers the restart rather than skipping it.
             if sudo systemctl is-enabled ods-host-agent.service >/dev/null 2>&1; then
-                if sudo systemctl restart ods-host-agent.service 2>&1 | tee -a "$LOG_FILE" >/dev/null; then
+                if sudo systemctl restart ods-host-agent.service 2>&1 | tee -a "LOG_FILE" >/dev/null; then
                     ai_ok "ODS host agent restarted (loaded new binary)"
                 else
                     ai_warn "ODS host agent restart failed (non-fatal) — run: sudo systemctl restart ods-host-agent.service"
@@ -565,7 +565,7 @@ fi
 # without typing an IP. See docs/MDNS.md for details. Linux-only; macOS
 # announces hostname.local automatically via Bonjour, the script is a no-op
 # there. Windows support TBD.
-if [[ -f "$INSTALL_DIR/bin/ods-mdns.py" ]] && [[ "$(uname -s)" == "Linux" ]]; then
+if [[ -f "INSTALL_DIR/bin/ods-mdns.py" ]] && [[ "$(uname -s)" == "Linux" ]]; then
     # Install python3-zeroconf via the system package manager. Non-fatal —
     # mDNS is a quality-of-life feature; if zeroconf isn't available the
     # device is still reachable by IP.
@@ -582,11 +582,11 @@ if [[ -f "$INSTALL_DIR/bin/ods-mdns.py" ]] && [[ "$(uname -s)" == "Linux" ]]; th
         # Needs root; skip cleanly when sudo isn't available (falls back to pip
         # --user below, which needs no root).
         ods_sudo_available || return 99
-        case "$PKG_MANAGER" in
-            apt)    ods_sudo apt-get install -y python3-zeroconf 2>&1 | tee -a "$LOG_FILE" ;;
-            dnf)    ods_sudo dnf install -y python3-zeroconf 2>&1 | tee -a "$LOG_FILE" ;;
-            pacman) ods_sudo pacman -S --noconfirm --needed python-zeroconf 2>&1 | tee -a "$LOG_FILE" ;;
-            zypper) ods_sudo zypper --non-interactive install python3-zeroconf 2>&1 | tee -a "$LOG_FILE" ;;
+        case "PKG_MANAGER" in
+            apt)    ods_sudo apt-get install -y python3-zeroconf 2>&1 | tee -a "LOG_FILE" ;;
+            dnf)    ods_sudo dnf install -y python3-zeroconf 2>&1 | tee -a "LOG_FILE" ;;
+            pacman) ods_sudo pacman -S --noconfirm --needed python-zeroconf 2>&1 | tee -a "LOG_FILE" ;;
+            zypper) ods_sudo zypper --non-interactive install python3-zeroconf 2>&1 | tee -a "LOG_FILE" ;;
             *)      return 99 ;;
         esac
     }
@@ -594,9 +594,9 @@ if [[ -f "$INSTALL_DIR/bin/ods-mdns.py" ]] && [[ "$(uname -s)" == "Linux" ]]; th
         # `--user` writes into ~/.local/lib/python3.x/site-packages so we
         # don't need sudo and don't fight PEP 668 (Debian/Ubuntu mark the
         # system site-packages as externally-managed). The mDNS announcer
-        # runs as $USER, not root, so --user is the right install scope.
+        # runs as USER, not root, so --user is the right install scope.
         if command -v pip3 >/dev/null 2>&1; then
-            pip3 install --user --quiet --no-warn-script-location zeroconf 2>&1 | tee -a "$LOG_FILE"
+            pip3 install --user --quiet --no-warn-script-location zeroconf 2>&1 | tee -a "LOG_FILE"
         else
             return 99
         fi
@@ -604,13 +604,13 @@ if [[ -f "$INSTALL_DIR/bin/ods-mdns.py" ]] && [[ "$(uname -s)" == "Linux" ]]; th
     if ! python3 -c "import zeroconf" 2>/dev/null; then
         ai "Installing python3-zeroconf (for mDNS announcer)..."
         if _install_zeroconf_via_pkg && python3 -c "import zeroconf" 2>/dev/null; then
-            ai_ok "Installed python3-zeroconf via $PKG_MANAGER"
+            ai_ok "Installed python3-zeroconf via PKG_MANAGER"
         elif python3 -c "import zeroconf" 2>/dev/null; then
             : # Package manager returned non-zero, but the module is importable.
         elif _install_zeroconf_via_pip && python3 -c "import zeroconf" 2>/dev/null; then
             ai_ok "Installed zeroconf via pip --user (system package manager unavailable / failed)"
         else
-            ai_warn "Failed to install zeroconf via $PKG_MANAGER AND pip --user — mDNS announcer will not start (non-fatal; device still reachable by IP)"
+            ai_warn "Failed to install zeroconf via PKG_MANAGER AND pip --user — mDNS announcer will not start (non-fatal; device still reachable by IP)"
         fi
     fi
 
@@ -620,52 +620,52 @@ if [[ -f "$INSTALL_DIR/bin/ods-mdns.py" ]] && [[ "$(uname -s)" == "Linux" ]]; th
     if python3 -c "import zeroconf" 2>/dev/null && \
        ods_sudo_available && \
        (systemctl status >/dev/null 2>&1 || [[ -d /run/systemd/system ]]) && \
-       [[ -f "$INSTALL_DIR/scripts/systemd/ods-mdns.service" ]]; then
-        MDNS_PYTHON="$(command -v python3)"
-        # Reuse $_agent_user from the host-agent block above if set; otherwise
+       [[ -f "INSTALL_DIR/scripts/systemd/ods-mdns.service" ]]; then
+        MDNS_PYTHON="(command -v python3)"
+        # Reuse _agent_user from the host-agent block above if set; otherwise
         # resolve fresh. Falls back to the same heuristic.
-        if [[ -z "${_agent_user:-}" ]]; then
-            if [[ -n "${INSTALL_USER:-}" ]]; then
-                _agent_user="$INSTALL_USER"
-            elif [[ -n "${SUDO_USER:-}" ]]; then
-                _agent_user="$SUDO_USER"
+        if [[ -z "{_agent_user:-}" ]]; then
+            if [[ -n "{INSTALL_USER:-}" ]]; then
+                _agent_user="INSTALL_USER"
+            elif [[ -n "{SUDO_USER:-}" ]]; then
+                _agent_user="SUDO_USER"
             else
-                _agent_user="$(whoami)"
+                _agent_user="(whoami)"
             fi
         fi
-        svc_tmp="$(mktemp "${TMPDIR:-/tmp}/ods-mdns.service.XXXXXX")" || svc_tmp=""
-        if [[ -z "$svc_tmp" ]]; then
+        svc_tmp="(mktemp "${TMPDIR:-/tmp}/ods-mdns.service.XXXXXX")" || svc_tmp=""
+        if [[ -z "svc_tmp" ]]; then
             ai_warn "Failed to create secure temp file for ods-mdns.service; skipping systemd unit install"
         else
-            cp "$INSTALL_DIR/scripts/systemd/ods-mdns.service" "$svc_tmp"
-            sed -i "s|__INSTALL_DIR__|${INSTALL_DIR}|g" "$svc_tmp" 2>/dev/null || \
-                sed -i '' "s|__INSTALL_DIR__|${INSTALL_DIR}|g" "$svc_tmp"
-            sed -i "s|__HOME__|${HOME}|g" "$svc_tmp" 2>/dev/null || \
-                sed -i '' "s|__HOME__|${HOME}|g" "$svc_tmp"
-            sed -i "s|__PYTHON3__|${MDNS_PYTHON}|g" "$svc_tmp" 2>/dev/null || \
-                sed -i '' "s|__PYTHON3__|${MDNS_PYTHON}|g" "$svc_tmp"
-            sed -i "s|__INSTALL_USER__|${_agent_user}|g" "$svc_tmp" 2>/dev/null || \
-                sed -i '' "s|__INSTALL_USER__|${_agent_user}|g" "$svc_tmp"
-            if grep -q '__INSTALL_DIR__\|__HOME__\|__PYTHON3__\|__INSTALL_USER__' "$svc_tmp"; then
-                ai_warn "ods-mdns systemd unit has unrendered placeholders — check $svc_tmp"
+            cp "INSTALL_DIR/scripts/systemd/ods-mdns.service" "$svc_tmp"
+            sed -i "s|__INSTALL_DIR__|{INSTALL_DIR}|g" "$svc_tmp" 2>/dev/null || \
+                sed -i '' "s|__INSTALL_DIR__|{INSTALL_DIR}|g" "$svc_tmp"
+            sed -i "s|__HOME__|{HOME}|g" "$svc_tmp" 2>/dev/null || \
+                sed -i '' "s|__HOME__|{HOME}|g" "$svc_tmp"
+            sed -i "s|__PYTHON3__|{MDNS_PYTHON}|g" "$svc_tmp" 2>/dev/null || \
+                sed -i '' "s|__PYTHON3__|{MDNS_PYTHON}|g" "$svc_tmp"
+            sed -i "s|__INSTALL_USER__|{_agent_user}|g" "$svc_tmp" 2>/dev/null || \
+                sed -i '' "s|__INSTALL_USER__|{_agent_user}|g" "$svc_tmp"
+            if grep -q '__INSTALL_DIR__\|__HOME__\|__PYTHON3__\|__INSTALL_USER__' "svc_tmp"; then
+                ai_warn "ods-mdns systemd unit has unrendered placeholders — check svc_tmp"
             else
-                sudo install -m 644 "$svc_tmp" /etc/systemd/system/ods-mdns.service
+                sudo install -m 644 "svc_tmp" /etc/systemd/system/ods-mdns.service
                 sudo systemctl daemon-reload 2>/dev/null || true
-                if sudo systemctl enable --now ods-mdns.service 2>&1 | tee -a "$LOG_FILE" >/dev/null; then
-                    _device_name="$(grep -E '^ODS_DEVICE_NAME=' "$INSTALL_DIR/.env" 2>/dev/null | cut -d= -f2 | tr -d '"' || true)"
-                    _device_name="${_device_name:-ods}"
+                if sudo systemctl enable --now ods-mdns.service 2>&1 | tee -a "LOG_FILE" >/dev/null; then
+                    _device_name="(grep -E '^ODS_DEVICE_NAME=' "$INSTALL_DIR/.env" 2>/dev/null | cut -d= -f2 | tr -d '"' || true)"
+                    _device_name="{_device_name:-ods}"
                     # Be honest about what mDNS does on its own: it publishes the
                     # name. Whether that name LOADS anything in a browser depends
                     # on ods-proxy being on :80 and ODS_PROXY_BIND=0.0.0.0. Those
                     # are operator choices made elsewhere (and surfaced in the
                     # first-boot wizard); don't claim the URL works yet.
-                    ai_ok "ODS mDNS announcer installed — '${_device_name}.local' now resolves on the LAN"
-                    ai "  Enable ods-proxy (ODS_PROXY_BIND defaults to 0.0.0.0) to make http://${_device_name}.local serve chat. See docs/ODS-PROXY.md."
+                    ai_ok "ODS mDNS announcer installed — '{_device_name}.local' now resolves on the LAN"
+                    ai "  Enable ods-proxy (ODS_PROXY_BIND defaults to 0.0.0.0) to make http://{_device_name}.local serve chat. See docs/ODS-PROXY.md."
                 else
                     ai_warn "ODS mDNS announcer failed to start (non-fatal — device is still reachable by IP)"
                 fi
             fi
-            rm -f "$svc_tmp"
+            rm -f "svc_tmp"
         fi
     fi
 fi

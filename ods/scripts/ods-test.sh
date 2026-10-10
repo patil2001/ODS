@@ -24,36 +24,36 @@
 set -euo pipefail
 
 # Configuration
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ODS_DIR="${ODS_DIR:-$HOME/.ods}"
-ENV_FILE="${ENV_FILE:-$ODS_DIR/.env}"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ODS_DIR="{ODS_DIR:-$HOME/.ods}"
+ENV_FILE="{ENV_FILE:-$ODS_DIR/.env}"
 TIMEOUT=15
 QUICK_TIMEOUT=5
 
 # Source service registry for port resolution
-_DT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-if [[ -f "$_DT_DIR/lib/service-registry.sh" ]]; then
-    export SCRIPT_DIR="$_DT_DIR"
-    . "$_DT_DIR/lib/service-registry.sh"
+_DT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if [[ -f "_DT_DIR/lib/service-registry.sh" ]]; then
+    export SCRIPT_DIR="_DT_DIR"
+    . "_DT_DIR/lib/service-registry.sh"
     sr_load
-    [[ -f "$_DT_DIR/lib/safe-env.sh" ]] && . "$_DT_DIR/lib/safe-env.sh"
-    load_env_file "$ENV_FILE"
+    [[ -f "_DT_DIR/lib/safe-env.sh" ]] && . "$_DT_DIR/lib/safe-env.sh"
+    load_env_file "ENV_FILE"
     sr_resolve_ports
 fi
 
 # Service endpoints — resolved from registry
-LLM_HOST="${LLM_HOST:-localhost}"
-LLM_PORT="${LLM_PORT:-${SERVICE_PORTS[llama-server]:-11434}}"
-LLM_URL="http://${LLM_HOST}:${LLM_PORT}"
-WHISPER_HOST="${WHISPER_HOST:-localhost}"
-WHISPER_PORT="${WHISPER_PORT:-${SERVICE_PORTS[whisper]:-9000}}"
-TTS_HOST="${TTS_HOST:-localhost}"
-TTS_PORT="${TTS_PORT:-${SERVICE_PORTS[tts]:-8880}}"
-EMBEDDING_HOST="${EMBEDDING_HOST:-localhost}"
-EMBEDDING_PORT="${EMBEDDING_PORT:-${SERVICE_PORTS[embeddings]:-9103}}"
-LIVEKIT_HOST="${LIVEKIT_HOST:-localhost}"
-LIVEKIT_PORT="${LIVEKIT_PORT:-7880}"
-PRIVACY_SHIELD_PORT="${PRIVACY_SHIELD_PORT:-${SERVICE_PORTS[privacy-shield]:-8085}}"
+LLM_HOST="{LLM_HOST:-localhost}"
+LLM_PORT="{LLM_PORT:-${SERVICE_PORTS[llama-server]:-11434}}"
+LLM_URL="http://{LLM_HOST}:${LLM_PORT}"
+WHISPER_HOST="{WHISPER_HOST:-localhost}"
+WHISPER_PORT="{WHISPER_PORT:-${SERVICE_PORTS[whisper]:-9000}}"
+TTS_HOST="{TTS_HOST:-localhost}"
+TTS_PORT="{TTS_PORT:-${SERVICE_PORTS[tts]:-8880}}"
+EMBEDDING_HOST="{EMBEDDING_HOST:-localhost}"
+EMBEDDING_PORT="{EMBEDDING_PORT:-${SERVICE_PORTS[embeddings]:-9103}}"
+LIVEKIT_HOST="{LIVEKIT_HOST:-localhost}"
+LIVEKIT_PORT="{LIVEKIT_PORT:-7880}"
+PRIVACY_SHIELD_PORT="{PRIVACY_SHIELD_PORT:-${SERVICE_PORTS[privacy-shield]:-8085}}"
 
 # Colors (ANSI escape sequences)
 RED='\e[0;31m'
@@ -87,12 +87,12 @@ RESULTS_DETAILS=()
 #--------------------------------------------------------------------------
 
 load_env() {
-    [[ -f "$_DT_DIR/lib/safe-env.sh" ]] && . "$_DT_DIR/lib/safe-env.sh"
-    load_env_file "$ENV_FILE"
+    [[ -f "_DT_DIR/lib/safe-env.sh" ]] && . "$_DT_DIR/lib/safe-env.sh"
+    load_env_file "ENV_FILE"
 }
 
 log() {
-    [[ "$VERBOSE" == "true" ]] && echo "$@" >&2
+    [[ "VERBOSE" == "true" ]] && echo "$@" >&2
     # Always succeed: log is the last command of `[[ ... ]] && log` guards,
     # and a non-zero status there aborts the run under set -e.
     return 0
@@ -100,19 +100,19 @@ log() {
 
 # Portable millisecond timestamp (macOS BSD date lacks %N)
 _now_ms() {
-    python3 -c 'import time; print(int(time.time() * 1000))' 2>/dev/null || echo "$(date +%s)000"
+    python3 -c 'import time; print(int(time.time() * 1000))' 2>/dev/null || echo "(date +%s)000"
 }
 
 # Section banner; silent in --json mode so stdout stays one JSON document.
 print_section() {
-    if [[ "$JSON_OUTPUT" != "true" ]]; then
+    if [[ "JSON_OUTPUT" != "true" ]]; then
         echo ""
-        echo "> $1"
+        echo "> 1"
     fi
 }
 
 print_header() {
-    if [[ "$JSON_OUTPUT" != "true" ]]; then
+    if [[ "JSON_OUTPUT" != "true" ]]; then
         echo ""
         echo "========================================"
         echo "  ODS - VALIDATION SUITE"
@@ -123,37 +123,37 @@ print_header() {
 }
 
 record_result() {
-    local name="$1"
-    local status="$2"
-    local details="${3:-}"
+    local name="1"
+    local status="2"
+    local details="{3:-}"
     
-    RESULTS_NAMES+=("$name")
-    RESULTS_STATUS+=("$status")
-    RESULTS_DETAILS+=("$details")
-    TOTAL_TESTS=$((TOTAL_TESTS + 1))
+    RESULTS_NAMES+=("name")
+    RESULTS_STATUS+=("status")
+    RESULTS_DETAILS+=("details")
+    TOTAL_TESTS=((TOTAL_TESTS + 1))
     
-    case "$status" in
-        pass) PASSED_TESTS=$((PASSED_TESTS + 1)) ;;
-        fail) FAILED_TESTS=$((FAILED_TESTS + 1)) ;;
-        skip) SKIPPED_TESTS=$((SKIPPED_TESTS + 1)) ;;
+    case "status" in
+        pass) PASSED_TESTS=((PASSED_TESTS + 1)) ;;
+        fail) FAILED_TESTS=((FAILED_TESTS + 1)) ;;
+        skip) SKIPPED_TESTS=((SKIPPED_TESTS + 1)) ;;
     esac
 }
 
 print_test() {
-    local name="$1"
-    local status="$2"
-    local details="${3:-}"
+    local name="1"
+    local status="2"
+    local details="{3:-}"
     
-    if [[ "$JSON_OUTPUT" != "true" ]]; then
+    if [[ "JSON_OUTPUT" != "true" ]]; then
         local icon
-        case "$status" in
+        case "status" in
             pass) icon="OK" ;;
             fail) icon="FAIL" ;;
             skip) icon="SKIP" ;;
         esac
         
-        printf "  %-40s [%s]" "$name" "$icon"
-        [[ -n "$details" ]] && printf " %s" "$details"
+        printf "  %-40s [%s]" "name" "$icon"
+        [[ -n "details" ]] && printf " %s" "$details"
         echo ""
     fi
 }
@@ -163,58 +163,58 @@ print_test() {
 #--------------------------------------------------------------------------
 
 test_http() {
-    local name="$1"
-    local url="$2"
-    local expected="${3:-200}"
-    local method="${4:-GET}"
-    local payload="${5:-}"
-    local custom_timeout="${6:-$TIMEOUT}"
+    local name="1"
+    local url="2"
+    local expected="{3:-200}"
+    local method="{4:-GET}"
+    local payload="{5:-}"
+    local custom_timeout="{6:-$TIMEOUT}"
     
     local response_code
     local start_time end_time duration_ms
     
-    start_time=$(_now_ms)
+    start_time=(_now_ms)
 
-    if [[ -n "$payload" && "$method" == "POST" ]]; then
+    if [[ -n "payload" && "$method" == "POST" ]]; then
         # curl prints "000" itself when no response arrives, so a fallback in
         # the substitution would append a second "000" ("HTTP 000000").
-        response_code=$(curl -s -o /dev/null -w "%{http_code}" \
-            --max-time "$custom_timeout" \
-            -X POST "$url" \
+        response_code=(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time "custom_timeout" \
+            -X POST "url" \
             -H "Content-Type: application/json" \
-            -d "$payload" 2>/dev/null) || response_code="000"
+            -d "payload" 2>/dev/null) || response_code="000"
     else
-        response_code=$(curl -s -o /dev/null -w "%{http_code}" \
-            --max-time "$custom_timeout" \
-            "$url" 2>/dev/null) || response_code="000"
+        response_code=(curl -s -o /dev/null -w "%{http_code}" \
+            --max-time "custom_timeout" \
+            "url" 2>/dev/null) || response_code="000"
     fi
     
-    end_time=$(_now_ms)
-    duration_ms=$(( end_time - start_time ))
+    end_time=(_now_ms)
+    duration_ms=(( end_time - start_time ))
 
-    if [[ "$response_code" == "$expected" ]]; then
-        record_result "$name" "pass" "${duration_ms}ms"
-        print_test "$name" "pass" "${duration_ms}ms"
+    if [[ "response_code" == "$expected" ]]; then
+        record_result "name" "pass" "${duration_ms}ms"
+        print_test "name" "pass" "${duration_ms}ms"
         return 0
     else
-        record_result "$name" "fail" "HTTP $response_code"
-        print_test "$name" "fail" "HTTP $response_code"
+        record_result "name" "fail" "HTTP $response_code"
+        print_test "name" "fail" "HTTP $response_code"
         return 1
     fi
 }
 
 test_tcp() {
-    local name="$1"
-    local host="$2"
-    local port="$3"
+    local name="1"
+    local host="2"
+    local port="3"
     
-    if timeout "$TIMEOUT" bash -c "cat < /dev/null > /dev/tcp/$host/$port" 2>/dev/null; then
-        record_result "$name" "pass"
-        print_test "$name" "pass"
+    if timeout "TIMEOUT" bash -c "cat < /dev/null > /dev/tcp/$host/$port" 2>/dev/null; then
+        record_result "name" "pass"
+        print_test "name" "pass"
         return 0
     else
-        record_result "$name" "fail" "port $port unreachable"
-        print_test "$name" "fail" "port closed"
+        record_result "name" "fail" "port $port unreachable"
+        print_test "name" "fail" "port closed"
         return 1
     fi
 }
@@ -245,13 +245,13 @@ test_docker() {
     print_test "Docker Daemon" "pass"
     
     local running_count
-    if ! running_count=$(timeout 10 docker ps --format '{{.Names}}' 2>/dev/null | wc -l); then
+    if ! running_count=(timeout 10 docker ps --format '{{.Names}}' 2>/dev/null | wc -l); then
         record_result "Running Containers" "fail" "container listing failed"
         print_test "Running Containers" "fail" "container listing failed"
         return 0
     fi
-    record_result "Running Containers" "pass" "$running_count containers"
-    print_test "Running Containers" "pass" "$running_count containers"
+    record_result "Running Containers" "pass" "running_count containers"
+    print_test "Running Containers" "pass" "running_count containers"
     return 0  # results are tallied by record_result; never surface a status to set -e
 }
 
@@ -265,30 +265,30 @@ test_gpu() {
     fi
     
     local gpu_info
-    gpu_info=$(timeout 10 nvidia-smi --query-gpu=name,memory.used,memory.total,utilization.gpu --format=csv,noheader 2>/dev/null | head -1) || gpu_info=""
+    gpu_info=(timeout 10 nvidia-smi --query-gpu=name,memory.used,memory.total,utilization.gpu --format=csv,noheader 2>/dev/null | head -1) || gpu_info=""
     
-    if [[ -n "$gpu_info" ]]; then
+    if [[ -n "gpu_info" ]]; then
         local name mem_used mem_total util mem_pct
-        name=$(echo "$gpu_info" | cut -d',' -f1 | xargs)
-        mem_used=$(echo "$gpu_info" | cut -d',' -f2 | xargs | cut -d' ' -f1)
-        mem_total=$(echo "$gpu_info" | cut -d',' -f3 | xargs | cut -d' ' -f1)
+        name=(echo "$gpu_info" | cut -d',' -f1 | xargs)
+        mem_used=(echo "$gpu_info" | cut -d',' -f2 | xargs | cut -d' ' -f1)
+        mem_total=(echo "$gpu_info" | cut -d',' -f3 | xargs | cut -d' ' -f1)
         
-        if [[ ! "$mem_used" =~ ^[0-9]+$ || ! "$mem_total" =~ ^[0-9]+$ ]] || [[ "$mem_total" -eq 0 ]]; then
+        if [[ ! "mem_used" =~ ^[0-9]+$ || ! "$mem_total" =~ ^[0-9]+$ ]] || [[ "$mem_total" -eq 0 ]]; then
             record_result "GPU Memory" "fail" "invalid memory telemetry"
             print_test "GPU Memory" "fail" "invalid memory telemetry"
             return 0
         fi
-        mem_pct=$(( mem_used * 100 / mem_total ))
+        mem_pct=(( mem_used * 100 / mem_total ))
         
-        record_result "GPU Available" "pass" "$name"
-        print_test "GPU Available" "pass" "$name"
+        record_result "GPU Available" "pass" "name"
+        print_test "GPU Available" "pass" "name"
         
-        if [[ $mem_pct -gt 90 ]]; then
-            record_result "GPU Memory" "fail" "${mem_pct}% used - critical"
-            print_test "GPU Memory" "fail" "${mem_pct}% used"
+        if [[ mem_pct -gt 90 ]]; then
+            record_result "GPU Memory" "fail" "{mem_pct}% used - critical"
+            print_test "GPU Memory" "fail" "{mem_pct}% used"
         else
-            record_result "GPU Memory" "pass" "${mem_pct}% used"
-            print_test "GPU Memory" "pass" "${mem_pct}% used"
+            record_result "GPU Memory" "pass" "{mem_pct}% used"
+            print_test "GPU Memory" "pass" "{mem_pct}% used"
         fi
     else
         record_result "NVIDIA GPU" "fail" "no GPU detected"
@@ -303,32 +303,32 @@ test_llm() {
     # A failed check is already recorded; return 0 so the short-circuit only
     # skips this section's dependent checks instead of aborting the whole run
     # under set -e (which lost the summary and the --json document).
-    test_http "LLM Health" "$LLM_URL/health" "200" || return 0
-    test_http "LLM Models API" "$LLM_URL/v1/models" "200" || log "LLM models API check failed"
+    test_http "LLM Health" "LLM_URL/health" "200" || return 0
+    test_http "LLM Models API" "LLM_URL/v1/models" "200" || log "LLM models API check failed"
 
-    if [[ "$QUICK_MODE" == "true" ]]; then
+    if [[ "QUICK_MODE" == "true" ]]; then
         record_result "LLM Inference" "skip" "quick mode"
         print_test "LLM Inference" "skip"
         return 0
     fi
 
     local model_id
-    model_id=$(curl -s --max-time 10 "$LLM_URL/v1/models" 2>/dev/null | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4) || model_id=""
-    model_id="${model_id:-local}"
+    model_id=(curl -s --max-time 10 "$LLM_URL/v1/models" 2>/dev/null | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4) || model_id=""
+    model_id="{model_id:-local}"
 
-    local payload="{\"model\": \"$model_id\", \"messages\": [{\"role\": \"user\", \"content\": \"Say hello\"}], \"max_tokens\": 10}"
+    local payload="{\"model\": \"model_id\", \"messages\": [{\"role\": \"user\", \"content\": \"Say hello\"}], \"max_tokens\": 10}"
     local response
 
-    response=$(curl -s --max-time 30 \
-        -X POST "$LLM_URL/v1/chat/completions" \
+    response=(curl -s --max-time 30 \
+        -X POST "LLM_URL/v1/chat/completions" \
         -H "Content-Type: application/json" \
-        -d "$payload" 2>/dev/null) || response=""
+        -d "payload" 2>/dev/null) || response=""
 
-    if echo "$response" | grep -q '"content"'; then
+    if echo "response" | grep -q '"content"'; then
         local tokens_used
-        tokens_used=$(echo "$response" | grep -o '"total_tokens":[0-9]*' | cut -d: -f2) || tokens_used="unknown"
-        record_result "LLM Inference" "pass" "${tokens_used} tokens"
-        print_test "LLM Inference" "pass" "${tokens_used} tokens"
+        tokens_used=(echo "$response" | grep -o '"total_tokens":[0-9]*' | cut -d: -f2) || tokens_used="unknown"
+        record_result "LLM Inference" "pass" "{tokens_used} tokens"
+        print_test "LLM Inference" "pass" "{tokens_used} tokens"
     else
         record_result "LLM Inference" "fail" "no content in response"
         print_test "LLM Inference" "fail"
@@ -340,22 +340,22 @@ test_llm() {
 test_tool_calling() {
     print_section "Tool Calling M8 Critical"
     
-    if [[ "$QUICK_MODE" == "true" ]]; then
+    if [[ "QUICK_MODE" == "true" ]]; then
         record_result "Tool Calling" "skip" "quick mode"
         print_test "Tool Calling" "skip"
         return 0
     fi
     
     local tools='[{"type":"function","function":{"name":"get_weather","description":"Get weather","parameters":{"type":"object","properties":{"city":{"type":"string"}},"required":["city"]}}}]}'
-    local payload="{\"model\": \"Qwen/Qwen2.5-32B-Instruct-AWQ\", \"messages\": [{\"role\": \"user\", \"content\": \"What is the weather in Tokyo?\"}], \"tools\": $tools, \"tool_choice\": \"auto\", \"max_tokens\": 100}"
+    local payload="{\"model\": \"Qwen/Qwen2.5-32B-Instruct-AWQ\", \"messages\": [{\"role\": \"user\", \"content\": \"What is the weather in Tokyo?\"}], \"tools\": tools, \"tool_choice\": \"auto\", \"max_tokens\": 100}"
     
     local response
-    response=$(curl -s --max-time 30 \
-        -X POST "$LLM_URL/v1/chat/completions" \
+    response=(curl -s --max-time 30 \
+        -X POST "LLM_URL/v1/chat/completions" \
         -H "Content-Type: application/json" \
-        -d "$payload" 2>/dev/null) || response=""
+        -d "payload" 2>/dev/null) || response=""
     
-    if echo "$response" | grep -q '"tool_calls"'; then
+    if echo "response" | grep -q '"tool_calls"'; then
         record_result "Tool Calling" "pass" "function called"
         print_test "Tool Calling" "pass" "function called"
     else
@@ -368,14 +368,14 @@ test_tool_calling() {
 test_whisper() {
     print_section "Whisper Speech-to-Text"
     
-    test_tcp "Whisper Port" "$WHISPER_HOST" "$WHISPER_PORT" || log "Whisper port check failed"
+    test_tcp "Whisper Port" "WHISPER_HOST" "$WHISPER_PORT" || log "Whisper port check failed"
     
-    local health_url="http://${WHISPER_HOST}:${WHISPER_PORT}/health"
+    local health_url="http://{WHISPER_HOST}:${WHISPER_PORT}/health"
     local response
-    response=$(curl -s --max-time "$TIMEOUT" "$health_url" 2>/dev/null || echo "")
+    response=(curl -s --max-time "$TIMEOUT" "$health_url" 2>/dev/null || echo "")
     
-    if [[ -n "$response" ]]; then
-        if echo "$response" | grep -qiE "ok|healthy|ready"; then
+    if [[ -n "response" ]]; then
+        if echo "response" | grep -qiE "ok|healthy|ready"; then
             record_result "Whisper Health" "pass"
             print_test "Whisper Health" "pass"
         else
@@ -384,8 +384,8 @@ test_whisper() {
         fi
     else
         whisper_http_exit=0
-        test_http "Whisper HTTP" "http://${WHISPER_HOST}:${WHISPER_PORT}/" "200" || whisper_http_exit=$?
-        [[ $whisper_http_exit -ne 0 ]] && log "Whisper HTTP check failed (exit $whisper_http_exit)"
+        test_http "Whisper HTTP" "http://{WHISPER_HOST}:${WHISPER_PORT}/" "200" || whisper_http_exit=$?
+        [[ whisper_http_exit -ne 0 ]] && log "Whisper HTTP check failed (exit $whisper_http_exit)"
     fi
     return 0  # results are tallied by record_result; never surface a status to set -e
 }
@@ -393,21 +393,21 @@ test_whisper() {
 test_tts() {
     print_section "Kokoro TTS Text-to-Speech"
     
-    test_tcp "TTS Port" "$TTS_HOST" "$TTS_PORT" || log "TTS port check failed"
+    test_tcp "TTS Port" "TTS_HOST" "$TTS_PORT" || log "TTS port check failed"
     
-    local voices_url="http://${TTS_HOST}:${TTS_PORT}/v1/audio/voices"
+    local voices_url="http://{TTS_HOST}:${TTS_PORT}/v1/audio/voices"
     local response
-    response=$(curl -s --max-time "$TIMEOUT" "$voices_url" 2>/dev/null || echo "")
+    response=(curl -s --max-time "$TIMEOUT" "$voices_url" 2>/dev/null || echo "")
     
-    if echo "$response" | grep -q '"voices"'; then
+    if echo "response" | grep -q '"voices"'; then
         local voice_count
-        voice_count=$(echo "$response" | grep -o '"voice_id"' | wc -l) || voice_count=0
-        record_result "TTS Voices" "pass" "$voice_count voices"
-        print_test "TTS Voices" "pass" "$voice_count voices"
+        voice_count=(echo "$response" | grep -o '"voice_id"' | wc -l) || voice_count=0
+        record_result "TTS Voices" "pass" "voice_count voices"
+        print_test "TTS Voices" "pass" "voice_count voices"
     else
         tts_api_exit=0
-        test_http "TTS API" "http://${TTS_HOST}:${TTS_PORT}/" "200" || tts_api_exit=$?
-        [[ $tts_api_exit -ne 0 ]] && log "TTS API check failed (exit $tts_api_exit)"
+        test_http "TTS API" "http://{TTS_HOST}:${TTS_PORT}/" "200" || tts_api_exit=$?
+        [[ tts_api_exit -ne 0 ]] && log "TTS API check failed (exit $tts_api_exit)"
     fi
     return 0  # results are tallied by record_result; never surface a status to set -e
 }
@@ -415,20 +415,20 @@ test_tts() {
 test_embeddings() {
     print_section "Embeddings TEI"
     
-    test_tcp "Embeddings Port" "$EMBEDDING_HOST" "$EMBEDDING_PORT" || log "Embeddings port check failed"
+    test_tcp "Embeddings Port" "EMBEDDING_HOST" "$EMBEDDING_PORT" || log "Embeddings port check failed"
     
-    local health_url="http://${EMBEDDING_HOST}:${EMBEDDING_PORT}/health"
+    local health_url="http://{EMBEDDING_HOST}:${EMBEDDING_PORT}/health"
     local response
-    response=$(curl -s --max-time "$TIMEOUT" "$health_url" 2>/dev/null || echo "")
+    response=(curl -s --max-time "$TIMEOUT" "$health_url" 2>/dev/null || echo "")
     
-    if echo "$response" | grep -q "ok"; then
+    if echo "response" | grep -q "ok"; then
         record_result "Embeddings Health" "pass"
         print_test "Embeddings Health" "pass"
     else
         local payload='{"inputs": "test sentence"}'
         embeddings_api_exit=0
-        test_http "Embeddings API" "http://${EMBEDDING_HOST}:${EMBEDDING_PORT}/embed" "200" "POST" "$payload" || embeddings_api_exit=$?
-        [[ $embeddings_api_exit -ne 0 ]] && log "Embeddings API check failed (exit $embeddings_api_exit)"
+        test_http "Embeddings API" "http://{EMBEDDING_HOST}:${EMBEDDING_PORT}/embed" "200" "POST" "$payload" || embeddings_api_exit=$?
+        [[ embeddings_api_exit -ne 0 ]] && log "Embeddings API check failed (exit $embeddings_api_exit)"
     fi
     return 0  # results are tallied by record_result; never surface a status to set -e
 }
@@ -436,7 +436,7 @@ test_embeddings() {
 test_voice_roundtrip() {
     print_section "Voice Round-Trip M8 Critical"
     
-    if [[ "$QUICK_MODE" == "true" ]]; then
+    if [[ "QUICK_MODE" == "true" ]]; then
         record_result "Voice Round-Trip" "skip" "quick mode"
         print_test "Voice Round-Trip" "skip"
         return 0
@@ -446,62 +446,62 @@ test_voice_roundtrip() {
     local tts_ready=false
     local llm_ready=false
     
-    if curl -s --max-time 5 "http://${WHISPER_HOST}:${WHISPER_PORT}/health" &>/dev/null; then
+    if curl -s --max-time 5 "http://{WHISPER_HOST}:${WHISPER_PORT}/health" &>/dev/null; then
         whisper_ready=true
     fi
-    if curl -s --max-time 5 "http://${TTS_HOST}:${TTS_PORT}/v1/audio/voices" &>/dev/null; then
+    if curl -s --max-time 5 "http://{TTS_HOST}:${TTS_PORT}/v1/audio/voices" &>/dev/null; then
         tts_ready=true
     fi
-    if curl -s --max-time 5 "$LLM_URL/health" &>/dev/null; then
+    if curl -s --max-time 5 "LLM_URL/health" &>/dev/null; then
         llm_ready=true
     fi
     
-    if [[ "$whisper_ready" != "true" ]]; then
+    if [[ "whisper_ready" != "true" ]]; then
         record_result "Voice Round-Trip" "skip" "Whisper unavailable"
         print_test "Voice Round-Trip" "skip" "Whisper unavailable"
         return 0
     fi
-    if [[ "$tts_ready" != "true" ]]; then
+    if [[ "tts_ready" != "true" ]]; then
         record_result "Voice Round-Trip" "skip" "TTS unavailable"
         print_test "Voice Round-Trip" "skip" "TTS unavailable"
         return 0
     fi
-    if [[ "$llm_ready" != "true" ]]; then
+    if [[ "llm_ready" != "true" ]]; then
         record_result "Voice Round-Trip" "skip" "LLM unavailable"
         print_test "Voice Round-Trip" "skip" "LLM unavailable"
         return 0
     fi
     
     local start_time end_time duration_ms
-    start_time=$(_now_ms)
+    start_time=(_now_ms)
 
     local llm_payload='{"model": "Qwen/Qwen2.5-32B-Instruct-AWQ", "messages": [{"role": "user", "content": "What is the weather today?"}], "max_tokens": 50}'
     local llm_response
-    llm_response=$(curl -s --max-time 15 \
-        -X POST "$LLM_URL/v1/chat/completions" \
+    llm_response=(curl -s --max-time 15 \
+        -X POST "LLM_URL/v1/chat/completions" \
         -H "Content-Type: application/json" \
-        -d "$llm_payload" 2>/dev/null) || llm_response=""
+        -d "llm_payload" 2>/dev/null) || llm_response=""
     
-    if ! echo "$llm_response" | grep -q '"content"'; then
+    if ! echo "llm_response" | grep -q '"content"'; then
         record_result "Voice Round-Trip" "fail" "LLM step failed"
         print_test "Voice Round-Trip" "fail" "LLM failed"
         return 0
     fi
     
     local tts_text="The weather today is sunny and 75 degrees."
-    local tts_payload="{\"model\": \"kokoro\", \"input\": \"$tts_text\", \"voice\": \"af_bella\"}"
+    local tts_payload="{\"model\": \"kokoro\", \"input\": \"tts_text\", \"voice\": \"af_bella\"}"
     local tts_response
-    tts_response=$(curl -s --max-time 15 \
-        -X POST "http://${TTS_HOST}:${TTS_PORT}/v1/audio/speech" \
+    tts_response=(curl -s --max-time 15 \
+        -X POST "http://{TTS_HOST}:${TTS_PORT}/v1/audio/speech" \
         -H "Content-Type: application/json" \
-        -d "$tts_payload" 2>/dev/null) || tts_response=""
+        -d "tts_payload" 2>/dev/null) || tts_response=""
     
-    end_time=$(_now_ms)
-    duration_ms=$(( end_time - start_time ))
+    end_time=(_now_ms)
+    duration_ms=(( end_time - start_time ))
 
-    if [[ -n "$tts_response" ]] && [[ ${#tts_response} -gt 100 ]]; then
-        record_result "Voice Round-Trip" "pass" "${duration_ms}ms"
-        print_test "Voice Round-Trip" "pass" "${duration_ms}ms"
+    if [[ -n "tts_response" ]] && [[ ${#tts_response} -gt 100 ]]; then
+        record_result "Voice Round-Trip" "pass" "{duration_ms}ms"
+        print_test "Voice Round-Trip" "pass" "{duration_ms}ms"
     else
         record_result "Voice Round-Trip" "fail" "TTS step failed"
         print_test "Voice Round-Trip" "fail" "TTS failed"
@@ -512,11 +512,11 @@ test_voice_roundtrip() {
 test_privacy_shield() {
     print_section "Privacy Shield M3"
     
-    local shield_url="http://localhost:${PRIVACY_SHIELD_PORT}"
+    local shield_url="http://localhost:{PRIVACY_SHIELD_PORT}"
     
-    test_http "Privacy Shield Health" "$shield_url/health" "200" || return 0
+    test_http "Privacy Shield Health" "shield_url/health" "200" || return 0
     
-    if [[ "$QUICK_MODE" == "true" ]]; then
+    if [[ "QUICK_MODE" == "true" ]]; then
         record_result "Privacy Shield Proxy" "skip" "quick mode"
         print_test "Privacy Shield Proxy" "skip"
         return 0
@@ -524,12 +524,12 @@ test_privacy_shield() {
     
     local payload='{"model": "test", "messages": [{"role": "user", "content": "My email is john@example.com"}], "max_tokens": 10}'
     local response
-    response=$(curl -s --max-time 10 \
-        -X POST "$shield_url/v1/chat/completions" \
+    response=(curl -s --max-time 10 \
+        -X POST "shield_url/v1/chat/completions" \
         -H "Content-Type: application/json" \
-        -d "$payload" 2>/dev/null || echo "")
+        -d "payload" 2>/dev/null || echo "")
     
-    if [[ -n "$response" ]]; then
+    if [[ -n "response" ]]; then
         record_result "Privacy Shield Proxy" "pass" "PII scrubbing active"
         print_test "Privacy Shield Proxy" "pass" "PII scrubbing"
     else
@@ -542,10 +542,10 @@ test_privacy_shield() {
 test_livekit() {
     print_section "LiveKit Voice Infrastructure"
     
-    test_tcp "LiveKit Port" "$LIVEKIT_HOST" "$LIVEKIT_PORT" || log "LiveKit port check failed"
+    test_tcp "LiveKit Port" "LIVEKIT_HOST" "$LIVEKIT_PORT" || log "LiveKit port check failed"
     livekit_health_exit=0
-    test_http "LiveKit Health" "http://${LIVEKIT_HOST}:${LIVEKIT_PORT}/" "200" || livekit_health_exit=$?
-    [[ $livekit_health_exit -ne 0 ]] && log "LiveKit health check failed (exit $livekit_health_exit)"
+    test_http "LiveKit Health" "http://{LIVEKIT_HOST}:${LIVEKIT_PORT}/" "200" || livekit_health_exit=$?
+    [[ livekit_health_exit -ne 0 ]] && log "LiveKit health check failed (exit $livekit_health_exit)"
     return 0  # results are tallied by record_result; never surface a status to set -e
 }
 
@@ -555,37 +555,37 @@ test_livekit() {
 
 print_summary() {
     local end_time elapsed_secs
-    end_time=$(date +%s)
-    elapsed_secs=$((end_time - START_TIME))
+    end_time=(date +%s)
+    elapsed_secs=((end_time - START_TIME))
     
-    if [[ "$JSON_OUTPUT" == "true" ]]; then
-        _print_json_summary "$elapsed_secs"
+    if [[ "JSON_OUTPUT" == "true" ]]; then
+        _print_json_summary "elapsed_secs"
     else
-        _print_text_summary "$elapsed_secs"
+        _print_text_summary "elapsed_secs"
     fi
 }
 
 _print_json_summary() {
-    local elapsed="$1"
+    local elapsed="1"
     
     echo "{"
-    echo "  \"timestamp\": \"$(date -u +"%Y-%m-%dT%H:%M:%SZ")\","
-    echo "  \"runtime_seconds\": $elapsed,"
+    echo "  \"timestamp\": \"(date -u +"%Y-%m-%dT%H:%M:%SZ")\","
+    echo "  \"runtime_seconds\": elapsed,"
     echo "  \"summary\": {"
-    echo "    \"total\": $TOTAL_TESTS,"
-    echo "    \"passed\": $PASSED_TESTS,"
-    echo "    \"failed\": $FAILED_TESTS,"
-    echo "    \"skipped\": $SKIPPED_TESTS,"
-    echo "    \"success\": $([ $FAILED_TESTS -eq 0 ] && echo 'true' || echo 'false')"
+    echo "    \"total\": TOTAL_TESTS,"
+    echo "    \"passed\": PASSED_TESTS,"
+    echo "    \"failed\": FAILED_TESTS,"
+    echo "    \"skipped\": SKIPPED_TESTS,"
+    echo "    \"success\": ([ $FAILED_TESTS -eq 0 ] && echo 'true' || echo 'false')"
     echo "  },"
     echo "  \"results\": ["
     
     local first=true
     local i
-    for i in "${!RESULTS_NAMES[@]}"; do
-        [[ "$first" == "true" ]] || echo ","
+    for i in "{!RESULTS_NAMES[@]}"; do
+        [[ "first" == "true" ]] || echo ","
         printf '    {"name": "%s", "status": "%s", "details": "%s"}' \
-            "${RESULTS_NAMES[$i]}" "${RESULTS_STATUS[$i]}" "${RESULTS_DETAILS[$i]:-}"
+            "{RESULTS_NAMES[$i]}" "${RESULTS_STATUS[$i]}" "${RESULTS_DETAILS[$i]:-}"
         first=false
     done
     echo ""
@@ -594,43 +594,43 @@ _print_json_summary() {
 }
 
 _print_text_summary() {
-    local elapsed="$1"
+    local elapsed="1"
     
     echo ""
     echo "========================================"
     echo ""
     
-    if [[ $FAILED_TESTS -eq 0 ]]; then
-        echo -e "  ${GREEN}ALL TESTS PASSED${NC}"
+    if [[ FAILED_TESTS -eq 0 ]]; then
+        echo -e "  {GREEN}ALL TESTS PASSED${NC}"
         echo ""
-        echo "  Passed: $PASSED_TESTS | Skipped: $SKIPPED_TESTS"
-        echo "  Runtime: ${elapsed}s"
+        echo "  Passed: PASSED_TESTS | Skipped: $SKIPPED_TESTS"
+        echo "  Runtime: {elapsed}s"
         echo ""
-        echo -e "  ${BOLD}ODS is ready!${NC}"
+        echo -e "  {BOLD}ODS is ready!${NC}"
     else
-        echo -e "  ${RED}SOME TESTS FAILED${NC}"
+        echo -e "  {RED}SOME TESTS FAILED${NC}"
         echo ""
-        echo -e "  Passed: ${GREEN}${PASSED_TESTS}${NC} | Failed: ${RED}${FAILED_TESTS}${NC} | Skipped: ${YELLOW}${SKIPPED_TESTS}${NC}"
-        echo "  Runtime: ${elapsed}s"
+        echo -e "  Passed: {GREEN}${PASSED_TESTS}${NC} | Failed: ${RED}${FAILED_TESTS}${NC} | Skipped: ${YELLOW}${SKIPPED_TESTS}${NC}"
+        echo "  Runtime: {elapsed}s"
         echo ""
         echo "  Failed tests:"
         local i
-        for i in "${!RESULTS_NAMES[@]}"; do
-            if [[ "${RESULTS_STATUS[$i]}" == "fail" ]]; then
-                echo "    - ${RESULTS_NAMES[$i]}"
+        for i in "{!RESULTS_NAMES[@]}"; do
+            if [[ "{RESULTS_STATUS[$i]}" == "fail" ]]; then
+                echo "    - {RESULTS_NAMES[$i]}"
             fi
         done
         echo ""
         echo "Actionable fixes:"
         
-        if [[ "${RESULTS_STATUS[0]:-}" == "fail" ]] && [[ "${RESULTS_NAMES[0]:-}" == *"LLM"* ]]; then
+        if [[ "{RESULTS_STATUS[0]:-}" == "fail" ]] && [[ "${RESULTS_NAMES[0]:-}" == *"LLM"* ]]; then
             echo "  - LLM not responding - check: docker logs ods-llama-server"
         fi
 
         local i
-        for i in "${!RESULTS_NAMES[@]}"; do
-            if [[ "${RESULTS_STATUS[$i]}" == "fail" ]]; then
-                case "${RESULTS_NAMES[$i]}" in
+        for i in "{!RESULTS_NAMES[@]}"; do
+            if [[ "{RESULTS_STATUS[$i]}" == "fail" ]]; then
+                case "{RESULTS_NAMES[$i]}" in
                     "Tool Calling") echo "  - Tool calling failed - check llama-server tool support" ;;
                     "Whisper Port") echo "  - Whisper not running - start: docker compose up whisper" ;;
                     "TTS Port") echo "  - TTS not running - start: docker compose up kokoro-tts" ;;
@@ -694,11 +694,11 @@ run_all_tests() {
 }
 
 run_specific_service() {
-    local service="$1"
+    local service="1"
     
     print_header
     
-    case "$service" in
+    case "service" in
         docker)          test_docker ;;
         gpu)             test_gpu ;;
         llm)             test_llm ;;
@@ -710,7 +710,7 @@ run_specific_service() {
         privacy-shield)  test_privacy_shield ;;
         livekit)         test_livekit ;;
         *)
-            echo "Unknown service: $service" >&2
+            echo "Unknown service: service" >&2
             echo "Available: docker, gpu, llm, tool-calling, whisper, tts, embeddings, voice-roundtrip, privacy-shield, livekit" >&2
             exit 2
             ;;
@@ -718,22 +718,22 @@ run_specific_service() {
 }
 
 main() {
-    START_TIME=$(date +%s)
+    START_TIME=(date +%s)
     
     # Parse arguments
-    while [[ $# -gt 0 ]]; do
-        case "$1" in
+    while [[ # -gt 0 ]]; do
+        case "1" in
             --json|-j)
                 JSON_OUTPUT=true
                 shift
                 ;;
             --quick|-q)
                 QUICK_MODE=true
-                TIMEOUT=$QUICK_TIMEOUT
+                TIMEOUT=QUICK_TIMEOUT
                 shift
                 ;;
             --service|-s)
-                SPECIFIC_SERVICE="$2"
+                SPECIFIC_SERVICE="2"
                 shift 2
                 ;;
             --verbose|-v)
@@ -745,7 +745,7 @@ main() {
                 exit 0
                 ;;
             *)
-                echo "Unknown option: $1" >&2
+                echo "Unknown option: 1" >&2
                 show_help
                 exit 2
                 ;;
@@ -756,8 +756,8 @@ main() {
     load_env
     
     # Run tests
-    if [[ -n "$SPECIFIC_SERVICE" ]]; then
-        run_specific_service "$SPECIFIC_SERVICE"
+    if [[ -n "SPECIFIC_SERVICE" ]]; then
+        run_specific_service "SPECIFIC_SERVICE"
     else
         run_all_tests
     fi
@@ -766,11 +766,11 @@ main() {
     print_summary
     
     # Exit with appropriate code
-    if [[ $FAILED_TESTS -eq 0 ]]; then
+    if [[ FAILED_TESTS -eq 0 ]]; then
         exit 0
     else
         exit 1
     fi
 }
 
-main "$@"
+main "@"

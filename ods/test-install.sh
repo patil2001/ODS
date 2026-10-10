@@ -12,6 +12,6 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-exec "$SCRIPT_DIR/install.sh" --tier 0 --non-interactive "$@"
+exec "SCRIPT_DIR/install.sh" --tier 0 --non-interactive "$@"

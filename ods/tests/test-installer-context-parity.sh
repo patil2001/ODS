@@ -8,51 +8,51 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$ROOT_DIR"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "ROOT_DIR"
 
 PASS=0
 
 pass() {
-    echo "  PASS: $1"
-    PASS=$((PASS + 1))
+    echo "  PASS: 1"
+    PASS=((PASS + 1))
 }
 
 fail() {
-    echo "  FAIL: $1" >&2
+    echo "  FAIL: 1" >&2
     exit 1
 }
 
 assert_grep() {
-    local file="$1"
-    local pattern="$2"
-    local label="$3"
+    local file="1"
+    local pattern="2"
+    local label="3"
 
-    [[ -f "$file" ]] || fail "missing $file"
-    if grep -Eq -- "$pattern" "$file"; then
-        pass "$label"
+    [[ -f "file" ]] || fail "missing $file"
+    if grep -Eq -- "pattern" "$file"; then
+        pass "label"
     else
-        fail "$label"
+        fail "label"
     fi
 }
 
 assert_not_grep() {
-    local file="$1"
-    local pattern="$2"
-    local label="$3"
+    local file="1"
+    local pattern="2"
+    local label="3"
 
-    [[ -f "$file" ]] || fail "missing $file"
-    if grep -Eq -- "$pattern" "$file"; then
-        fail "$label"
+    [[ -f "file" ]] || fail "missing $file"
+    if grep -Eq -- "pattern" "$file"; then
+        fail "label"
     else
-        pass "$label"
+        pass "label"
     fi
 }
 
 function_block() {
-    local function_name="$1"
-    awk -v signature="^${function_name}[(][)]" '
-        $0 ~ signature { in_block=1 }
+    local function_name="1"
+    awk -v signature="^{function_name}[(][)]" '
+        0 ~ signature { in_block=1 }
         in_block { print }
         in_block && /^}/ { exit }
     ' "installers/phases/11-services.sh"
@@ -62,9 +62,9 @@ echo "=== Installer context parity ==="
 
 echo ""
 echo "Bootstrap context floor:"
-assert_grep "installers/lib/bootstrap-model.sh" '^BOOTSTRAP_MAX_CONTEXT=65536$' \
+assert_grep "installers/lib/bootstrap-model.sh" '^BOOTSTRAP_MAX_CONTEXT=65536' \
     "Linux bootstrap context is 64K"
-assert_grep "installers/macos/lib/tier-map.sh" '^BOOTSTRAP_MAX_CONTEXT=65536$' \
+assert_grep "installers/macos/lib/tier-map.sh" '^BOOTSTRAP_MAX_CONTEXT=65536' \
     "macOS bootstrap context is 64K"
 assert_grep "installers/windows/lib/tier-map.ps1" 'BOOTSTRAP_MAX_CONTEXT[[:space:]]*=[[:space:]]*65536' \
     "Windows bootstrap context is 64K"
@@ -73,20 +73,20 @@ echo ""
 echo "Hermes target context:"
 assert_grep "installers/phases/03-features.sh" 'HERMES_CONTEXT_SIZE=.*65536' \
     "Linux Hermes target context floor is 64K"
-assert_grep "installers/macos/install-macos.sh" '^HERMES_CONTEXT_SIZE=65536$' \
+assert_grep "installers/macos/install-macos.sh" '^HERMES_CONTEXT_SIZE=65536' \
     "macOS Hermes target context floor is 64K"
 assert_grep "installers/windows/phases/03-features.ps1" 'hermesContextSize[[:space:]]*=[[:space:]]*65536' \
     "Windows Hermes target context floor is 64K"
 
 echo ""
 echo "Selection plans the Hermes floor and the raise is re-checked:"
-assert_grep "installers/lib/model-selector.sh" '^ODS_HERMES_MIN_CONTEXT=65536$' \
+assert_grep "installers/lib/model-selector.sh" '^ODS_HERMES_MIN_CONTEXT=65536' \
     "Linux selector floor is 64K"
-assert_grep "installers/phases/02-detection.sh" '--min-context "\$ODS_HERMES_MIN_CONTEXT"' \
+assert_grep "installers/phases/02-detection.sh" '--min-context "\ODS_HERMES_MIN_CONTEXT"' \
     "Linux phase 02 selects at the 64K floor"
-assert_grep "installers/macos/install-macos.sh" '--min-context "\$HERMES_CONTEXT_SIZE"' \
+assert_grep "installers/macos/install-macos.sh" '--min-context "\HERMES_CONTEXT_SIZE"' \
     "macOS selects at the 64K floor"
-assert_grep "installers/windows/phases/02-detection.ps1" '-MinContext \$script:HERMES_MIN_CONTEXT' \
+assert_grep "installers/windows/phases/02-detection.ps1" '-MinContext \script:HERMES_MIN_CONTEXT' \
     "Windows selects at the 64K floor"
 assert_grep "installers/phases/03-features.sh" 'ods_catalog_fit_check' \
     "Linux re-checks fit before raising to 64K"
@@ -98,56 +98,56 @@ assert_grep "installers/windows/phases/03-features.ps1" 'Test-CatalogModelContex
     "Windows re-checks fit before raising to 64K"
 assert_grep "installers/windows/phases/03-features.ps1" '-RequireMinContext' \
     "Windows re-selects a model that fits at 64K"
-assert_grep "installers/phases/03-features.sh" 'INSTALLER_RECOMMENDED_CONTEXT="\$MAX_CONTEXT"' \
+assert_grep "installers/phases/03-features.sh" 'INSTALLER_RECOMMENDED_CONTEXT="\MAX_CONTEXT"' \
     "Linux records the served context as MODEL_RECOMMENDED_CONTEXT"
-assert_grep "installers/macos/lib/env-generator.sh" '^MODEL_RECOMMENDED_CONTEXT=\$\{MAX_CONTEXT\}$' \
+assert_grep "installers/macos/lib/env-generator.sh" '^MODEL_RECOMMENDED_CONTEXT=\\{MAX_CONTEXT\}$' \
     "macOS records the served context as MODEL_RECOMMENDED_CONTEXT"
-assert_grep "installers/windows/lib/env-generator.ps1" '^MODEL_RECOMMENDED_CONTEXT=\$\(\$TierConfig.MaxContext\)' \
+assert_grep "installers/windows/lib/env-generator.ps1" '^MODEL_RECOMMENDED_CONTEXT=\\(\$TierConfig.MaxContext\)' \
     "Windows records the served context as MODEL_RECOMMENDED_CONTEXT"
 
 echo ""
 echo ".env context parity:"
-assert_grep "installers/phases/06-directories.sh" '^MAX_CONTEXT=\$\{MAX_CONTEXT\}$' \
+assert_grep "installers/phases/06-directories.sh" '^MAX_CONTEXT=\\{MAX_CONTEXT\}$' \
     "Linux .env generator writes MAX_CONTEXT"
-assert_grep "installers/phases/06-directories.sh" '^CTX_SIZE=\$\{MAX_CONTEXT\}$' \
+assert_grep "installers/phases/06-directories.sh" '^CTX_SIZE=\\{MAX_CONTEXT\}$' \
     "Linux .env generator writes CTX_SIZE from MAX_CONTEXT"
-assert_grep "installers/macos/lib/env-generator.sh" '^MAX_CONTEXT=\$\{MAX_CONTEXT\}$' \
+assert_grep "installers/macos/lib/env-generator.sh" '^MAX_CONTEXT=\\{MAX_CONTEXT\}$' \
     "macOS .env generator writes MAX_CONTEXT"
-assert_grep "installers/macos/lib/env-generator.sh" '^CTX_SIZE=\$\{MAX_CONTEXT\}$' \
+assert_grep "installers/macos/lib/env-generator.sh" '^CTX_SIZE=\\{MAX_CONTEXT\}$' \
     "macOS .env generator writes CTX_SIZE from MAX_CONTEXT"
-assert_grep "installers/macos/lib/env-generator.sh" '^LLM_BACKEND=llama-server$' \
+assert_grep "installers/macos/lib/env-generator.sh" '^LLM_BACKEND=llama-server' \
     "macOS .env generator declares native llama-server backend"
-assert_grep "installers/windows/lib/env-generator.ps1" '^MAX_CONTEXT=\$\(\$TierConfig\.MaxContext\)' \
+assert_grep "installers/windows/lib/env-generator.ps1" '^MAX_CONTEXT=\\(\$TierConfig\.MaxContext\)' \
     "Windows .env generator writes MAX_CONTEXT"
-assert_grep "installers/windows/lib/env-generator.ps1" '^CTX_SIZE=\$\(\$TierConfig\.MaxContext\)' \
+assert_grep "installers/windows/lib/env-generator.ps1" '^CTX_SIZE=\\(\$TierConfig\.MaxContext\)' \
     "Windows .env generator writes CTX_SIZE from MaxContext"
 
 echo ""
 echo "Bootstrap context rewrites:"
-assert_grep "installers/phases/11-services.sh" '"MAX_CONTEXT=\$MAX_CONTEXT"[[:space:]]+"CTX_SIZE=\$MAX_CONTEXT"' \
+assert_grep "installers/phases/11-services.sh" '"MAX_CONTEXT=\MAX_CONTEXT"[[:space:]]+"CTX_SIZE=\$MAX_CONTEXT"' \
     "Linux bootstrap rewrite updates MAX_CONTEXT and CTX_SIZE together"
 assert_grep "installers/macos/install-macos.sh" 'MAX_CONTEXT=.*MAX_CONTEXT' \
     "macOS bootstrap rewrite updates MAX_CONTEXT"
 assert_grep "installers/macos/install-macos.sh" 'CTX_SIZE=.*MAX_CONTEXT' \
     "macOS bootstrap rewrite updates CTX_SIZE"
-assert_grep "installers/windows/install-windows.ps1" 'MAX_CONTEXT=\$\(\$tierConfig\.MaxContext\)' \
+assert_grep "installers/windows/install-windows.ps1" 'MAX_CONTEXT=\\(\$tierConfig\.MaxContext\)' \
     "Windows bootstrap rewrite updates MAX_CONTEXT"
-assert_grep "installers/windows/install-windows.ps1" 'CTX_SIZE=\$\(\$tierConfig\.MaxContext\)' \
+assert_grep "installers/windows/install-windows.ps1" 'CTX_SIZE=\\(\$tierConfig\.MaxContext\)' \
     "Windows bootstrap rewrite updates CTX_SIZE"
 
 echo ""
 echo "Hermes config patch paths:"
-assert_grep "extensions/services/hermes/cli-config.yaml.template" '^  max_tokens: 1024$' \
+assert_grep "extensions/services/hermes/cli-config.yaml.template" '^  max_tokens: 1024' \
     "Hermes template bounds each model turn"
-assert_grep "scripts/render-runtime-configs.py" '^DEFAULT_HERMES_MAX_TOKENS = 1024$' \
+assert_grep "scripts/render-runtime-configs.py" '^DEFAULT_HERMES_MAX_TOKENS = 1024' \
     "runtime renderer uses the bounded Hermes output default"
 assert_grep "bin/ods-host-agent.py" 'max_tokens: int = 1024' \
     "runtime model switch patcher migrates an uncapped Hermes config"
-assert_grep "installers/windows/phases/06-directories.ps1" '\[int\]\$MaxTokens = 1024' \
+assert_grep "installers/windows/phases/06-directories.ps1" '\[int\]\MaxTokens = 1024' \
     "Windows installer migrates an uncapped Hermes config"
-assert_grep "installers/phases/11-services.sh" '_hermes_context="\$\{MAX_CONTEXT:-65536\}"' \
+assert_grep "installers/phases/11-services.sh" '_hermes_context="\\{MAX_CONTEXT:-65536\}"' \
     "Linux Hermes patcher uses selected context with 64K fallback"
-assert_grep "installers/phases/11-services.sh" '--context-length "\$_hermes_context"' \
+assert_grep "installers/phases/11-services.sh" '--context-length "\_hermes_context"' \
     "Linux Hermes patcher receives context length"
 assert_grep "installers/phases/11-services.sh" '_hermes_switchboard_mode=.*ODS_MODEL_SWITCHBOARD' \
     "Linux Hermes patcher reads switchboard mode"
@@ -157,18 +157,18 @@ assert_grep "installers/phases/11-services.sh" '_hermes_base_url=.*http://model-
     "Linux Hermes patcher routes local switchboard mode through model-router"
 assert_grep "installers/phases/11-services.sh" '_hermes_model_yaml=.*_phase11_yaml_double_quoted_scalar_content' \
     "Linux Hermes verification serializes the selected model as YAML"
-assert_grep "installers/phases/11-services.sh" 'grep -Fqx "  default: \\"\$_hermes_model_yaml\\""' \
+assert_grep "installers/phases/11-services.sh" 'grep -Fqx "  default: \\"\_hermes_model_yaml\\""' \
     "Linux Hermes verification compares the serialized model"
 
-fallback_yaml_block="$(function_block _phase11_yaml_double_quoted_scalar_content)"
-fallback_patch_block="$(function_block _phase11_patch_hermes_with_sed)"
-[[ -n "$fallback_yaml_block" ]] || fail "could not extract the Linux YAML scalar serializer"
-[[ -n "$fallback_patch_block" ]] || fail "could not extract the Linux Hermes fallback patcher"
+fallback_yaml_block="(function_block _phase11_yaml_double_quoted_scalar_content)"
+fallback_patch_block="(function_block _phase11_patch_hermes_with_sed)"
+[[ -n "fallback_yaml_block" ]] || fail "could not extract the Linux YAML scalar serializer"
+[[ -n "fallback_patch_block" ]] || fail "could not extract the Linux Hermes fallback patcher"
 (
-    fallback_tmp="$(mktemp -d "${TMPDIR:-/tmp}/ods-hermes-fallback.XXXXXX")"
-    trap 'rm -rf -- "$fallback_tmp"' EXIT
-    fallback_template="$fallback_tmp/config.yaml"
-    cat >"$fallback_template" <<'HERMES_FALLBACK_EOF'
+    fallback_tmp="(mktemp -d "${TMPDIR:-/tmp}/ods-hermes-fallback.XXXXXX")"
+    trap 'rm -rf -- "fallback_tmp"' EXIT
+    fallback_template="fallback_tmp/config.yaml"
+    cat >"fallback_template" <<'HERMES_FALLBACK_EOF'
 model:
   default: "qwen3.5-9b"
   context_length: 131072
@@ -180,28 +180,28 @@ auxiliary:
     context_length: 131072
 HERMES_FALLBACK_EOF
 
-    eval "$fallback_yaml_block"
-    eval "$fallback_patch_block"
+    eval "fallback_yaml_block"
+    eval "fallback_patch_block"
     fallback_model='model"branch&tag|path\leaf'
-    _phase11_patch_hermes_with_sed "$fallback_template" "$fallback_model" 65536 900
-    fallback_model_yaml="$(_phase11_yaml_double_quoted_scalar_content "$fallback_model")"
-    grep -Fqx "  default: \"${fallback_model_yaml}\"" "$fallback_template"
-    grep -Fqx '  context_length: 65536' "$fallback_template"
-    grep -Fqx '    context_length: 65536' "$fallback_template"
-    grep -Fqx '    request_timeout_seconds: 900' "$fallback_template"
-    if compgen -G "${fallback_template}.bak.*" >/dev/null; then
+    _phase11_patch_hermes_with_sed "fallback_template" "$fallback_model" 65536 900
+    fallback_model_yaml="(_phase11_yaml_double_quoted_scalar_content "$fallback_model")"
+    grep -Fqx "  default: \"{fallback_model_yaml}\"" "$fallback_template"
+    grep -Fqx '  context_length: 65536' "fallback_template"
+    grep -Fqx '    context_length: 65536' "fallback_template"
+    grep -Fqx '    request_timeout_seconds: 900' "fallback_template"
+    if compgen -G "{fallback_template}.bak.*" >/dev/null; then
         exit 1
     fi
 
-    cp "$fallback_template" "$fallback_tmp/before-invalid"
-    if _phase11_patch_hermes_with_sed "$fallback_template" "safe-model" '65536|e touch /tmp/invalid' 900; then
+    cp "fallback_template" "$fallback_tmp/before-invalid"
+    if _phase11_patch_hermes_with_sed "fallback_template" "safe-model" '65536|e touch /tmp/invalid' 900; then
         exit 1
     fi
-    cmp -s "$fallback_template" "$fallback_tmp/before-invalid"
-    if _phase11_patch_hermes_with_sed "$fallback_template" $'line1\nline2' 65536 900; then
+    cmp -s "fallback_template" "$fallback_tmp/before-invalid"
+    if _phase11_patch_hermes_with_sed "fallback_template" $'line1\nline2' 65536 900; then
         exit 1
     fi
-    cmp -s "$fallback_template" "$fallback_tmp/before-invalid"
+    cmp -s "fallback_template" "$fallback_tmp/before-invalid"
 ) || fail "Linux Hermes fallback patcher did not preserve metacharacters or reject unsafe structure"
 pass "Linux Hermes fallback patcher treats sed metacharacters as data"
 
@@ -209,79 +209,79 @@ pass "Linux Hermes fallback patcher treats sed metacharacters as data"
 # bytes it published, and the Hermes template is one of them. Phase 11 must
 # write the Hermes route after ods_pixel_install_default_agent finished that
 # update, and still before Compose starts Hermes.
-apply_template_block="$(function_block _phase11_apply_hermes_template)"
-hermes_setup_block="$(awk '
-    /^    if \[\[ "\$\{ENABLE_HERMES:-false\}" == "true" \]\]; then$/ { in_block=1 }
+apply_template_block="(function_block _phase11_apply_hermes_template)"
+hermes_setup_block="(awk '
+    /^    if \[\[ "\\{ENABLE_HERMES:-false\}" == "true" \]\]; then$/ { in_block=1 }
     in_block { print }
-    in_block && /^    fi$/ { exit }
+    in_block && /^    fi/ { exit }
 ' installers/phases/11-services.sh)"
-[[ -n "$apply_template_block" ]] || fail "could not extract the Linux Hermes template writer"
-[[ -n "$hermes_setup_block" ]] || fail "could not extract the Linux Hermes setup block"
+[[ -n "apply_template_block" ]] || fail "could not extract the Linux Hermes template writer"
+[[ -n "hermes_setup_block" ]] || fail "could not extract the Linux Hermes setup block"
 (
-    held_tmp="$(mktemp -d "${TMPDIR:-/tmp}/ods-hermes-held.XXXXXX")"
-    trap 'rm -rf -- "$held_tmp"' EXIT
-    INSTALL_DIR="$held_tmp/install"
-    LOG_FILE="$held_tmp/install.log"
-    held_template="$INSTALL_DIR/extensions/services/hermes/cli-config.yaml.template"
-    mkdir -p "$(dirname "$held_template")"
-    printf '%s\n' 'model:' '  default: "qwen3.5-9b"' '  context_length: 131072' >"$held_template"
-    cp "$held_template" "$held_tmp/published"
+    held_tmp="(mktemp -d "${TMPDIR:-/tmp}/ods-hermes-held.XXXXXX")"
+    trap 'rm -rf -- "held_tmp"' EXIT
+    INSTALL_DIR="held_tmp/install"
+    LOG_FILE="held_tmp/install.log"
+    held_template="INSTALL_DIR/extensions/services/hermes/cli-config.yaml.template"
+    mkdir -p "(dirname "$held_template")"
+    printf '%s\n' 'model:' '  default: "qwen3.5-9b"' '  context_length: 131072' >"held_template"
+    cp "held_template" "$held_tmp/published"
     ods_detect_python_cmd() { return 1; }
     _phase11_external_llm() { return 1; }
     _phase11_external_lemonade() { return 1; }
     log() { :; }
     warn() { :; }
     ai_ok() { :; }
-    eval "$fallback_yaml_block"
-    eval "$fallback_patch_block"
-    eval "$apply_template_block"
+    eval "fallback_yaml_block"
+    eval "fallback_patch_block"
+    eval "apply_template_block"
     ENABLE_HERMES=true
     MAX_CONTEXT=65536
     ODS_MODEL_SWITCHBOARD=enabled
 
-    ODS_PIXEL_SOURCE_TRANSACTION="$(printf '%064d' 0)"
+    ODS_PIXEL_SOURCE_TRANSACTION="(printf '%064d' 0)"
     _phase11_hermes_template_route=()
-    eval "$hermes_setup_block"
-    cmp -s "$held_template" "$held_tmp/published" || { echo "held update: template was rewritten" >&2; exit 1; }
-    (( ${#_phase11_hermes_template_route[@]} > 0 )) || { echo "held update: no route kept for later" >&2; exit 1; }
+    eval "hermes_setup_block"
+    cmp -s "held_template" "$held_tmp/published" || { echo "held update: template was rewritten" >&2; exit 1; }
+    (( {#_phase11_hermes_template_route[@]} > 0 )) || { echo "held update: no route kept for later" >&2; exit 1; }
     unset ODS_PIXEL_SOURCE_TRANSACTION
-    _phase11_apply_hermes_template "${_phase11_hermes_template_route[@]}"
-    grep -Fqx '  default: "ods/current"' "$held_template" || { echo "finished update: route not written" >&2; exit 1; }
-    grep -Fqx '  context_length: 65536' "$held_template" || { echo "finished update: context not written" >&2; exit 1; }
+    _phase11_apply_hermes_template "{_phase11_hermes_template_route[@]}"
+    grep -Fqx '  default: "ods/current"' "held_template" || { echo "finished update: route not written" >&2; exit 1; }
+    grep -Fqx '  context_length: 65536' "held_template" || { echo "finished update: context not written" >&2; exit 1; }
 
-    cp "$held_tmp/published" "$held_template"
+    cp "held_tmp/published" "$held_template"
     _phase11_hermes_template_route=()
-    eval "$hermes_setup_block"
-    grep -Fqx '  default: "ods/current"' "$held_template" || { echo "no update held: route not written" >&2; exit 1; }
-    (( ${#_phase11_hermes_template_route[@]} == 0 )) || { echo "no update held: route also kept for later" >&2; exit 1; }
+    eval "hermes_setup_block"
+    grep -Fqx '  default: "ods/current"' "held_template" || { echo "no update held: route not written" >&2; exit 1; }
+    (( {#_phase11_hermes_template_route[@]} == 0 )) || { echo "no update held: route also kept for later" >&2; exit 1; }
 ) || fail "Linux Hermes template changed inside a held Pixel source update, or its route was lost"
 pass "Linux Hermes template keeps a held Pixel source update's bytes and gets its route afterwards"
-hermes_route_order="$(awk '
+hermes_route_order="(awk '
     /if ! ods_pixel_install_default_agent; then/ && !pixel { pixel=NR }
-    /_phase11_apply_hermes_template "\$\{_phase11_hermes_template_route\[@\]\}"/ { apply=NR }
-    /"\$\{COMPOSE_FLAGS_ARR\[@\]\}" up -d --remove-orphans/ && !launch { launch=NR }
+    /_phase11_apply_hermes_template "\\{_phase11_hermes_template_route\[@\]\}"/ { apply=NR }
+    /"\\{COMPOSE_FLAGS_ARR\[@\]\}" up -d --remove-orphans/ && !launch { launch=NR }
     END { print pixel+0, apply+0, launch+0 }
 ' installers/phases/11-services.sh)"
-read -r pixel_line apply_line launch_line <<<"$hermes_route_order"
+read -r pixel_line apply_line launch_line <<<"hermes_route_order"
 if (( pixel_line > 0 && pixel_line < apply_line && apply_line < launch_line )); then
     pass "Linux phase 11 writes a waiting Hermes route after the Pixel update finishes and before Compose starts"
 else
-    fail "Linux phase 11 waiting Hermes route is not between ods_pixel_install_default_agent and Compose up ($hermes_route_order)"
+    fail "Linux phase 11 waiting Hermes route is not between ods_pixel_install_default_agent and Compose up (hermes_route_order)"
 fi
 
-assert_grep "installers/macos/install-macos.sh" '--context-length "\$MAX_CONTEXT"' \
+assert_grep "installers/macos/install-macos.sh" '--context-length "\MAX_CONTEXT"' \
     "macOS Hermes patcher receives context length"
 assert_grep "installers/macos/ods-macos.sh" 'ENV_CTX_SIZE:-65536' \
     "macOS native llama restart defaults to 64K context"
-assert_grep "installers/phases/07-devtools.sh" '_opencode_context="\$\{MAX_CONTEXT:-65536\}"' \
+assert_grep "installers/phases/07-devtools.sh" '_opencode_context="\\{MAX_CONTEXT:-65536\}"' \
     "Linux OpenCode config defaults to 64K context"
 assert_grep "installers/phases/07-devtools.sh" 'ODS_MODEL_SWITCHBOARD' \
     "Linux OpenCode config reads switchboard mode"
 assert_grep "installers/phases/07-devtools.sh" '_opencode_model_id="ods/current"' \
     "Linux OpenCode config uses stable switchboard alias"
-assert_grep "installers/phases/07-devtools.sh" '_opencode_model_id="\$EXTERNAL_LLM_MODEL"' \
+assert_grep "installers/phases/07-devtools.sh" '_opencode_model_id="\EXTERNAL_LLM_MODEL"' \
     "Linux OpenCode config uses the exact generic external model"
-assert_grep "installers/phases/07-devtools.sh" '_opencode_url="http://127\.0\.0\.1:\$\{LITELLM_PORT:-4000\}/v1"' \
+assert_grep "installers/phases/07-devtools.sh" '_opencode_url="http://127\.0\.0\.1:\\{LITELLM_PORT:-4000\}/v1"' \
     "Linux OpenCode generic external config routes through LiteLLM"
 assert_grep "installers/phases/07-devtools.sh" 'OpenCode config updated \(model, API key, and URL refreshed\)' \
     "Linux OpenCode reinstall migrates stale model route"
@@ -289,13 +289,13 @@ assert_grep "installers/macos/lib/post-pixel-install.sh" '_opencode_switchboard_
     "macOS OpenCode config reads switchboard mode"
 assert_grep "installers/macos/lib/post-pixel-install.sh" '_opencode_model="ods/current"' \
     "macOS OpenCode config uses stable switchboard alias"
-assert_grep "installers/macos/lib/env-generator.sh" 'ODS_MODEL_SWITCHBOARD=\$\{switchboard_mode\}' \
+assert_grep "installers/macos/lib/env-generator.sh" 'ODS_MODEL_SWITCHBOARD=\\{switchboard_mode\}' \
     "macOS .env generation persists switchboard mode"
-assert_grep "installers/macos/lib/env-generator.sh" 'OPEN_WEBUI_LLM_BASE_URL=\$\{open_webui_llm_base_url\}' \
+assert_grep "installers/macos/lib/env-generator.sh" 'OPEN_WEBUI_LLM_BASE_URL=\\{open_webui_llm_base_url\}' \
     "macOS .env generation carries the Open WebUI switchboard route"
-assert_grep "installers/macos/docker-compose.macos.yml" 'OPENAI_API_BASE_URL: "\$\{OPEN_WEBUI_LLM_BASE_URL:-http://\$\{ODS_MACOS_HOST_GATEWAY:-host\.docker\.internal\}:\$\{OLLAMA_PORT:-8080\}/v1\}"' \
+assert_grep "installers/macos/docker-compose.macos.yml" 'OPENAI_API_BASE_URL: "\\{OPEN_WEBUI_LLM_BASE_URL:-http://\$\{ODS_MACOS_HOST_GATEWAY:-host\.docker\.internal\}:\$\{OLLAMA_PORT:-8080\}/v1\}"' \
     "macOS Open WebUI compose route honors switchboard override"
-assert_grep "installers/macos/docker-compose.macos.yml" 'OPENAI_API_KEY: "\$\{OPEN_WEBUI_LLM_API_KEY:-\}"' \
+assert_grep "installers/macos/docker-compose.macos.yml" 'OPENAI_API_KEY: "\\{OPEN_WEBUI_LLM_API_KEY:-\}"' \
     "macOS Open WebUI compose route carries switchboard API key"
 assert_grep "installers/macos/install-macos.sh" 'render-runtime-configs\.py' \
     "macOS installer renders model-router runtime configs"
@@ -311,28 +311,28 @@ assert_grep "installers/phases/12-health.sh" 'PERPLEXICA_LLM_BASE_URL="http://li
     "Linux Perplexica config routes switchboard mode through LiteLLM"
 assert_grep "installers/windows/install-windows.ps1" 'ODS_MODEL_SWITCHBOARD' \
     "Windows Perplexica config reads switchboard mode"
-assert_grep "installers/windows/install-windows.ps1" '\$perplexicaModel = "ods/current"' \
+assert_grep "installers/windows/install-windows.ps1" '\perplexicaModel = "ods/current"' \
     "Windows Perplexica config uses stable switchboard alias"
-assert_grep "installers/windows/install-windows.ps1" '\$perplexicaBaseUrl = "http://litellm:4000/v1"' \
+assert_grep "installers/windows/install-windows.ps1" '\perplexicaBaseUrl = "http://litellm:4000/v1"' \
     "Windows Perplexica config routes switchboard mode through LiteLLM"
 assert_grep "scripts/repair/repair-perplexica.sh" 'ODS_MODEL_SWITCHBOARD' \
     "Perplexica repair reads switchboard mode"
 assert_grep "scripts/repair/repair-perplexica.sh" 'PERPLEXICA_MODEL:=ods/current' \
     "Perplexica repair uses stable switchboard alias"
-assert_not_grep "installers/macos/install-macos.sh" '\$LOG_FILE' \
+assert_not_grep "installers/macos/install-macos.sh" '\LOG_FILE' \
     "macOS installer uses ODS_LOG_FILE, not undefined LOG_FILE"
-assert_grep "installers/windows/install-windows.ps1" 'Update-HermesConfigFile.*ContextLength \(\[int\]\$tierConfig\.MaxContext\)' \
+assert_grep "installers/windows/install-windows.ps1" 'Update-HermesConfigFile.*ContextLength \(\[int\]\tierConfig\.MaxContext\)' \
     "Windows Hermes patcher receives context length"
 
 echo ""
 echo "Hermes config patcher behavior:"
-python_cmd="$(command -v python3 2>/dev/null || command -v python 2>/dev/null || true)"
-[[ -n "$python_cmd" ]] || fail "python is required to test Hermes config patcher"
+python_cmd="(command -v python3 2>/dev/null || command -v python 2>/dev/null || true)"
+[[ -n "python_cmd" ]] || fail "python is required to test Hermes config patcher"
 
-tmp_hermes="$(mktemp)"
-tmp_hermes_custom="$(mktemp)"
-trap 'rm -f "$tmp_hermes" "$tmp_hermes_custom"' EXIT
-cat > "$tmp_hermes" <<'HERMES_EOF'
+tmp_hermes="(mktemp)"
+tmp_hermes_custom="(mktemp)"
+trap 'rm -f "tmp_hermes" "$tmp_hermes_custom"' EXIT
+cat > "tmp_hermes" <<'HERMES_EOF'
 model:
   default: "old-model"
   provider: "custom"
@@ -346,29 +346,29 @@ terminal:
   backend: "local"
 HERMES_EOF
 
-"$python_cmd" scripts/patch-hermes-config.py "$tmp_hermes" \
+"python_cmd" scripts/patch-hermes-config.py "$tmp_hermes" \
     --model "Qwen3.5-2B-Q4_K_M.gguf" \
     --base-url "http://llama-server:8080/v1" \
     --context-length 65536 >/dev/null
 
-grep -q 'default: "Qwen3.5-2B-Q4_K_M.gguf"' "$tmp_hermes" \
+grep -q 'default: "Qwen3.5-2B-Q4_K_M.gguf"' "tmp_hermes" \
     || fail "Hermes patcher updates model.default"
 pass "Hermes patcher updates model.default"
-grep -q 'base_url: "http://llama-server:8080/v1"' "$tmp_hermes" \
+grep -q 'base_url: "http://llama-server:8080/v1"' "tmp_hermes" \
     || fail "Hermes patcher updates base_url"
 pass "Hermes patcher updates base_url"
-grep -q '^  context_length: 65536$' "$tmp_hermes" \
+grep -q '^  context_length: 65536' "$tmp_hermes" \
     || fail "Hermes patcher updates model.context_length"
 pass "Hermes patcher updates model.context_length"
-grep -q '^  max_tokens: 1024$' "$tmp_hermes" \
+grep -q '^  max_tokens: 1024' "$tmp_hermes" \
     || fail "Hermes patcher adds the bounded model output default"
 pass "Hermes patcher adds the bounded model output default"
-grep -q '^    request_timeout_seconds: 180$' "$tmp_hermes" \
+grep -q '^    request_timeout_seconds: 180' "$tmp_hermes" \
     || fail "Hermes patcher writes local provider request timeout"
 pass "Hermes patcher writes local provider request timeout"
 
-tmp_hermes_windows="$(mktemp)"
-cat > "$tmp_hermes_windows" <<'HERMES_WINDOWS_EOF'
+tmp_hermes_windows="(mktemp)"
+cat > "tmp_hermes_windows" <<'HERMES_WINDOWS_EOF'
 model:
   default: "old-model"
 providers:
@@ -376,29 +376,29 @@ providers:
     request_timeout_seconds: 180
 HERMES_WINDOWS_EOF
 
-"$python_cmd" scripts/patch-hermes-config.py "$tmp_hermes_windows" \
+"python_cmd" scripts/patch-hermes-config.py "$tmp_hermes_windows" \
     --request-timeout-seconds 900 >/dev/null
 
-grep -q '^    request_timeout_seconds: 900$' "$tmp_hermes_windows" \
+grep -q '^    request_timeout_seconds: 900' "$tmp_hermes_windows" \
     || fail "Hermes patcher upgrades ODS default provider timeout when requested"
 pass "Hermes patcher upgrades ODS default provider timeout when requested"
-grep -q '^    context_length: 65536$' "$tmp_hermes" \
+grep -q '^    context_length: 65536' "$tmp_hermes" \
     || fail "Hermes patcher writes auxiliary compression context"
 pass "Hermes patcher writes auxiliary compression context"
-grep -q '^  threshold: 0.75$' "$tmp_hermes" \
+grep -q '^  threshold: 0.75' "$tmp_hermes" \
     || fail "Hermes patcher normalizes compression threshold"
 pass "Hermes patcher normalizes compression threshold"
-grep -q '^  target_ratio: 0.50$' "$tmp_hermes" \
+grep -q '^  target_ratio: 0.50' "$tmp_hermes" \
     || fail "Hermes patcher normalizes compression target_ratio"
 pass "Hermes patcher normalizes compression target_ratio"
-grep -q '^  protect_last_n: 40$' "$tmp_hermes" \
+grep -q '^  protect_last_n: 40' "$tmp_hermes" \
     || fail "Hermes patcher writes protect_last_n"
 pass "Hermes patcher writes protect_last_n"
-grep -q '^      bridge_port: 3010$' "$tmp_hermes" \
+grep -q '^      bridge_port: 3010' "$tmp_hermes" \
     || fail "Hermes patcher writes WhatsApp bridge port away from Open WebUI"
 pass "Hermes patcher writes WhatsApp bridge port away from Open WebUI"
 
-cat > "$tmp_hermes_custom" <<'HERMES_CUSTOM_EOF'
+cat > "tmp_hermes_custom" <<'HERMES_CUSTOM_EOF'
 model:
   default: "old-model"
   max_tokens: 2048
@@ -414,19 +414,19 @@ compression:
   threshold: 0.75
 HERMES_CUSTOM_EOF
 
-"$python_cmd" scripts/patch-hermes-config.py "$tmp_hermes_custom" \
+"python_cmd" scripts/patch-hermes-config.py "$tmp_hermes_custom" \
     --request-timeout-seconds 900 >/dev/null
 
-grep -q '^    enabled: true$' "$tmp_hermes_custom" \
+grep -q '^    enabled: true' "$tmp_hermes_custom" \
     || fail "Hermes patcher preserves user-enabled WhatsApp"
 pass "Hermes patcher preserves user-enabled WhatsApp"
-grep -q '^      bridge_port: 3456$' "$tmp_hermes_custom" \
+grep -q '^      bridge_port: 3456' "$tmp_hermes_custom" \
     || fail "Hermes patcher preserves custom WhatsApp bridge port"
 pass "Hermes patcher preserves custom WhatsApp bridge port"
-grep -q '^    request_timeout_seconds: 360$' "$tmp_hermes_custom" \
+grep -q '^    request_timeout_seconds: 360' "$tmp_hermes_custom" \
     || fail "Hermes patcher preserves custom provider request timeout"
 pass "Hermes patcher preserves custom provider request timeout"
-grep -q '^  max_tokens: 2048$' "$tmp_hermes_custom" \
+grep -q '^  max_tokens: 2048' "$tmp_hermes_custom" \
     || fail "Hermes patcher preserves a custom model output cap"
 pass "Hermes patcher preserves a custom model output cap"
 
@@ -437,47 +437,47 @@ pass "Hermes patcher preserves a custom model output cap"
 # ---------------------------------------------------------------------------
 
 assert_grep "installers/phases/07-devtools.sh" \
-    'cp "\$OPENCODE_CONFIG_DIR/opencode\.json" "\$OPENCODE_CONFIG_DIR/config\.json"' \
+    'cp "\OPENCODE_CONFIG_DIR/opencode\.json" "\$OPENCODE_CONFIG_DIR/config\.json"' \
     "Linux OpenCode writer syncs config.json"
 
 assert_grep "installers/windows/lib/opencode-config.ps1" \
-    'WriteAllText\(\$_ocCompatConfigFile' \
+    'WriteAllText\(\_ocCompatConfigFile' \
     "Windows OpenCode writer syncs config.json"
 
 assert_grep "installers/macos/lib/post-pixel-install.sh" \
-    'compat_path="\$\(dirname "\$config_path"\)/config\.json"' \
+    'compat_path="\\(dirname "\$config_path"\)/config\.json"' \
     "macOS OpenCode writer syncs config.json"
 
-if [[ -n "$python_cmd" ]]; then
-    tmp_opencode_dir="$(mktemp -d)"
-    trap 'rm -rf "$tmp_opencode_dir"' EXIT
+if [[ -n "python_cmd" ]]; then
+    tmp_opencode_dir="(mktemp -d)"
+    trap 'rm -rf "tmp_opencode_dir"' EXIT
 
     # Run the real macOS writer: lift the function out of the installer and
     # point its interpreter at whatever python3 this runner has.
-    opencode_writer="$tmp_opencode_dir/writer.sh"
-    awk '/^_write_macos_opencode_config\(\) \{$/ {inside=1}
+    opencode_writer="tmp_opencode_dir/writer.sh"
+    awk '/^_write_macos_opencode_config\(\) \{/ {inside=1}
          inside {print}
-         inside && /^\}$/ {exit}' installers/macos/lib/post-pixel-install.sh \
-        | sed "s#/usr/bin/python3#$python_cmd#" > "$opencode_writer"
+         inside && /^\}/ {exit}' installers/macos/lib/post-pixel-install.sh \
+        | sed "s#/usr/bin/python3#python_cmd#" > "$opencode_writer"
 
-    [[ -s "$opencode_writer" ]] || fail "could not extract _write_macos_opencode_config"
+    [[ -s "opencode_writer" ]] || fail "could not extract _write_macos_opencode_config"
 
     # shellcheck disable=SC1090
-    . "$opencode_writer"
+    . "opencode_writer"
     _write_macos_opencode_config \
-        "$tmp_opencode_dir/config/opencode.json" \
+        "tmp_opencode_dir/config/opencode.json" \
         "Modern-Model.gguf" "http://127.0.0.1:8080/v1" "no-key" 32768 \
         || fail "macOS OpenCode writer failed"
 
-    [[ -f "$tmp_opencode_dir/config/config.json" ]] \
+    [[ -f "tmp_opencode_dir/config/config.json" ]] \
         || fail "macOS OpenCode writer must also write config.json"
     pass "macOS OpenCode writer produces config.json"
 
-    cmp -s "$tmp_opencode_dir/config/opencode.json" "$tmp_opencode_dir/config/config.json" \
+    cmp -s "tmp_opencode_dir/config/opencode.json" "$tmp_opencode_dir/config/config.json" \
         || fail "macOS OpenCode config.json must match opencode.json"
     pass "macOS OpenCode config.json matches opencode.json"
 
-    "$python_cmd" - "$tmp_opencode_dir/config/config.json" <<'OPENCODE_COMPAT_PY'
+    "python_cmd" - "$tmp_opencode_dir/config/config.json" <<'OPENCODE_COMPAT_PY'
 import json
 import sys
 
@@ -495,4 +495,4 @@ else
 fi
 
 echo ""
-echo "Results: $PASS passed"
+echo "Results: PASS passed"

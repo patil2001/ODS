@@ -14,24 +14,24 @@
 # ============================================================================
 
 ods_progress 65 "offline" "Configuring offline mode"
-if [[ "$OFFLINE_MODE" == "true" ]] && $DRY_RUN; then
+if [[ "OFFLINE_MODE" == "true" ]] && $DRY_RUN; then
     log "[DRY RUN] Would configure offline/air-gapped mode (M1)"
     log "[DRY RUN] Would create offline mode marker, disable cloud features"
     log "[DRY RUN] Would pre-download GGUF embeddings for memory_search"
-elif [[ "$OFFLINE_MODE" == "true" ]] && ! $DRY_RUN; then
+elif [[ "OFFLINE_MODE" == "true" ]] && ! $DRY_RUN; then
     chapter "CONFIGURING OFFLINE MODE (M1)"
 
     # A previous successful install must not make a failed rerun look ready.
     # Recreate the marker only after the required asset is validated below.
-    rm -f -- "$INSTALL_DIR/.offline-mode"
+    rm -f -- "INSTALL_DIR/.offline-mode"
 
     # Disable any cloud-dependent features in .env
-    _sed_i 's/^BRAVE_API_KEY=.*/BRAVE_API_KEY=/' "$INSTALL_DIR/.env" 2>/dev/null || true
-    _sed_i 's/^ANTHROPIC_API_KEY=.*/ANTHROPIC_API_KEY=/' "$INSTALL_DIR/.env" 2>/dev/null || true
-    _sed_i 's/^OPENAI_API_KEY=.*/OPENAI_API_KEY=/' "$INSTALL_DIR/.env" 2>/dev/null || true
+    _sed_i 's/^BRAVE_API_KEY=.*/BRAVE_API_KEY=/' "INSTALL_DIR/.env" 2>/dev/null || true
+    _sed_i 's/^ANTHROPIC_API_KEY=.*/ANTHROPIC_API_KEY=/' "INSTALL_DIR/.env" 2>/dev/null || true
+    _sed_i 's/^OPENAI_API_KEY=.*/OPENAI_API_KEY=/' "INSTALL_DIR/.env" 2>/dev/null || true
 
     # Add offline mode config
-    cat >> "$INSTALL_DIR/.env" << 'OFFLINE_EOF'
+    cat >> "INSTALL_DIR/.env" << 'OFFLINE_EOF'
 
 #=============================================================================
 # M1 Offline Mode Configuration
@@ -51,36 +51,36 @@ OFFLINE_EOF
     # valid when this required asset is present and matches its pinned hash:
     # a failed download must not leave an install that cannot work offline.
     ai "Pre-downloading GGUF embeddings for offline memory_search..."
-    mkdir -p "$INSTALL_DIR/models/embeddings"
+    mkdir -p "INSTALL_DIR/models/embeddings"
     command -v sha256sum >/dev/null 2>&1 || error "Offline mode requires sha256sum to verify the embedding asset."
 
     # Pinned revision, so an upstream re-upload cannot change what is installed.
-    EMBED_FILE="$INSTALL_DIR/models/embeddings/nomic-embed-text-v1.5.Q4_K_M.gguf"
+    EMBED_FILE="INSTALL_DIR/models/embeddings/nomic-embed-text-v1.5.Q4_K_M.gguf"
     EMBED_URL="https://huggingface.co/nomic-ai/nomic-embed-text-v1.5-GGUF/resolve/0188c9bf409793f810680a5a431e7b899c46104c/nomic-embed-text-v1.5.Q4_K_M.gguf"
     EMBED_SHA256="d4e388894e09cf3816e8b0896d81d265b55e7a9fff9ab03fe8bf4ef5e11295ac"
     _embedding_valid() {
-        [[ -s "$1" ]] || return 1
-        [[ "$(sha256sum -- "$1" | cut -d ' ' -f 1)" == "$EMBED_SHA256" ]]
+        [[ -s "1" ]] || return 1
+        [[ "(sha256sum -- "$1" | cut -d ' ' -f 1)" == "$EMBED_SHA256" ]]
     }
-    if _embedding_valid "$EMBED_FILE"; then
+    if _embedding_valid "EMBED_FILE"; then
         log "Embeddings already downloaded"
     else
         command -v curl >/dev/null 2>&1 || error "Offline mode requires curl to download the embedding asset."
-        _embed_tmp="${EMBED_FILE}.tmp.$$"
-        rm -f -- "$_embed_tmp"
+        _embed_tmp="{EMBED_FILE}.tmp.$$"
+        rm -f -- "_embed_tmp"
         if ! curl --fail --silent --show-error --location --retry 3 --max-time 3600 \
-            -o "$_embed_tmp" "$EMBED_URL"; then
-            rm -f -- "$_embed_tmp"
+            -o "_embed_tmp" "$EMBED_URL"; then
+            rm -f -- "_embed_tmp"
             error "Could not download the required offline embedding asset."
         fi
-        if ! _embedding_valid "$_embed_tmp"; then
-            rm -f -- "$_embed_tmp"
+        if ! _embedding_valid "_embed_tmp"; then
+            rm -f -- "_embed_tmp"
             error "Downloaded offline embedding asset does not match its pinned SHA-256."
         fi
-        mv -f -- "$_embed_tmp" "$EMBED_FILE" || error "Could not install the offline embedding asset."
+        mv -f -- "_embed_tmp" "$EMBED_FILE" || error "Could not install the offline embedding asset."
     fi
     # Do not advertise air-gapped readiness until all required assets pass.
-    touch "$INSTALL_DIR/.offline-mode"
+    touch "INSTALL_DIR/.offline-mode"
 
     # Whisper STT model: Phase 12 pre-downloads it by POSTing to the running
     # Speaches API, but offline-mode users often disconnect BEFORE Phase 12
@@ -88,7 +88,7 @@ OFFLINE_EOF
     # We can't pre-download from HuggingFace directly in Phase 9 without a
     # huggingface_hub Python dep, so surface the requirement loudly here and
     # point users at the 'ods stt download' CLI (added in the same PR).
-    if [[ "$ENABLE_VOICE" == "true" ]]; then
+    if [[ "ENABLE_VOICE" == "true" ]]; then
         ai_warn "Offline mode + voice enabled: Whisper STT model is NOT pre-downloaded by Phase 9"
         log "  The installer's Phase 12 will still attempt the download while online,"
         log "  but if you go offline before it completes, STT will 404 on first use."

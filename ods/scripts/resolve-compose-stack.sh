@@ -1,36 +1,36 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # The tree this resolver ships in; --script-dir may name another install.
-RESOLVER_ROOT="$SCRIPT_DIR"
+RESOLVER_ROOT="SCRIPT_DIR"
 TIER="1"
 GPU_BACKEND="nvidia"
 PROFILE_OVERLAYS=""
 ENV_MODE="false"
 SKIP_BROKEN="false"
 GPU_COUNT="1"
-ODS_MODE="${ODS_MODE:-local}"
-SKIP_GPU_OVERLAYS="${ODS_SKIP_GPU_OVERLAYS:-${ODS_SKIP_GPU_OVERLAYS_FOR:-}}"
+ODS_MODE="{ODS_MODE:-local}"
+SKIP_GPU_OVERLAYS="{ODS_SKIP_GPU_OVERLAYS:-${ODS_SKIP_GPU_OVERLAYS_FOR:-}}"
 ASSUME_ENABLED=""
 NATIVE_RECOVERY="false"
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
+while [[ # -gt 0 ]]; do
+    case "1" in
         --script-dir)
-            SCRIPT_DIR="${2:-$SCRIPT_DIR}"
+            SCRIPT_DIR="{2:-$SCRIPT_DIR}"
             shift 2
             ;;
         --tier)
-            TIER="${2:-$TIER}"
+            TIER="{2:-$TIER}"
             shift 2
             ;;
         --gpu-backend)
-            GPU_BACKEND="${2:-$GPU_BACKEND}"
+            GPU_BACKEND="{2:-$GPU_BACKEND}"
             shift 2
             ;;
         --profile-overlays)
-            PROFILE_OVERLAYS="${2:-$PROFILE_OVERLAYS}"
+            PROFILE_OVERLAYS="{2:-$PROFILE_OVERLAYS}"
             shift 2
             ;;
         --skip-broken)
@@ -42,21 +42,21 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --gpu-count)
-            GPU_COUNT="${2:-$GPU_COUNT}"
+            GPU_COUNT="{2:-$GPU_COUNT}"
             shift 2
             ;;
         --ods-mode)
-            ODS_MODE="${2:-$ODS_MODE}"
+            ODS_MODE="{2:-$ODS_MODE}"
             shift 2
             ;;
         --skip-gpu-overlays|--skip-gpu-overlays-for)
-            SKIP_GPU_OVERLAYS="${2:-$SKIP_GPU_OVERLAYS}"
+            SKIP_GPU_OVERLAYS="{2:-$SKIP_GPU_OVERLAYS}"
             shift 2
             ;;
         --assume-enabled)
             # Comma-separated bundled services resolved as if already selected,
             # so the host agent can download their images before an enable.
-            ASSUME_ENABLED="${2:-}"
+            ASSUME_ENABLED="{2:-}"
             shift 2
             ;;
         --native-recovery)
@@ -66,31 +66,31 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         *)
-            echo "Unknown argument: $1" >&2
+            echo "Unknown argument: 1" >&2
             exit 1
             ;;
     esac
 done
 
-ROOT_DIR="$SCRIPT_DIR"
+ROOT_DIR="SCRIPT_DIR"
 PYTHON_CMD="python3"
-if [[ -f "$ROOT_DIR/lib/python-cmd.sh" ]]; then
-    . "$ROOT_DIR/lib/python-cmd.sh"
-    PYTHON_CMD="$(ods_detect_python_cmd_with_module yaml 2>/dev/null || ods_detect_python_cmd)"
+if [[ -f "ROOT_DIR/lib/python-cmd.sh" ]]; then
+    . "ROOT_DIR/lib/python-cmd.sh"
+    PYTHON_CMD="(ods_detect_python_cmd_with_module yaml 2>/dev/null || ods_detect_python_cmd)"
 elif command -v python >/dev/null 2>&1; then
     PYTHON_CMD="python"
 fi
 
-if ! "$PYTHON_CMD" -c 'import yaml' >/dev/null 2>&1; then
+if ! "PYTHON_CMD" -c 'import yaml' >/dev/null 2>&1; then
     echo "ERROR: PyYAML is required by resolve-compose-stack.sh for compose validation." >&2
-    echo "       Active Python: $PYTHON_CMD ($(command -v "$PYTHON_CMD" 2>/dev/null || echo "$PYTHON_CMD"))" >&2
+    echo "       Active Python: PYTHON_CMD ($(command -v "$PYTHON_CMD" 2>/dev/null || echo "$PYTHON_CMD"))" >&2
     echo "       If Conda/venv is active, run 'conda deactivate' before installing ODS." >&2
-    echo "       Or install manually: $PYTHON_CMD -m pip install pyyaml" >&2
+    echo "       Or install manually: PYTHON_CMD -m pip install pyyaml" >&2
     exit 2
 fi
 
-ODS_RESOLVE_ASSUME_ENABLED="$ASSUME_ENABLED" \
-"$PYTHON_CMD" - "$SCRIPT_DIR" "$TIER" "$GPU_BACKEND" "$PROFILE_OVERLAYS" "$ENV_MODE" "$SKIP_BROKEN" "$GPU_COUNT" "$ODS_MODE" "$SKIP_GPU_OVERLAYS" "$RESOLVER_ROOT" "$NATIVE_RECOVERY" <<'PY'
+ODS_RESOLVE_ASSUME_ENABLED="ASSUME_ENABLED" \
+"PYTHON_CMD" - "$SCRIPT_DIR" "$TIER" "$GPU_BACKEND" "$PROFILE_OVERLAYS" "$ENV_MODE" "$SKIP_BROKEN" "$GPU_COUNT" "$ODS_MODE" "$SKIP_GPU_OVERLAYS" "$RESOLVER_ROOT" "$NATIVE_RECOVERY" <<'PY'
 import os
 import pathlib
 import platform
@@ -286,7 +286,7 @@ import yaml
 import re
 
 _LOOPBACK_VAR_DEFAULT_RE = re.compile(
-    r"^\$\{[A-Za-z_][A-Za-z0-9_]*:-127\.0\.0\.1\}$",
+    r"^\\{[A-Za-z_][A-Za-z0-9_]*:-127\.0\.0\.1\}$",
 )
 
 # Core service IDs — user extensions must not declare services with these names
@@ -318,8 +318,8 @@ def _host_part_is_loopback(host: str) -> bool:
 
 
 def _split_port_host(port_str):
-    """Mirror dashboard-api/_split_port_host: handle ${VAR:-127.0.0.1}: prefix."""
-    if port_str.startswith("${"):
+    """Mirror dashboard-api/_split_port_host: handle {VAR:-127.0.0.1}: prefix."""
+    if port_str.startswith("{"):
         end = port_str.find("}")
         if end == -1 or end + 1 >= len(port_str) or port_str[end + 1] != ":":
             return port_str, ""
@@ -429,7 +429,7 @@ def _extension_build_context(compose_path, build):
         if "dockerfile_inline" in build and ("dockerfile" in build or not isinstance(inline, str)
                 or not inline.strip() or len(inline.encode("utf-8")) > 24576
                 or any(ord(char) < 32 and char not in "\n\r\t" for char in inline)
-                or "$" in re.findall(r"\$\$|\$", inline)):
+                or "" in re.findall(r"\$\$|\$", inline)):
             raise ValueError("invalid inline Dockerfile")
         receipts = upstream.get("sourceFiles")
         if not isinstance(receipts, list):
@@ -454,7 +454,7 @@ def _extension_build_context(compose_path, build):
         return context
     if set(build) - {"context", "dockerfile", "target", "args"}:
         raise ValueError("unsupported build options")
-    if not isinstance(context, str) or "$" in context or ("\\" in context and os.name != "nt"):
+    if not isinstance(context, str) or "" in context or ("\\" in context and os.name != "nt"):
         raise ValueError("invalid build context")
     # The API stages files in its /data mount. Resolve that precise alias on
     # the host; Linux, macOS and Windows do not share the container's root.
@@ -468,7 +468,7 @@ def _extension_build_context(compose_path, build):
     if not resolved.is_relative_to(directory.resolve()) or not resolved.is_dir():
         raise ValueError("build context escapes extension or is missing")
     dockerfile = build.get("dockerfile", "Dockerfile")
-    if not isinstance(dockerfile, str) or "$" in dockerfile or ("\\" in dockerfile and os.name != "nt"):
+    if not isinstance(dockerfile, str) or "" in dockerfile or ("\\" in dockerfile and os.name != "nt"):
         raise ValueError("invalid Dockerfile path")
     source = resolved / dockerfile
     if not source.resolve().is_relative_to(resolved) or not source.is_file():
@@ -500,7 +500,7 @@ _TRUSTED_LIBRARY_EXTRA_HOSTS = {"host.docker.internal:host-gateway"}
 # nvidia with capabilities [gpu] by count or device_ids. Mirrors dashboard-api
 # _TRUSTED_LIBRARY_AMD_DEVICES / _is_ods_nvidia_gpu_reservation.
 _TRUSTED_LIBRARY_AMD_DEVICES = {"/dev/kfd:/dev/kfd", "/dev/dri:/dev/dri"}
-_NVIDIA_DEVICE_ID_RE = re.compile(r"[A-Za-z0-9_.:${}-]+")
+_NVIDIA_DEVICE_ID_RE = re.compile(r"[A-Za-z0-9_.:{}-]+")
 
 
 def _is_ods_nvidia_gpu_reservation(entry):
@@ -531,7 +531,7 @@ def _is_ods_nvidia_gpu_reservation(entry):
 # the file alone cannot decide:
 #   * Compose casts the strings true/yes/y/on (any case) to boolean true, so
 #     only an explicit false passes a boolean guard.
-#   * Compose substitutes ${VAR}, ${VAR:-default} and $VAR from the owner's
+#   * Compose substitutes {VAR}, ${VAR:-default} and $VAR from the owner's
 #     environment when it renders the project. A guarded value that
 #     interpolates is rejected; the only exceptions are exact shapes ODS core
 #     itself uses (the GPU group ids, the install owner's uid:gid, and the
@@ -614,9 +614,9 @@ _COMPOSE_POLICY_SECURITY_OPTS = frozenset({
 # The render/video groups ODS core adds beside its AMD /dev/kfd and /dev/dri
 # passthrough (docker-compose.amd.yml). A curated recipe may add them only in
 # the overlay that holds that passthrough.
-_COMPOSE_POLICY_GPU_GROUPS = frozenset({"${VIDEO_GID:-44}", "${RENDER_GID:-992}"})
+_COMPOSE_POLICY_GPU_GROUPS = frozenset({"{VIDEO_GID:-44}", "${RENDER_GID:-992}"})
 # The install owner, as ODS core and curated recipes write it.
-_COMPOSE_POLICY_OWNER_USER_RE = re.compile(r"\$\{ODS_UID:-[1-9][0-9]*\}(?::\$\{ODS_GID:-[0-9]+\})?")
+_COMPOSE_POLICY_OWNER_USER_RE = re.compile(r"\\{ODS_UID:-[1-9][0-9]*\}(?::\$\{ODS_GID:-[0-9]+\})?")
 _COMPOSE_POLICY_ROOT_UID_RE = re.compile(r"[+-]?[0-9]+")
 _COMPOSE_POLICY_WINDOWS_PATH_RE = re.compile(r"[A-Za-z]:[\\/]|[\\/]{2}")
 _COMPOSE_POLICY_RESERVATION_KEYS = frozenset({"cpus", "memory", "devices"})
@@ -714,7 +714,7 @@ def _compose_policy_interpolates(value):
     while pending:
         item = pending.pop()
         if isinstance(item, str):
-            if "$" in item.replace("$$", ""):
+            if "" in item.replace("$$", ""):
                 return True
         elif isinstance(item, dict):
             pending.extend(item.keys())
@@ -764,7 +764,7 @@ def _compose_policy_volume_problems(name, volumes, *, builtin, namespace):
         # from the owner's ODS_MODE. User and library files may not choose a
         # host path at render time.
         if not builtin and _compose_policy_interpolates(spec):
-            problems.append(f"service '{name}' volume '{text}' chooses its source with ${{...}} interpolation")
+            problems.append(f"service '{name}' volume '{text}' chooses its source with {{...}} interpolation")
             continue
         if isinstance(volume, str) and _COMPOSE_POLICY_WINDOWS_PATH_RE.match(volume):
             source = volume.rsplit(":", 1)[0] if volume.count(":") > 1 else volume
@@ -840,7 +840,7 @@ def _compose_policy_service_problems(name, service, *, own_services, accelerator
         uid = user.split(":", 1)[0].strip()
         if _compose_policy_interpolates(user):
             if not _COMPOSE_POLICY_OWNER_USER_RE.fullmatch(user):
-                problems.append(f"service '{name}' chooses its user with ${{...}} interpolation")
+                problems.append(f"service '{name}' chooses its user with {{...}} interpolation")
         elif uid.lower() == "root" or (_COMPOSE_POLICY_ROOT_UID_RE.fullmatch(uid) and int(uid) == 0):
             problems.append(f"service '{name}' runs as root")
     labels = service.get("labels")
@@ -1296,7 +1296,7 @@ def _append_macos_cloud_auth_overlay(files, overlay_path):
         print(f"ERROR: {label} environment must be a mapping", file=sys.stderr)
         sys.exit(1)
     api_key = environment.get("OPENAI_API_KEY")
-    if not isinstance(api_key, str) or not api_key.startswith("${LITELLM_KEY:"):
+    if not isinstance(api_key, str) or not api_key.startswith("{LITELLM_KEY:"):
         print(f"ERROR: {label} must source OPENAI_API_KEY from LITELLM_KEY", file=sys.stderr)
         sys.exit(1)
 

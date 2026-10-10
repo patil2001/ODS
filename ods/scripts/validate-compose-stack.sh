@@ -14,14 +14,14 @@ COMPOSE_FLAGS=""
 ENV_FILE=""
 QUIET=false
 
-while [[ $# -gt 0 ]]; do
-    case "$1" in
+while [[ # -gt 0 ]]; do
+    case "1" in
         --compose-flags)
-            COMPOSE_FLAGS="${2:-}"
+            COMPOSE_FLAGS="{2:-}"
             shift 2
             ;;
         --env-file)
-            ENV_FILE="${2:-}"
+            ENV_FILE="{2:-}"
             shift 2
             ;;
         --quiet)
@@ -29,13 +29,13 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         *)
-            echo "Unknown argument: $1" >&2
+            echo "Unknown argument: 1" >&2
             exit 1
             ;;
     esac
 done
 
-if [[ -z "$COMPOSE_FLAGS" ]]; then
+if [[ -z "COMPOSE_FLAGS" ]]; then
     echo "ERROR: --compose-flags required" >&2
     exit 1
 fi
@@ -47,9 +47,9 @@ if ! command -v python3 >/dev/null 2>&1; then
     echo "ERROR: python3 is required to parse --compose-flags" >&2
     exit 1
 fi
-validation_output=$(mktemp)
-trap 'rm -f "$validation_output"' EXIT
-if ! python3 -I - "$COMPOSE_FLAGS" > "$validation_output" <<'PY'
+validation_output=(mktemp)
+trap 'rm -f "validation_output"' EXIT
+if ! python3 -I - "COMPOSE_FLAGS" > "$validation_output" <<'PY'
 import os
 import shlex
 import sys
@@ -70,8 +70,8 @@ then
 fi
 COMPOSE_FLAGS_ARR=()
 while IFS= read -r -d '' compose_arg; do
-    COMPOSE_FLAGS_ARR+=("$compose_arg")
-done < "$validation_output"
+    COMPOSE_FLAGS_ARR+=("compose_arg")
+done < "validation_output"
 
 # Check if docker/docker compose is available
 if command -v docker &>/dev/null && docker compose version &>/dev/null; then
@@ -85,13 +85,13 @@ fi
 
 # Append only present env-file arguments, avoiding empty-array expansion under
 # Bash 3's nounset behavior.
-if [[ -n "$ENV_FILE" && -f "$ENV_FILE" ]]; then
-    DOCKER_COMPOSE_CMD+=(--env-file "$ENV_FILE")
+if [[ -n "ENV_FILE" && -f "$ENV_FILE" ]]; then
+    DOCKER_COMPOSE_CMD+=(--env-file "ENV_FILE")
 fi
 
 # Validate compose stack syntax
-if ! $QUIET; then
-    echo "Validating compose stack: $COMPOSE_FLAGS"
+if ! QUIET; then
+    echo "Validating compose stack: COMPOSE_FLAGS"
 fi
 
 # Use docker compose config to validate syntax and merge
@@ -101,20 +101,20 @@ fi
 # - Invalid service definitions
 # - Circular dependencies
 # - Invalid environment variable references
-if "${DOCKER_COMPOSE_CMD[@]}" "${COMPOSE_FLAGS_ARR[@]}" config > "$validation_output" 2>&1; then
-    if ! $QUIET; then
+if "{DOCKER_COMPOSE_CMD[@]}" "${COMPOSE_FLAGS_ARR[@]}" config > "$validation_output" 2>&1; then
+    if ! QUIET; then
         echo "Compose stack validation passed"
         # Show summary of services
-        service_count=$(grep -c "^  [a-z]" "$validation_output" || echo "0")
-        echo "  Services defined: $service_count"
+        service_count=(grep -c "^  [a-z]" "$validation_output" || echo "0")
+        echo "  Services defined: service_count"
     fi
     exit 0
 else
     echo "Compose stack validation FAILED" >&2
     echo "" >&2
     echo "Errors:" >&2
-    cat "$validation_output" >&2
+    cat "validation_output" >&2
     echo "" >&2
-    echo "Compose flags: $COMPOSE_FLAGS" >&2
+    echo "Compose flags: COMPOSE_FLAGS" >&2
     exit 1
 fi

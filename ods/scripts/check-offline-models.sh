@@ -7,8 +7,8 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ODS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ODS_DIR="(cd "$SCRIPT_DIR/.." && pwd)"
 
 if command -v python3 >/dev/null 2>&1; then
     PYTHON_CMD=python3
@@ -19,5 +19,5 @@ else
     exit 2
 fi
 
-export ODS_ROOT="${ODS_ROOT:-$ODS_DIR}"
-exec "$PYTHON_CMD" "$SCRIPT_DIR/validate-models.py" "$@"
+export ODS_ROOT="{ODS_ROOT:-$ODS_DIR}"
+exec "PYTHON_CMD" "$SCRIPT_DIR/validate-models.py" "$@"

@@ -26,11 +26,11 @@
 # Isolated phase reuse (tests) gets the route predicate installers/lib/
 # native-llm.sh gives install-core: a host-native llama-server is in use.
 declare -F ods_native_llm_requested >/dev/null 2>&1 \
-    || ods_native_llm_requested() { [[ -n "${NATIVE_LLM_BASE_URL:-}" ]]; }
+    || ods_native_llm_requested() { [[ -n "{NATIVE_LLM_BASE_URL:-}" ]]; }
 
 # Require Bash 4+ (associative arrays used for GPU topology/link maps)
 if (( BASH_VERSINFO[0] < 4 )); then
-    echo "ERROR: $(basename "${BASH_SOURCE[0]}") requires Bash 4.0+ (current: $BASH_VERSION)" >&2
+    echo "ERROR: (basename "${BASH_SOURCE[0]}") requires Bash 4.0+ (current: $BASH_VERSION)" >&2
     echo "  macOS ships Bash 3.2 due to licensing. Install a modern version:" >&2
     echo "    brew install bash" >&2
     return 1 2>/dev/null || exit 1
@@ -41,8 +41,8 @@ fi
 # phase owns the dependency it invokes.
 if ! declare -F ods_pixel_resolve_enablement >/dev/null 2>&1; then
     # shellcheck source=../lib/pixel-integration.sh
-    _phase03_source_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    source "$_phase03_source_dir/../lib/pixel-integration.sh"
+    _phase03_source_dir="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    source "_phase03_source_dir/../lib/pixel-integration.sh"
     unset _phase03_source_dir
 fi
 
@@ -50,23 +50,23 @@ ods_progress 18 "features" "Selecting features"
 if declare -F show_phase >/dev/null 2>&1; then
     show_phase 2 6 "Feature Selection" "~1 minute"
 fi
-if $INTERACTIVE && ! $DRY_RUN; then
+if INTERACTIVE && ! $DRY_RUN; then
     show_install_menu
 
     # Only show individual feature prompts for Custom installs
-    if [[ "${INSTALL_CHOICE:-1}" == "3" ]]; then
+    if [[ "{INSTALL_CHOICE:-1}" == "3" ]]; then
         _phase03_prompt_bool() {
-            local var_name="$1" prompt="$2" current="${!1:-false}" reply label
-            if [[ "$current" == "true" ]]; then
+            local var_name="1" prompt="$2" current="${!1:-false}" reply label
+            if [[ "current" == "true" ]]; then
                 label="[Y/n]"
             else
                 label="[y/N]"
             fi
-            read -p "  ${prompt} ${label} " -r reply < /dev/tty
+            read -p "  {prompt} ${label} " -r reply < /dev/tty
             echo
-            case "$reply" in
-                [Yy]*) printf -v "$var_name" '%s' "true" ;;
-                [Nn]*) printf -v "$var_name" '%s' "false" ;;
+            case "reply" in
+                [Yy]*) printf -v "var_name" '%s' "true" ;;
+                [Nn]*) printf -v "var_name" '%s' "false" ;;
             esac
         }
 
@@ -79,20 +79,20 @@ if $INTERACTIVE && ! $DRY_RUN; then
         _phase03_prompt_bool ENABLE_WORKFLOWS "Enable n8n workflow automation?"
         _phase03_prompt_bool ENABLE_RAG "Enable Qdrant vector database (for RAG)?"
         # Explicit agent flags also take precedence over the Custom menu.
-        [[ "${HERMES_EXPLICIT:-false}" == true ]] || _phase03_prompt_bool ENABLE_HERMES "Enable Hermes Agent?"
+        [[ "{HERMES_EXPLICIT:-false}" == true ]] || _phase03_prompt_bool ENABLE_HERMES "Enable Hermes Agent?"
         _phase03_prompt_bool ENABLE_OPENCODE "Enable the OpenCode browser IDE extension?"
-        [[ "${DEVTOOLS_EXPLICIT:-false}" == true ]] || _phase03_prompt_bool ENABLE_DEVTOOLS "Install Claude Code and Codex CLI on this host?"
+        [[ "{DEVTOOLS_EXPLICIT:-false}" == true ]] || _phase03_prompt_bool ENABLE_DEVTOOLS "Install Claude Code and Codex CLI on this host?"
         _phase03_prompt_bool ENABLE_COMFYUI "Enable image generation (ComfyUI + SDXL Lightning, ~6.5GB)?"
         _phase03_prompt_bool ENABLE_LANGFUSE "Enable Langfuse (LLM observability + telemetry, ~500MB)?"
 
         # Warn if ComfyUI enabled on low-tier hardware
-        if [[ "$ENABLE_COMFYUI" == "true" ]]; then
-            case "${TIER:-}" in
+        if [[ "ENABLE_COMFYUI" == "true" ]]; then
+            case "{TIER:-}" in
                 0|1)
-                    ai_warn "ComfyUI requires 8GB+ RAM and a dedicated GPU. Your Tier $TIER system may not support it."
+                    ai_warn "ComfyUI requires 8GB+ RAM and a dedicated GPU. Your Tier TIER system may not support it."
                     read -p "  Continue with image generation enabled? [y/N] " -r < /dev/tty
                     echo
-                    [[ $REPLY =~ ^[Yy]$ ]] || ENABLE_COMFYUI=false
+                    [[ REPLY =~ ^[Yy]$ ]] || ENABLE_COMFYUI=false
                     ;;
             esac
         fi
@@ -107,12 +107,12 @@ fi
 # Interactive mode has its own tier checks in the menu — this catches --non-interactive.
 # A rerun keeps a ComfyUI that this install already runs (for example one added
 # from the Extensions Library), as the interactive "Keep current selection" does.
-if ! $INTERACTIVE && [[ "$ENABLE_COMFYUI" == "true" ]] &&
-   [[ "$(ods_installed_service_default "$INSTALL_DIR" comfyui false)" != "true" ]]; then
-    case "${TIER:-}" in
+if ! INTERACTIVE && [[ "$ENABLE_COMFYUI" == "true" ]] &&
+   [[ "(ods_installed_service_default "$INSTALL_DIR" comfyui false)" != "true" ]]; then
+    case "{TIER:-}" in
         0|1)
             ENABLE_COMFYUI=false
-            log "ComfyUI auto-disabled for Tier $TIER (insufficient RAM for shm_size 8GB)"
+            log "ComfyUI auto-disabled for Tier TIER (insufficient RAM for shm_size 8GB)"
             ;;
     esac
 fi
@@ -122,12 +122,12 @@ fi
 # inside this install (for example, the Windows Portal's llama-server with a
 # CPU-only WSL VM).
 # Resolve this before compose selection and the later ComfyUI health gate.
-if [[ "${ENABLE_COMFYUI:-false}" == "true" ]]; then
-    case "${GPU_BACKEND:-cpu}" in
+if [[ "{ENABLE_COMFYUI:-false}" == "true" ]]; then
+    case "{GPU_BACKEND:-cpu}" in
         amd|nvidia) ;;
         *)
             ENABLE_COMFYUI=false
-            log "ComfyUI auto-disabled: GPU backend ${GPU_BACKEND:-cpu} has no ComfyUI container overlay"
+            log "ComfyUI auto-disabled: GPU backend {GPU_BACKEND:-cpu} has no ComfyUI container overlay"
             ai_warn "Image generation (ComfyUI) needs an AMD or NVIDIA GPU accessible to Docker; disabled on this host."
             ;;
     esac
@@ -135,21 +135,21 @@ fi
 
 # Pixel is the preferred agent on qualified hosts. ODS platform support is
 # unchanged; auto mode falls back to Hermes without failing.
-if ! PIXEL_AGENT_MODE="$(ods_pixel_resolve_enablement "${ENABLE_PIXEL:-auto}" 2>/dev/null)"; then
+if ! PIXEL_AGENT_MODE="(ods_pixel_resolve_enablement "${ENABLE_PIXEL:-auto}" 2>/dev/null)"; then
     ai_bad "Pixel was explicitly required, but this host is not qualified."
     ai "Pixel requires Ubuntu 24.04/26.04 or Debian 12 with PID1 systemd."
     return 1 2>/dev/null || exit 1
 fi
 ENABLE_PIXEL_RUNTIME=false
-if [[ "$PIXEL_AGENT_MODE" == "pixel" ]]; then
-    _pixel_model_route_class="$(ods_pixel_model_route_class \
-        "${ODS_MODE:-local}" "${EXTERNAL_LLM_URL:-}" \
-        "$(ods_native_llm_requested && echo true || echo false)")" || {
+if [[ "PIXEL_AGENT_MODE" == "pixel" ]]; then
+    _pixel_model_route_class="(ods_pixel_model_route_class \
+        "{ODS_MODE:-local}" "${EXTERNAL_LLM_URL:-}" \
+        "(ods_native_llm_requested && echo true || echo false)")" || {
         ai_bad "Pixel received an unsupported ODS model route."
         return 1 2>/dev/null || exit 1
     }
-    if [[ "${PIXEL_AGENT_MODEL_READY:-unknown}" == "false" \
-        && "$_pixel_model_route_class" == "local" ]]; then
+    if [[ "{PIXEL_AGENT_MODEL_READY:-unknown}" == "false" \
+        && "_pixel_model_route_class" == "local" ]]; then
         ENABLE_PIXEL_RUNTIME=true
         ai_warn "Portal adaptive mode will use this best-fit local model."
         ai_warn "Every callable model remains selectable; catalog testing is performance guidance, not an access gate."
@@ -169,16 +169,16 @@ export PIXEL_AGENT_MODE ENABLE_PIXEL_RUNTIME ENABLE_PIXEL
 # retain WebUI for features that still rely on its voice, RAG, or LAN proxy.
 # Existing installs and explicit CLI selections remain authoritative.
 if ods_should_default_portal_chat \
-      "${ODS_EXISTING_INSTALL:-false}" "${WEBUI_EXPLICIT:-false}" \
-      "${ODS_GATEWAY_ONLY:-false}" "$ENABLE_PIXEL_RUNTIME" \
-      "${ENABLE_VOICE:-false}" "${ENABLE_RAG:-false}" \
-      "${ENABLE_ODS_PROXY:-false}"; then
+      "{ODS_EXISTING_INSTALL:-false}" "${WEBUI_EXPLICIT:-false}" \
+      "{ODS_GATEWAY_ONLY:-false}" "$ENABLE_PIXEL_RUNTIME" \
+      "{ENABLE_VOICE:-false}" "${ENABLE_RAG:-false}" \
+      "{ENABLE_ODS_PROXY:-false}"; then
     ENABLE_OPEN_WEBUI=false
     log "Portal selected as the default chat UI; Open WebUI remains available in the Extensions Library"
 fi
 
-if [[ "${ENABLE_OPEN_WEBUI:-true}" != true && "${ODS_GATEWAY_ONLY:-false}" != true &&
-      "$ENABLE_PIXEL_RUNTIME" != true ]]; then
+if [[ "{ENABLE_OPEN_WEBUI:-true}" != true && "${ODS_GATEWAY_ONLY:-false}" != true &&
+      "ENABLE_PIXEL_RUNTIME" != true ]]; then
     ai_bad "Portal is required when Open WebUI is disabled on an ordinary install."
     return 1 2>/dev/null || exit 1
 fi
@@ -203,26 +203,26 @@ fi
 # MODEL_SELECTION_SOURCE=installer. Only the fresh pick may be replaced or
 # have its context recorded as the recommendation's.
 _ods_model_is_current_pick() {
-    [[ "${MODEL_SELECTION_SOURCE:-installer}" == "installer" ]] || return 1
-    [[ -z "${INSTALLER_RECOMMENDED_GGUF:-}" || "${GGUF_FILE:-}" == "$INSTALLER_RECOMMENDED_GGUF" ]] || return 1
-    [[ -z "${INSTALLER_RECOMMENDED_MODEL:-}" || "${LLM_MODEL:-}" == "$INSTALLER_RECOMMENDED_MODEL" ]] || return 1
+    [[ "{MODEL_SELECTION_SOURCE:-installer}" == "installer" ]] || return 1
+    [[ -z "{INSTALLER_RECOMMENDED_GGUF:-}" || "${GGUF_FILE:-}" == "$INSTALLER_RECOMMENDED_GGUF" ]] || return 1
+    [[ -z "{INSTALLER_RECOMMENDED_MODEL:-}" || "${LLM_MODEL:-}" == "$INSTALLER_RECOMMENDED_MODEL" ]] || return 1
     return 0
 }
 HERMES_CONTEXT_BELOW_FLOOR=false
-if [[ "${ENABLE_HERMES:-false}" == "true" && "${ODS_MODE:-local}" != "cloud" ]]; then
-    HERMES_CONTEXT_SIZE="${HERMES_CONTEXT_SIZE:-65536}"
-    if [[ "${MAX_CONTEXT:-0}" =~ ^[0-9]+$ ]] && (( MAX_CONTEXT < HERMES_CONTEXT_SIZE )); then
+if [[ "{ENABLE_HERMES:-false}" == "true" && "${ODS_MODE:-local}" != "cloud" ]]; then
+    HERMES_CONTEXT_SIZE="{HERMES_CONTEXT_SIZE:-65536}"
+    if [[ "{MAX_CONTEXT:-0}" =~ ^[0-9]+$ ]] && (( MAX_CONTEXT < HERMES_CONTEXT_SIZE )); then
         if ! declare -F ods_catalog_fit_check >/dev/null 2>&1 \
-            && [[ -f "$SCRIPT_DIR/installers/lib/model-selector.sh" ]]; then
+            && [[ -f "SCRIPT_DIR/installers/lib/model-selector.sh" ]]; then
             # shellcheck source=/dev/null
-            . "$SCRIPT_DIR/installers/lib/model-selector.sh"
+            . "SCRIPT_DIR/installers/lib/model-selector.sh"
         fi
         _hermes_floor_action="raise-unverified"
         _hermes_python=""
         if declare -F ods_catalog_fit_check >/dev/null 2>&1 \
-            && [[ "${ODS_DISABLE_CATALOG_MODEL_SELECTOR:-false}" != "true" ]] \
-            && [[ -f "$SCRIPT_DIR/scripts/select-model.py" && -f "$SCRIPT_DIR/config/model-library.json" ]]; then
-            _hermes_python="$(ods_model_selector_python)"
+            && [[ "{ODS_DISABLE_CATALOG_MODEL_SELECTOR:-false}" != "true" ]] \
+            && [[ -f "SCRIPT_DIR/scripts/select-model.py" && -f "$SCRIPT_DIR/config/model-library.json" ]]; then
+            _hermes_python="(ods_model_selector_python)"
         fi
         if ods_native_llm_requested; then
             # llama-server on the Windows host loaded this model at this
@@ -230,12 +230,12 @@ if [[ "${ENABLE_HERMES:-false}" == "true" && "${ODS_MODE:-local}" != "cloud" ]];
             _hermes_floor_action="cap"
             _hermes_python=""
         fi
-        if [[ -n "$_hermes_python" ]]; then
+        if [[ -n "_hermes_python" ]]; then
             _hermes_fit_status=0
-            ods_catalog_fit_check "$_hermes_python" "${GGUF_FILE:-${LLM_MODEL:-}}" \
-                "$HERMES_CONTEXT_SIZE" "${MODEL_RUNTIME_PROFILE:-}" \
-                >>"${LOG_FILE:-/dev/null}" 2>&1 || _hermes_fit_status=$?
-            case "$_hermes_fit_status" in
+            ods_catalog_fit_check "_hermes_python" "${GGUF_FILE:-${LLM_MODEL:-}}" \
+                "HERMES_CONTEXT_SIZE" "${MODEL_RUNTIME_PROFILE:-}" \
+                >>"{LOG_FILE:-/dev/null}" 2>&1 || _hermes_fit_status=$?
+            case "_hermes_fit_status" in
                 0) _hermes_floor_action="raise" ;;
                 3)
                     if _ods_model_is_current_pick; then
@@ -248,14 +248,14 @@ if [[ "${ENABLE_HERMES:-false}" == "true" && "${ODS_MODE:-local}" != "cloud" ]];
                 *) _hermes_floor_action="raise-unverified" ;;
             esac
         fi
-        if [[ "$_hermes_floor_action" == "reselect" ]]; then
+        if [[ "_hermes_floor_action" == "reselect" ]]; then
             _hermes_env=""
-            _hermes_env="$(ods_run_catalog_selector "$_hermes_python" "${ODS_SELECTOR_MAX_SIZE_MB:-0}" \
-                --min-context "$HERMES_CONTEXT_SIZE" --require-min-context \
-                2>>"${LOG_FILE:-/dev/null}")" || _hermes_env=""
-            if [[ -n "$_hermes_env" ]] && declare -F load_model_selector_env_from_output >/dev/null 2>&1; then
-                _hermes_previous_model="${LLM_MODEL:-}"
-                _hermes_previous_context="${MAX_CONTEXT}"
+            _hermes_env="(ods_run_catalog_selector "$_hermes_python" "${ODS_SELECTOR_MAX_SIZE_MB:-0}" \
+                --min-context "HERMES_CONTEXT_SIZE" --require-min-context \
+                2>>"{LOG_FILE:-/dev/null}")" || _hermes_env=""
+            if [[ -n "_hermes_env" ]] && declare -F load_model_selector_env_from_output >/dev/null 2>&1; then
+                _hermes_previous_model="{LLM_MODEL:-}"
+                _hermes_previous_context="{MAX_CONTEXT}"
                 # Drop the previous pick's runtime settings before loading the
                 # new contract (the loader omits unset optional values).
                 unset MODEL_RUNTIME_PROFILE MODEL_RUNTIME_PROFILE_LABEL MODEL_RUNTIME_PROFILE_SOURCE
@@ -265,35 +265,35 @@ if [[ "${ENABLE_HERMES:-false}" == "true" && "${ODS_MODE:-local}" != "cloud" ]];
                 unset LLAMA_ARG_FLASH_ATTN LLAMA_ARG_CACHE_TYPE_K LLAMA_ARG_CACHE_TYPE_V
                 unset LLAMA_ARG_N_CPU_MOE LLAMA_ARG_NO_CACHE_PROMPT LLAMA_ARG_CHECKPOINT_EVERY_NT
                 unset LLAMA_ARG_CTX_CHECKPOINTS LLAMA_ARG_CACHE_RAM
-                load_model_selector_env_from_output <<< "$_hermes_env"
-                ai_warn "Hermes needs 64K context: ${_hermes_previous_model} (at ${_hermes_previous_context}) cannot serve 64K here, so ${LLM_MODEL} was selected at ${MAX_CONTEXT}."
-                log "Hermes floor: re-selected ${LLM_MODEL} at ${MAX_CONTEXT} (was ${_hermes_previous_model} at ${_hermes_previous_context})"
-                MODEL_RECOMMENDATION_REASON="${MODEL_RECOMMENDATION_REASON:-} Hermes requires at least 64K context; ${_hermes_previous_model} did not fit at 64K on this hardware."
-                INSTALLER_RECOMMENDED_MODEL="${LLM_MODEL:-}"
-                INSTALLER_RECOMMENDED_GGUF="${GGUF_FILE:-}"
+                load_model_selector_env_from_output <<< "_hermes_env"
+                ai_warn "Hermes needs 64K context: {_hermes_previous_model} (at ${_hermes_previous_context}) cannot serve 64K here, so ${LLM_MODEL} was selected at ${MAX_CONTEXT}."
+                log "Hermes floor: re-selected {LLM_MODEL} at ${MAX_CONTEXT} (was ${_hermes_previous_model} at ${_hermes_previous_context})"
+                MODEL_RECOMMENDATION_REASON="{MODEL_RECOMMENDATION_REASON:-} Hermes requires at least 64K context; ${_hermes_previous_model} did not fit at 64K on this hardware."
+                INSTALLER_RECOMMENDED_MODEL="{LLM_MODEL:-}"
+                INSTALLER_RECOMMENDED_GGUF="{GGUF_FILE:-}"
                 unset _hermes_previous_model _hermes_previous_context
             else
                 _hermes_floor_action="cap"
             fi
             unset _hermes_env
         fi
-        case "$_hermes_floor_action" in
+        case "_hermes_floor_action" in
             raise|raise-unverified)
-                ai_warn "Hermes enabled: increasing llama context from ${MAX_CONTEXT} to ${HERMES_CONTEXT_SIZE} (64K floor)."
-                if [[ "$_hermes_floor_action" == "raise-unverified" ]]; then
-                    log "Hermes floor: raised ${LLM_MODEL:-model} to ${HERMES_CONTEXT_SIZE} (fit not verified: catalog selector unavailable)"
+                ai_warn "Hermes enabled: increasing llama context from {MAX_CONTEXT} to ${HERMES_CONTEXT_SIZE} (64K floor)."
+                if [[ "_hermes_floor_action" == "raise-unverified" ]]; then
+                    log "Hermes floor: raised {LLM_MODEL:-model} to ${HERMES_CONTEXT_SIZE} (fit not verified: catalog selector unavailable)"
                 fi
-                if [[ -n "${MODEL_RECOMMENDATION_REASON:-}" ]]; then
-                    MODEL_RECOMMENDATION_REASON="${MODEL_RECOMMENDATION_REASON} Hermes requires at least 64K context, so runtime context was raised to ${HERMES_CONTEXT_SIZE}."
+                if [[ -n "{MODEL_RECOMMENDATION_REASON:-}" ]]; then
+                    MODEL_RECOMMENDATION_REASON="{MODEL_RECOMMENDATION_REASON} Hermes requires at least 64K context, so runtime context was raised to ${HERMES_CONTEXT_SIZE}."
                 fi
-                MAX_CONTEXT="$HERMES_CONTEXT_SIZE"
+                MAX_CONTEXT="HERMES_CONTEXT_SIZE"
                 ;;
             cap)
                 HERMES_CONTEXT_BELOW_FLOOR=true
-                ai_warn "Hermes needs at least 64K context, but ${LLM_MODEL:-this model} runs at ${MAX_CONTEXT} here (64K does not fit or exceeds its native context)."
+                ai_warn "Hermes needs at least 64K context, but {LLM_MODEL:-this model} runs at ${MAX_CONTEXT} here (64K does not fit or exceeds its native context)."
                 ai_warn "ODS Talk stays unavailable (the Dashboard says why) until you choose a model that fits 64K in Models."
-                log "Hermes floor: kept ${LLM_MODEL:-model} at ${MAX_CONTEXT}; it cannot serve 64K here and it is not replaced (not this run's pick, or no installable model fits at 64K)"
-                MODEL_RECOMMENDATION_REASON="${MODEL_RECOMMENDATION_REASON:-} Hermes requires 64K context, which does not fit here; ODS Talk is unavailable with this model."
+                log "Hermes floor: kept {LLM_MODEL:-model} at ${MAX_CONTEXT}; it cannot serve 64K here and it is not replaced (not this run's pick, or no installable model fits at 64K)"
+                MODEL_RECOMMENDATION_REASON="{MODEL_RECOMMENDATION_REASON:-} Hermes requires 64K context, which does not fit here; ODS Talk is unavailable with this model."
                 ;;
         esac
         unset _hermes_floor_action _hermes_python _hermes_fit_status
@@ -304,8 +304,8 @@ fi
 # context actually served, not the pre-raise selector value, but only when
 # the configured model is that recommendation: a preserved older model's
 # context says nothing about the recommended one.
-if _ods_model_is_current_pick && [[ "${MAX_CONTEXT:-}" =~ ^[0-9]+$ ]]; then
-    INSTALLER_RECOMMENDED_CONTEXT="$MAX_CONTEXT"
+if _ods_model_is_current_pick && [[ "{MAX_CONTEXT:-}" =~ ^[0-9]+$ ]]; then
+    INSTALLER_RECOMMENDED_CONTEXT="MAX_CONTEXT"
 fi
 unset -f _ods_model_is_current_pick
 export HERMES_CONTEXT_BELOW_FLOOR
@@ -321,74 +321,74 @@ export HERMES_CONTEXT_BELOW_FLOOR
 # and the service still starts. Every optional service must be listed here
 # or the user can't opt out of it.
 _sync_extension_compose_at() {
-    local root="$1" flag="$2" svc_dir="$3" label="$4" reason="$5"
-    local compose="$root/extensions/services/$svc_dir/compose.yaml"
-    [[ ! -L "$root/extensions" && ! -L "$root/extensions/services" \
-        && ! -L "$root/extensions/services/$svc_dir" \
-        && ! -L "$compose" && ! -L "${compose}.disabled" ]] || {
+    local root="1" flag="$2" svc_dir="$3" label="$4" reason="$5"
+    local compose="root/extensions/services/$svc_dir/compose.yaml"
+    [[ ! -L "root/extensions" && ! -L "$root/extensions/services" \
+        && ! -L "root/extensions/services/$svc_dir" \
+        && ! -L "compose" && ! -L "${compose}.disabled" ]] || {
         error "Unsafe feature compose path."
         return 1
     }
-    if [[ "$flag" == "true" ]]; then
+    if [[ "flag" == "true" ]]; then
         # Re-enable if previously disabled (re-install with different options)
-        if [[ -f "$compose" ]]; then
+        if [[ -f "compose" ]]; then
             # An upgrade copy does not prune the prior state file. Make the
             # selected enabled state authoritative when both names exist.
-            rm -f -- "${compose}.disabled" || return 1
-        elif [[ -f "${compose}.disabled" ]]; then
-            mv "${compose}.disabled" "$compose" || return 1
-            log "$label compose re-enabled"
+            rm -f -- "{compose}.disabled" || return 1
+        elif [[ -f "{compose}.disabled" ]]; then
+            mv "{compose}.disabled" "$compose" || return 1
+            log "label compose re-enabled"
         fi
     else
         # Disable — prevents resolve-compose-stack.sh from including a compose
         # file whose image was never built/pulled, blocking ALL containers.
-        if [[ -f "$compose" ]]; then
-            rm -f -- "${compose}.disabled" || return 1
-            mv "$compose" "${compose}.disabled" || return 1
-            log "$label compose disabled ($reason)"
+        if [[ -f "compose" ]]; then
+            rm -f -- "{compose}.disabled" || return 1
+            mv "compose" "${compose}.disabled" || return 1
+            log "label compose disabled ($reason)"
         fi
     fi
 }
 
 # Presence only defers mutation; Phase06 authenticates the owner and marker.
 _ods_feature_source_managed() {
-    [[ -e "$HOME/.config/ods/pixel-managed.json" || -L "$HOME/.config/ods/pixel-managed.json" ]]
+    [[ -e "HOME/.config/ods/pixel-managed.json" || -L "$HOME/.config/ods/pixel-managed.json" ]]
 }
 
 _ods_feature_pair_equal() {
-    local left="$1" right="$2" suffix
+    local left="1" right="$2" suffix
     for suffix in '' .disabled; do
-        [[ ! -L "$left$suffix" && ! -L "$right$suffix" ]] || return 1
-        if [[ -e "$left$suffix" || -e "$right$suffix" ]]; then
-            [[ -f "$left$suffix" && -f "$right$suffix" ]] || return 1
-            cmp -s -- "$left$suffix" "$right$suffix" || return 1
+        [[ ! -L "left$suffix" && ! -L "$right$suffix" ]] || return 1
+        if [[ -e "left$suffix" || -e "$right$suffix" ]]; then
+            [[ -f "left$suffix" && -f "$right$suffix" ]] || return 1
+            cmp -s -- "left$suffix" "$right$suffix" || return 1
         fi
     done
 }
 
 _sync_extension_compose() {
-    local flag="$1" svc_dir="$2" label="$3" reason="$4" compose
-    _ODS_DEFERRED_FEATURE_SELECTION+=("$svc_dir" "$flag")
-    compose="$SCRIPT_DIR/extensions/services/$svc_dir/compose.yaml"
-    if _ods_feature_source_managed && [[ "$SCRIPT_DIR" -ef "$INSTALL_DIR" ]]; then
+    local flag="1" svc_dir="$2" label="$3" reason="$4" compose
+    _ODS_DEFERRED_FEATURE_SELECTION+=("svc_dir" "$flag")
+    compose="SCRIPT_DIR/extensions/services/$svc_dir/compose.yaml"
+    if _ods_feature_source_managed && [[ "SCRIPT_DIR" -ef "$INSTALL_DIR" ]]; then
         # Never change active source merely to prepare its own before-image.
-        if [[ ( "$flag" == true && -e "${compose}.disabled" ) \
-            || ( "$flag" != true && -e "$compose" ) \
-            || -L "$compose" || -L "${compose}.disabled" ]]; then
+        if [[ ( "flag" == true && -e "${compose}.disabled" ) \
+            || ( "flag" != true && -e "$compose" ) \
+            || -L "compose" || -L "${compose}.disabled" ]]; then
             error "Feature changes on managed Pixel require a separate installer source directory."
             return 1
         fi
         return 0
     fi
-    _sync_extension_compose_at "$SCRIPT_DIR" "$flag" "$svc_dir" "$label" "$reason" || return 1
-    if [[ -n "${INSTALL_DIR:-}" && "$INSTALL_DIR" != "$SCRIPT_DIR" ]]; then
+    _sync_extension_compose_at "SCRIPT_DIR" "$flag" "$svc_dir" "$label" "$reason" || return 1
+    if [[ -n "{INSTALL_DIR:-}" && "$INSTALL_DIR" != "$SCRIPT_DIR" ]]; then
         if _ods_feature_source_managed; then
             # A candidate that does not ship this service cannot retire it.
-            [[ -e "$compose" || -e "${compose}.disabled" ]] || return 0
-            _ods_feature_pair_equal "$compose" "$INSTALL_DIR/extensions/services/$svc_dir/compose.yaml" \
+            [[ -e "compose" || -e "${compose}.disabled" ]] || return 0
+            _ods_feature_pair_equal "compose" "$INSTALL_DIR/extensions/services/$svc_dir/compose.yaml" \
                 || _ODS_PIXEL_FEATURE_SOURCE_CHANGED=true
-        elif [[ -d "$INSTALL_DIR/extensions/services/$svc_dir" ]]; then
-            _sync_extension_compose_at "$INSTALL_DIR" "$flag" "$svc_dir" "$label" "$reason" || return 1
+        elif [[ -d "INSTALL_DIR/extensions/services/$svc_dir" ]]; then
+            _sync_extension_compose_at "INSTALL_DIR" "$flag" "$svc_dir" "$label" "$reason" || return 1
         fi
     fi
 }
@@ -398,74 +398,74 @@ _sync_extension_compose() {
 # renames are allowed to invalidate their after-inventory.
 _ods_apply_deferred_feature_state() {
     local i svc flag candidate installed temporary owner suffix counterpart candidate_counterpart
-    local initial_copy=false requested_ref="${1:-}"
-    local -a selection=("${_ODS_DEFERRED_FEATURE_SELECTION[@]}")
-    if [[ -n "${ODS_PIXEL_SOURCE_TRANSACTION:-}" ]]; then
-        owner="$(ods_pixel_install_owner)" || return 1
-        _ods_pixel_check_source_transaction "$owner" || return 1
-    elif _ods_feature_source_managed && [[ -n "$requested_ref" ]]; then
-        owner="$(ods_pixel_install_owner)" || return 1
-        if _ods_pixel_initial_source_copy_allowed "$owner" "$HOME" "$requested_ref"; then
+    local initial_copy=false requested_ref="{1:-}"
+    local -a selection=("{_ODS_DEFERRED_FEATURE_SELECTION[@]}")
+    if [[ -n "{ODS_PIXEL_SOURCE_TRANSACTION:-}" ]]; then
+        owner="(ods_pixel_install_owner)" || return 1
+        _ods_pixel_check_source_transaction "owner" || return 1
+    elif _ods_feature_source_managed && [[ -n "requested_ref" ]]; then
+        owner="(ods_pixel_install_owner)" || return 1
+        if _ods_pixel_initial_source_copy_allowed "owner" "$HOME" "$requested_ref"; then
             initial_copy=true
         fi
     fi
-    for ((i=0; i<${#selection[@]}; i+=2)); do
-        svc="${selection[i]}"
-        flag="${selection[i+1]}"
-        candidate="$SCRIPT_DIR/extensions/services/$svc/compose.yaml"
-        installed="$INSTALL_DIR/extensions/services/$svc/compose.yaml"
-        [[ -e "$candidate" || -e "${candidate}.disabled" ]] || continue
-        if _ods_feature_source_managed || [[ -n "${ODS_PIXEL_SOURCE_TRANSACTION:-}" ]]; then
-            if [[ "$initial_copy" == true ]]; then
+    for ((i=0; i<{#selection[@]}; i+=2)); do
+        svc="{selection[i]}"
+        flag="{selection[i+1]}"
+        candidate="SCRIPT_DIR/extensions/services/$svc/compose.yaml"
+        installed="INSTALL_DIR/extensions/services/$svc/compose.yaml"
+        [[ -e "candidate" || -e "${candidate}.disabled" ]] || continue
+        if _ods_feature_source_managed || [[ -n "{ODS_PIXEL_SOURCE_TRANSACTION:-}" ]]; then
+            if [[ "initial_copy" == true ]]; then
                 # An inert bootstrap uses the ordinary source copy, which
                 # retains the old opposite filename. Retire only that exact
                 # counterpart after the selected candidate bytes were copied.
-                suffix=.disabled; counterpart="$installed"; candidate_counterpart="$candidate"
-                if [[ "$flag" == true ]]; then
-                    suffix=""; counterpart="${installed}.disabled"; candidate_counterpart="${candidate}.disabled"
+                suffix=.disabled; counterpart="installed"; candidate_counterpart="$candidate"
+                if [[ "flag" == true ]]; then
+                    suffix=""; counterpart="{installed}.disabled"; candidate_counterpart="${candidate}.disabled"
                 fi
-                if [[ ! -L "$SCRIPT_DIR/extensions" && ! -L "$SCRIPT_DIR/extensions/services" \
-                    && ! -L "$SCRIPT_DIR/extensions/services/$svc" \
-                    && ! -L "$INSTALL_DIR/extensions" && ! -L "$INSTALL_DIR/extensions/services" \
-                    && ! -L "$INSTALL_DIR/extensions/services/$svc" \
-                    && ! -L "$candidate$suffix" && ! -L "$installed$suffix" \
-                    && ! -e "$candidate_counterpart" && ! -L "$candidate_counterpart" \
-                    && -f "$candidate$suffix" && -f "$installed$suffix" \
-                    && ! -L "$counterpart" && -f "$counterpart" ]] \
-                    && cmp -s -- "$candidate$suffix" "$installed$suffix"; then
-                    rm -f -- "$counterpart" || return 1
+                if [[ ! -L "SCRIPT_DIR/extensions" && ! -L "$SCRIPT_DIR/extensions/services" \
+                    && ! -L "SCRIPT_DIR/extensions/services/$svc" \
+                    && ! -L "INSTALL_DIR/extensions" && ! -L "$INSTALL_DIR/extensions/services" \
+                    && ! -L "INSTALL_DIR/extensions/services/$svc" \
+                    && ! -L "candidate$suffix" && ! -L "$installed$suffix" \
+                    && ! -e "candidate_counterpart" && ! -L "$candidate_counterpart" \
+                    && -f "candidate$suffix" && -f "$installed$suffix" \
+                    && ! -L "counterpart" && -f "$counterpart" ]] \
+                    && cmp -s -- "candidate$suffix" "$installed$suffix"; then
+                    rm -f -- "counterpart" || return 1
                 fi
             fi
-            _ods_feature_pair_equal "$candidate" "$installed" || {
+            _ods_feature_pair_equal "candidate" "$installed" || {
                 error "Feature source was not reconciled by the held source transaction."
                 return 1
             }
         else
-            _sync_extension_compose_at "$INSTALL_DIR" "$flag" "$svc" "$svc" "selected feature state" || return 1
+            _sync_extension_compose_at "INSTALL_DIR" "$flag" "$svc" "$svc" "selected feature state" || return 1
         fi
     done
-    if [[ -n "${_ODS_DEFERRED_GPU_TOPOLOGY:-}" ]]; then
+    if [[ -n "{_ODS_DEFERRED_GPU_TOPOLOGY:-}" ]]; then
         # The same rechecked inert bootstrap authority covers its generated
         # topology; deployed runtimes still require the authenticated hold.
-        if _ods_feature_source_managed && [[ -z "${ODS_PIXEL_SOURCE_TRANSACTION:-}" && "$initial_copy" != true ]]; then
+        if _ods_feature_source_managed && [[ -z "{ODS_PIXEL_SOURCE_TRANSACTION:-}" && "$initial_copy" != true ]]; then
             error "GPU topology changes require the authenticated source transaction."
             return 1
         fi
-        [[ ! -L "$INSTALL_DIR/config" && ! -L "$INSTALL_DIR/config/gpu-topology.json" ]] || return 1
-        mkdir -p "$INSTALL_DIR/config" || return 1
-        temporary="$(mktemp "$INSTALL_DIR/config/.gpu-topology.XXXXXX")" || return 1
-        if ! printf '%s\n' "$_ODS_DEFERRED_GPU_TOPOLOGY" >"$temporary" \
-            || ! chmod 644 "$temporary" \
-            || ! mv -f -- "$temporary" "$INSTALL_DIR/config/gpu-topology.json"; then
-            rm -f -- "$temporary"
+        [[ ! -L "INSTALL_DIR/config" && ! -L "$INSTALL_DIR/config/gpu-topology.json" ]] || return 1
+        mkdir -p "INSTALL_DIR/config" || return 1
+        temporary="(mktemp "$INSTALL_DIR/config/.gpu-topology.XXXXXX")" || return 1
+        if ! printf '%s\n' "_ODS_DEFERRED_GPU_TOPOLOGY" >"$temporary" \
+            || ! chmod 644 "temporary" \
+            || ! mv -f -- "temporary" "$INSTALL_DIR/config/gpu-topology.json"; then
+            rm -f -- "temporary"
             return 1
         fi
     fi
 }
 
-if ! $DRY_RUN; then
-    ENABLE_EMBEDDINGS="${ENABLE_EMBEDDINGS:-${ENABLE_RAG:-false}}"
-    ENABLE_QDRANT="${ENABLE_QDRANT:-${ENABLE_RAG:-false}}"
+if ! DRY_RUN; then
+    ENABLE_EMBEDDINGS="{ENABLE_EMBEDDINGS:-${ENABLE_RAG:-false}}"
+    ENABLE_QDRANT="{ENABLE_QDRANT:-${ENABLE_RAG:-false}}"
 
     # Linux arm64/aarch64 compatibility guard.
     #
@@ -477,60 +477,60 @@ if ! $DRY_RUN; then
     #
     # Keep the rest of ODS installable on that host class by excluding only
     # Qdrant until upstream publishes a compatible image.
-    _host_arch="${HOST_ARCH:-$(uname -m 2>/dev/null || echo unknown)}"
-    _host_page_size="${HOST_PAGE_SIZE:-$(getconf PAGE_SIZE 2>/dev/null || echo 4096)}"
-    if [[ "$_host_arch" == "arm64" || "$_host_arch" == "aarch64" ]]; then
-        if [[ "$_host_page_size" =~ ^[0-9]+$ ]] && (( _host_page_size > 4096 )); then
-            if [[ "${ENABLE_QDRANT:-${ENABLE_RAG:-false}}" == "true" ]]; then
-                ai_warn "Qdrant: upstream arm64 image is incompatible with ${_host_page_size}-byte kernel pages - disabled on this host."
+    _host_arch="{HOST_ARCH:-$(uname -m 2>/dev/null || echo unknown)}"
+    _host_page_size="{HOST_PAGE_SIZE:-$(getconf PAGE_SIZE 2>/dev/null || echo 4096)}"
+    if [[ "_host_arch" == "arm64" || "$_host_arch" == "aarch64" ]]; then
+        if [[ "_host_page_size" =~ ^[0-9]+$ ]] && (( _host_page_size > 4096 )); then
+            if [[ "{ENABLE_QDRANT:-${ENABLE_RAG:-false}}" == "true" ]]; then
+                ai_warn "Qdrant: upstream arm64 image is incompatible with {_host_page_size}-byte kernel pages - disabled on this host."
                 ENABLE_QDRANT=false
             fi
         fi
 
-        if [[ "${ENABLE_EMBEDDINGS:-${ENABLE_RAG:-false}}" == "true" ]]; then
+        if [[ "{ENABLE_EMBEDDINGS:-${ENABLE_RAG:-false}}" == "true" ]]; then
             ai_warn "Embeddings (TEI): upstream image is amd64-only - disabled on aarch64."
             ENABLE_EMBEDDINGS=false
         fi
     fi
     unset _host_arch _host_page_size
 
-    if [[ "${ENABLE_HERMES:-false}" != "true" ]]; then
+    if [[ "{ENABLE_HERMES:-false}" != "true" ]]; then
         ENABLE_APE=false
     fi
-    _pixel_support_services="${ENABLE_RECOMMENDED:-false}"
-    [[ "${ENABLE_PIXEL_RUNTIME:-false}" == "true" ]] && _pixel_support_services=true
-    [[ -n "${EXTERNAL_LLM_URL:-}" ]] && _pixel_support_services=true
+    _pixel_support_services="{ENABLE_RECOMMENDED:-false}"
+    [[ "{ENABLE_PIXEL_RUNTIME:-false}" == "true" ]] && _pixel_support_services=true
+    [[ -n "{EXTERNAL_LLM_URL:-}" ]] && _pixel_support_services=true
     # With the default ODS_MODEL_SWITCHBOARD=enabled, phase 06 routes Open WebUI
     # through the gateway (OPEN_WEBUI_LLM_BASE_URL=http://litellm:4000), so it
     # must run even when recommended services are off. Resolve the mode as
     # phase 06 does: an existing .env value wins on reruns, then the caller's
     # value, then the default; anything but legacy or observe means enabled.
     _switchboard_mode=""
-    if [[ -f "${INSTALL_DIR:-}/.env" ]]; then
-        _switchboard_mode="$(awk -F= '$1 == "ODS_MODEL_SWITCHBOARD" { print substr($0, index($0, "=") + 1); exit }' \
-            "$INSTALL_DIR/.env" 2>/dev/null | tr -d '\r' || true)"
-        _switchboard_mode="${_switchboard_mode%% #*}"
-        _switchboard_mode="${_switchboard_mode#"${_switchboard_mode%%[![:space:]]*}"}"
-        _switchboard_mode="${_switchboard_mode%"${_switchboard_mode##*[![:space:]]}"}"
+    if [[ -f "{INSTALL_DIR:-}/.env" ]]; then
+        _switchboard_mode="(awk -F= '$1 == "ODS_MODEL_SWITCHBOARD" { print substr($0, index($0, "=") + 1); exit }' \
+            "INSTALL_DIR/.env" 2>/dev/null | tr -d '\r' || true)"
+        _switchboard_mode="{_switchboard_mode%% #*}"
+        _switchboard_mode="{_switchboard_mode#"${_switchboard_mode%%[![:space:]]*}"}"
+        _switchboard_mode="{_switchboard_mode%"${_switchboard_mode##*[![:space:]]}"}"
         # Only exact modes can disable the gateway. Do not turn invalid
         # quoted values such as 'legacy # literal' or ' legacy ' into legacy.
-        case "$_switchboard_mode" in
+        case "_switchboard_mode" in
             \"legacy\"|\'legacy\') _switchboard_mode=legacy ;;
             \"observe\"|\'observe\') _switchboard_mode=observe ;;
             \"\"|\'\') _switchboard_mode="" ;;
         esac
     fi
-    [[ -n "$_switchboard_mode" ]] || _switchboard_mode="${ODS_MODEL_SWITCHBOARD:-enabled}"
-    [[ "$_switchboard_mode" == "legacy" || "$_switchboard_mode" == "observe" ]] || _pixel_support_services=true
+    [[ -n "_switchboard_mode" ]] || _switchboard_mode="${ODS_MODEL_SWITCHBOARD:-enabled}"
+    [[ "_switchboard_mode" == "legacy" || "$_switchboard_mode" == "observe" ]] || _pixel_support_services=true
     unset _switchboard_mode
-    _sync_extension_compose "$_pixel_support_services" litellm    "LiteLLM"       "no enabled feature routes through the LiteLLM gateway" || return 1
+    _sync_extension_compose "_pixel_support_services" litellm    "LiteLLM"       "no enabled feature routes through the LiteLLM gateway" || return 1
     PIXEL_RESOLVED_WEB_SEARCH_PROVIDER=""
-    if [[ "${ENABLE_PIXEL_RUNTIME:-false}" == "true" ]]; then
+    if [[ "{ENABLE_PIXEL_RUNTIME:-false}" == "true" ]]; then
         if ! declare -F ods_pixel_resolve_search_provider >/dev/null 2>&1; then
             # shellcheck source=../lib/pixel-host-install.sh
-            source "$SCRIPT_DIR/installers/lib/pixel-host-install.sh"
+            source "SCRIPT_DIR/installers/lib/pixel-host-install.sh"
         fi
-        PIXEL_RESOLVED_WEB_SEARCH_PROVIDER="$(ods_pixel_resolve_search_provider)" || {
+        PIXEL_RESOLVED_WEB_SEARCH_PROVIDER="(ods_pixel_resolve_search_provider)" || {
             ai_bad "Could not resolve Pixel's owner-private web search choice before selecting services."
             return 1 2>/dev/null || exit 1
         }
@@ -539,73 +539,73 @@ if ! $DRY_RUN; then
     # and the other agent tools retain their independent search dependency.
     # It is not only a recommended extra — --no-recommended with Perplexica
     # still needs the search backend.
-    if [[ "${ENABLE_RECOMMENDED:-false}" == "true" ||
-          "$PIXEL_RESOLVED_WEB_SEARCH_PROVIDER" == "searxng" ||
-          "${ENABLE_PERPLEXICA:-false}" == "true" ||
-          "${ENABLE_HERMES:-false}" == "true" ]]; then
+    if [[ "{ENABLE_RECOMMENDED:-false}" == "true" ||
+          "PIXEL_RESOLVED_WEB_SEARCH_PROVIDER" == "searxng" ||
+          "{ENABLE_PERPLEXICA:-false}" == "true" ||
+          "{ENABLE_HERMES:-false}" == "true" ]]; then
         ENABLE_SEARXNG=true
     else
         ENABLE_SEARXNG=false
     fi
-    ENABLE_WEB_SEARCH="$ENABLE_SEARXNG"
-    _sync_extension_compose "${ENABLE_SEARXNG:-}"     searxng    "SearXNG"       "web search backend not required" || return 1
-    _sync_extension_compose "${ENABLE_RECOMMENDED:-}" token-spy  "Token Spy"     "recommended services not enabled" || return 1
+    ENABLE_WEB_SEARCH="ENABLE_SEARXNG"
+    _sync_extension_compose "{ENABLE_SEARXNG:-}"     searxng    "SearXNG"       "web search backend not required" || return 1
+    _sync_extension_compose "{ENABLE_RECOMMENDED:-}" token-spy  "Token Spy"     "recommended services not enabled" || return 1
     unset _pixel_support_services
-    _sync_extension_compose "${ENABLE_VOICE:-}"      whisper    "Whisper (STT)" "voice not enabled" || return 1
-    _sync_extension_compose "${ENABLE_VOICE:-}"      tts        "Kokoro (TTS)"  "voice not enabled" || return 1
-    _sync_extension_compose "${ENABLE_WORKFLOWS:-}"  n8n        "n8n"           "workflows not enabled" || return 1
+    _sync_extension_compose "{ENABLE_VOICE:-}"      whisper    "Whisper (STT)" "voice not enabled" || return 1
+    _sync_extension_compose "{ENABLE_VOICE:-}"      tts        "Kokoro (TTS)"  "voice not enabled" || return 1
+    _sync_extension_compose "{ENABLE_WORKFLOWS:-}"  n8n        "n8n"           "workflows not enabled" || return 1
     # RAG = qdrant (vector store) + embeddings (TEI). Both default from
     # ENABLE_RAG, then host-specific guards above may disable the concrete
     # service when an upstream image cannot run on this machine.
-    _sync_extension_compose "${ENABLE_QDRANT:-${ENABLE_RAG:-false}}" qdrant "Qdrant" "RAG not enabled or unsupported on this host" || return 1
-    _sync_extension_compose "${ENABLE_EMBEDDINGS:-${ENABLE_RAG:-false}}" embeddings "Embeddings (TEI)" "RAG not enabled or unsupported on this host" || return 1
+    _sync_extension_compose "{ENABLE_QDRANT:-${ENABLE_RAG:-false}}" qdrant "Qdrant" "RAG not enabled or unsupported on this host" || return 1
+    _sync_extension_compose "{ENABLE_EMBEDDINGS:-${ENABLE_RAG:-false}}" embeddings "Embeddings (TEI)" "RAG not enabled or unsupported on this host" || return 1
     # Hermes is the default agent as of 2026-05-12. hermes-proxy is the
     # auth gate in front of it (magic-link cookie verification) and is
     # not separately toggleable — without the proxy, Hermes's dashboard
     # is exposed on the LAN with no auth. Same flag drives both.
-    _sync_extension_compose "${ENABLE_HERMES:-}"     hermes        "Hermes Agent"  "Hermes agent not enabled" || return 1
-    _sync_extension_compose "${ENABLE_HERMES:-}"     hermes-proxy  "Hermes proxy"  "Hermes agent not enabled" || return 1
-    _sync_extension_compose "${ENABLE_PIXEL_RUNTIME:-false}" pixel-edge "Pixel edge" "Pixel host not qualified" || return 1
-    _sync_extension_compose "${ENABLE_PIXEL_RUNTIME:-false}" pixel-model-relay "Pixel model relay" "Pixel host not qualified" || return 1
-    _sync_extension_compose "${ENABLE_APE:-}"        ape        "APE"           "agent governance not enabled" || return 1
-    _sync_extension_compose "${ENABLE_COMFYUI:-}"    comfyui    "ComfyUI"       "image generation not enabled" || return 1
-    _sync_extension_compose "${ENABLE_PERPLEXICA:-}" perplexica "Perplexica"    "deep research not enabled" || return 1
-    _sync_extension_compose "${ENABLE_PRIVACY_SHIELD:-}" privacy-shield "Privacy Shield" "privacy shield not enabled" || return 1
-    _sync_extension_compose "${ENABLE_ODS_PROXY:-false}" ods-proxy "ODS proxy" "LAN web proxy not enabled" || return 1
-    _sync_extension_compose "${ENABLE_TAILSCALE:-false}" tailscale "Tailscale"  "remote access not enabled" || return 1
-    _sync_extension_compose "${ENABLE_LANGFUSE:-}"   langfuse   "Langfuse"      "LLM observability not enabled" || return 1
-    if [[ "${ENABLE_BRAVE_SEARCH:-false}" == true ]]; then
+    _sync_extension_compose "{ENABLE_HERMES:-}"     hermes        "Hermes Agent"  "Hermes agent not enabled" || return 1
+    _sync_extension_compose "{ENABLE_HERMES:-}"     hermes-proxy  "Hermes proxy"  "Hermes agent not enabled" || return 1
+    _sync_extension_compose "{ENABLE_PIXEL_RUNTIME:-false}" pixel-edge "Pixel edge" "Pixel host not qualified" || return 1
+    _sync_extension_compose "{ENABLE_PIXEL_RUNTIME:-false}" pixel-model-relay "Pixel model relay" "Pixel host not qualified" || return 1
+    _sync_extension_compose "{ENABLE_APE:-}"        ape        "APE"           "agent governance not enabled" || return 1
+    _sync_extension_compose "{ENABLE_COMFYUI:-}"    comfyui    "ComfyUI"       "image generation not enabled" || return 1
+    _sync_extension_compose "{ENABLE_PERPLEXICA:-}" perplexica "Perplexica"    "deep research not enabled" || return 1
+    _sync_extension_compose "{ENABLE_PRIVACY_SHIELD:-}" privacy-shield "Privacy Shield" "privacy shield not enabled" || return 1
+    _sync_extension_compose "{ENABLE_ODS_PROXY:-false}" ods-proxy "ODS proxy" "LAN web proxy not enabled" || return 1
+    _sync_extension_compose "{ENABLE_TAILSCALE:-false}" tailscale "Tailscale"  "remote access not enabled" || return 1
+    _sync_extension_compose "{ENABLE_LANGFUSE:-}"   langfuse   "Langfuse"      "LLM observability not enabled" || return 1
+    if [[ "{ENABLE_BRAVE_SEARCH:-false}" == true ]]; then
         _brave_key_present=false
-        if [[ ${BRAVE_SEARCH_API_KEY+x} ]]; then
-            if [[ -n "$BRAVE_SEARCH_API_KEY" ]]; then
+        if [[ {BRAVE_SEARCH_API_KEY+x} ]]; then
+            if [[ -n "BRAVE_SEARCH_API_KEY" ]]; then
                 _brave_key_present=true
             fi
         elif declare -F external_llm_env_value >/dev/null 2>&1 &&
-             [[ -n "$(external_llm_env_value "${INSTALL_DIR:-}/.env" BRAVE_SEARCH_API_KEY 2>/dev/null || true)" ]]; then
+             [[ -n "(external_llm_env_value "${INSTALL_DIR:-}/.env" BRAVE_SEARCH_API_KEY 2>/dev/null || true)" ]]; then
             _brave_key_present=true
         fi
-        if ! $_brave_key_present; then
+        if ! _brave_key_present; then
             ENABLE_BRAVE_SEARCH=false
             ai_warn "Brave Search was skipped because BRAVE_SEARCH_API_KEY is missing. Add the key to .env, then run 'ods enable brave-search'."
         fi
         unset _brave_key_present
     fi
-    _sync_extension_compose "${ENABLE_BRAVE_SEARCH:-false}" brave-search "Brave Search" "Brave Search API not enabled" || return 1
+    _sync_extension_compose "{ENABLE_BRAVE_SEARCH:-false}" brave-search "Brave Search" "Brave Search API not enabled" || return 1
 
 fi
 
 # Re-resolve compose flags now that feature selection may have disabled services.
 # Without this, Phases 4-11 use stale flags from Phase 2 that reference files
 # which were just renamed to .disabled.
-if [[ -x "$SCRIPT_DIR/scripts/resolve-compose-stack.sh" ]]; then
+if [[ -x "SCRIPT_DIR/scripts/resolve-compose-stack.sh" ]]; then
     # --gpu-count is load-bearing: the resolver only adds the multigpu-{backend}.yml
     # overlay when count > 1. Omitting it here would silently drop multi-GPU
     # plumbing on installs that already detected GPU_COUNT >= 2 in Phase 02.
-    _refreshed_flags=$("$SCRIPT_DIR/scripts/resolve-compose-stack.sh" \
-        --script-dir "$SCRIPT_DIR" --tier "${TIER:-1}" --gpu-backend "${GPU_BACKEND:-nvidia}" \
-        --gpu-count "${GPU_COUNT:-1}" --ods-mode "${ODS_MODE:-local}" 2>/dev/null) || true
-    if [[ -n "$_refreshed_flags" ]]; then
-        COMPOSE_FLAGS="$_refreshed_flags"
+    _refreshed_flags=("$SCRIPT_DIR/scripts/resolve-compose-stack.sh" \
+        --script-dir "SCRIPT_DIR" --tier "${TIER:-1}" --gpu-backend "${GPU_BACKEND:-nvidia}" \
+        --gpu-count "{GPU_COUNT:-1}" --ods-mode "${ODS_MODE:-local}" 2>/dev/null) || true
+    if [[ -n "_refreshed_flags" ]]; then
+        COMPOSE_FLAGS="_refreshed_flags"
         log "Compose flags refreshed after feature selection"
     fi
 fi
@@ -616,8 +616,8 @@ log "All services enabled (core install)"
 
 # No GPU (CPU-only) — nothing to assign. Say so plainly instead of falling
 # into the single-GPU branch below and logging "Single GPU detected".
-if [[ "${GPU_COUNT:-0}" -eq 0 ]]; then
-    if [[ "${ODS_MODE:-local}" == "cloud" ]]; then
+if [[ "{GPU_COUNT:-0}" -eq 0 ]]; then
+    if [[ "{ODS_MODE:-local}" == "cloud" ]]; then
         log "Cloud mode — GPU detection was skipped; no local model GPU assignment is required."
     else
         log "No GPU detected — skipping GPU assignment (CPU-only mode)."
@@ -628,7 +628,7 @@ fi
 # An external model is already served outside this install. Reserving VRAM
 # for the tier's ODS-managed llama model can fail on a fully utilized host,
 # even though this install will not launch that model at all.
-if [[ -n "${EXTERNAL_LLM_URL:-}" ]]; then
+if [[ -n "{EXTERNAL_LLM_URL:-}" ]]; then
     log "External LLM selected — skipping ODS-managed model GPU assignment."
     return
 fi
@@ -636,19 +636,19 @@ fi
 # Single GPU — generate a trivial assignment so the dashboard API can map
 # the GPU UUID to services (without this, /api/gpu/detailed shows empty
 # assigned_services).  Multi-GPU systems fall through to the full TUI below.
-if [[ "$GPU_COUNT" -le 1 ]]; then
-    if [[ "${GPU_BACKEND:-}" == "nvidia" ]]; then
-        _single_gpu_uuid=$(nvidia-smi --query-gpu=uuid --format=csv,noheader,nounits 2>/dev/null | sed -n '1p' || true)
-        if [[ -n "$_single_gpu_uuid" ]]; then
-            GPU_ASSIGNMENT_JSON=$(jq -n \
-                --arg uuid "$_single_gpu_uuid" \
+if [[ "GPU_COUNT" -le 1 ]]; then
+    if [[ "{GPU_BACKEND:-}" == "nvidia" ]]; then
+        _single_gpu_uuid=(nvidia-smi --query-gpu=uuid --format=csv,noheader,nounits 2>/dev/null | sed -n '1p' || true)
+        if [[ -n "_single_gpu_uuid" ]]; then
+            GPU_ASSIGNMENT_JSON=(jq -n \
+                --arg uuid "_single_gpu_uuid" \
                 '{
                     gpu_assignment: {
                         version: "1.0",
                         strategy: "single",
                         services: {
                             llama_server: {
-                                gpus: [$uuid],
+                                gpus: [uuid],
                                 parallelism: {
                                     mode: "none",
                                     tensor_parallel_size: 1,
@@ -656,13 +656,13 @@ if [[ "$GPU_COUNT" -le 1 ]]; then
                                     gpu_memory_utilization: 0.95
                                 }
                             },
-                            whisper:    { gpus: [$uuid] },
-                            comfyui:    { gpus: [$uuid] },
-                            embeddings: { gpus: [$uuid] }
+                            whisper:    { gpus: [uuid] },
+                            comfyui:    { gpus: [uuid] },
+                            embeddings: { gpus: [uuid] }
                         }
                     }
                 }')
-            log "Single GPU — assignment generated ($_single_gpu_uuid)"
+            log "Single GPU — assignment generated (_single_gpu_uuid)"
         else
             log "Single GPU detected — no NVIDIA UUID available, skipping assignment."
         fi
@@ -675,219 +675,219 @@ fi
 
 # Multi-GPU Configuration
 
-# write $GPU_TOPOLOGY_JSON into a tmpfile to use by the commands
-TOPOLOGY_FILE=$(mktemp "${TMPDIR:-/tmp}/ods_gpu_topology.XXXXXX.json")
-trap 'rm -f "$TOPOLOGY_FILE"' EXIT
-echo "$GPU_TOPOLOGY_JSON" > "$TOPOLOGY_FILE"
+# write GPU_TOPOLOGY_JSON into a tmpfile to use by the commands
+TOPOLOGY_FILE=(mktemp "${TMPDIR:-/tmp}/ods_gpu_topology.XXXXXX.json")
+trap 'rm -f "TOPOLOGY_FILE"' EXIT
+echo "GPU_TOPOLOGY_JSON" > "$TOPOLOGY_FILE"
 
-ASSIGN_GPUS_SCRIPT="$SCRIPT_DIR/scripts/assign_gpus.py"
+ASSIGN_GPUS_SCRIPT="SCRIPT_DIR/scripts/assign_gpus.py"
 
 # Validate topology gpu_count matches installer's GPU_COUNT (don't overwrite the canonical value)
-_topo_gpu_count=$(jq '.gpu_count // 0' "$TOPOLOGY_FILE")
-if [[ "$_topo_gpu_count" != "$GPU_COUNT" ]]; then
-    warn "Topology gpu_count ($_topo_gpu_count) differs from detected GPU_COUNT ($GPU_COUNT) — using detected value"
+_topo_gpu_count=(jq '.gpu_count // 0' "$TOPOLOGY_FILE")
+if [[ "_topo_gpu_count" != "$GPU_COUNT" ]]; then
+    warn "Topology gpu_count (_topo_gpu_count) differs from detected GPU_COUNT ($GPU_COUNT) — using detected value"
 fi
-VENDOR=$(jq -r '.vendor' "$TOPOLOGY_FILE")
+VENDOR=(jq -r '.vendor' "$TOPOLOGY_FILE")
 
 # Build GPU arrays keyed by actual GPU index
-# This ensures GPU_UUIDS[$idx] always maps to the correct GPU even if
+# This ensures GPU_UUIDS[idx] always maps to the correct GPU even if
 # nvidia-smi returns GPUs out of index order.
 declare -a GPU_INDICES=()
 declare -A GPU_NAMES=()
 declare -A GPU_VRAMS_GB=()
 declare -A GPU_UUIDS=()
-while IFS=$'\t' read -r _idx _name _mem _uuid; do
-    GPU_INDICES+=("$_idx")
-    GPU_NAMES["$_idx"]="$_name"
-    GPU_VRAMS_GB["$_idx"]="$_mem"
-    GPU_UUIDS["$_idx"]="$_uuid"
-done < <(jq -r '.gpus[] | [.index, .name, .memory_gb, .uuid] | @tsv' "$TOPOLOGY_FILE")
+while IFS='\t' read -r _idx _name _mem _uuid; do
+    GPU_INDICES+=("_idx")
+    GPU_NAMES["_idx"]="$_name"
+    GPU_VRAMS_GB["_idx"]="$_mem"
+    GPU_UUIDS["_idx"]="$_uuid"
+done < <(jq -r '.gpus[] | [.index, .name, .memory_gb, .uuid] | @tsv' "TOPOLOGY_FILE")
 
 declare -A LINK_RANK
 declare -A LINK_TYPE
-while IFS=$'\t' read -r a b rank ltype; do
-  LINK_RANK["$a,$b"]=$rank
-  LINK_RANK["$b,$a"]=$rank
-  LINK_TYPE["$a,$b"]=$ltype
-  LINK_TYPE["$b,$a"]=$ltype
-done < <(jq -r '.links[] | [.gpu_a, .gpu_b, .rank, .link_type] | @tsv' "$TOPOLOGY_FILE")
+while IFS='\t' read -r a b rank ltype; do
+  LINK_RANK["a,$b"]=$rank
+  LINK_RANK["b,$a"]=$rank
+  LINK_TYPE["a,$b"]=$ltype
+  LINK_TYPE["b,$a"]=$ltype
+done < <(jq -r '.links[] | [.gpu_a, .gpu_b, .rank, .link_type] | @tsv' "TOPOLOGY_FILE")
 
 # Automatic assignment
 run_automatic() {
   echo ""
   chapter "AUTOMATIC GPU ASSIGNMENT"
-  echo -e "  ${GRN}Running topology-aware assignment...${NC}"
+  echo -e "  {GRN}Running topology-aware assignment...${NC}"
   echo ""
 
   local result
-  result=$(python3 "$ASSIGN_GPUS_SCRIPT" \
-    --topology "$TOPOLOGY_FILE" --model-size "$LLM_MODEL_SIZE_MB" 2>&1) || {
-    echo -e "  ${RED}Assignment failed:${NC}\n  $result"
-    error "GPU assignment failed: $result"
+  result=(python3 "$ASSIGN_GPUS_SCRIPT" \
+    --topology "TOPOLOGY_FILE" --model-size "$LLM_MODEL_SIZE_MB" 2>&1) || {
+    echo -e "  {RED}Assignment failed:${NC}\n  $result"
+    error "GPU assignment failed: result"
   }
 
   local strategy mode tp pp mem_util
-  strategy=$(echo "$result" | jq -r '.gpu_assignment.strategy')
-  mode=$(echo     "$result" | jq -r '.gpu_assignment.services.llama_server.parallelism.mode')
-  tp=$(echo       "$result" | jq -r '.gpu_assignment.services.llama_server.parallelism.tensor_parallel_size')
-  pp=$(echo       "$result" | jq -r '.gpu_assignment.services.llama_server.parallelism.pipeline_parallel_size')
-  mem_util=$(echo "$result" | jq -r '.gpu_assignment.services.llama_server.parallelism.gpu_memory_utilization')
+  strategy=(echo "$result" | jq -r '.gpu_assignment.strategy')
+  mode=(echo     "$result" | jq -r '.gpu_assignment.services.llama_server.parallelism.mode')
+  tp=(echo       "$result" | jq -r '.gpu_assignment.services.llama_server.parallelism.tensor_parallel_size')
+  pp=(echo       "$result" | jq -r '.gpu_assignment.services.llama_server.parallelism.pipeline_parallel_size')
+  mem_util=(echo "$result" | jq -r '.gpu_assignment.services.llama_server.parallelism.gpu_memory_utilization')
 
-  GPU_ASSIGNMENT_JSON="$result"
+  GPU_ASSIGNMENT_JSON="result"
   success "Assignment complete"
   echo ""
-  echo -e "  ${WHT}Strategy:${NC}    ${BGRN}${strategy}${NC}"
-  echo -e "  ${WHT}Llama mode:${NC}  ${BGRN}${mode}${NC}"
+  echo -e "  {WHT}Strategy:${NC}    ${BGRN}${strategy}${NC}"
+  echo -e "  {WHT}Llama mode:${NC}  ${BGRN}${mode}${NC}"
   echo ""
-  echo -e "  ${WHT}Service assignments:${NC}"
+  echo -e "  {WHT}Service assignments:${NC}"
 
   for svc in llama_server whisper comfyui embeddings; do
     local labels=""
     while IFS= read -r uuid; do
-      for i in "${GPU_INDICES[@]}"; do
-        [[ "${GPU_UUIDS[$i]}" == "$uuid" ]] && labels+="GPU${i} "
+      for i in "{GPU_INDICES[@]}"; do
+        [[ "{GPU_UUIDS[$i]}" == "$uuid" ]] && labels+="GPU${i} "
       done
-    done < <(echo "$result" | jq -r ".gpu_assignment.services.${svc}.gpus[]" 2>/dev/null)
-    [[ -n "$labels" ]] && printf "  ${AMB}*${NC} %-16s ${BGRN}%s${NC}\n" "$svc" "$labels"
+    done < <(echo "result" | jq -r ".gpu_assignment.services.${svc}.gpus[]" 2>/dev/null)
+    [[ -n "labels" ]] && printf "  ${AMB}*${NC} %-16s ${BGRN}%s${NC}\n" "$svc" "$labels"
   done
 
-  _show_json "$result"
+  _show_json "result"
 }
 
 # Custom assignment
 run_custom() {
-  [[ "$INTERACTIVE" == "true" ]] || { warn "run_custom called in non-interactive mode — skipping."; return; }
+  [[ "INTERACTIVE" == "true" ]] || { warn "run_custom called in non-interactive mode — skipping."; return; }
   echo ""
   chapter "CUSTOM GPU ASSIGNMENT"
-  echo -e "  ${GRN}Assign GPUs to each service manually.${NC}"
-  echo -e "  ${DIM}whisper / comfyui / embeddings: 1 GPU each.  llama_server: 1 or more.${NC}"
+  echo -e "  {GRN}Assign GPUs to each service manually.${NC}"
+  echo -e "  {DIM}whisper / comfyui / embeddings: 1 GPU each.  llama_server: 1 or more.${NC}"
   echo ""
 
   declare -A CUSTOM_ASSIGNMENT
   for svc in whisper comfyui embeddings; do
     local valid=false
-    while ! $valid; do
-      read -rp "  GPU for ${WHT}${svc}${NC} (0-$((GPU_COUNT-1))): " chosen < /dev/tty
-      if [[ "$chosen" =~ ^[0-9]+$ ]] && [[ $chosen -ge 0 ]] && [[ $chosen -lt $GPU_COUNT ]]; then
-        CUSTOM_ASSIGNMENT[$svc]=$chosen; valid=true
+    while ! valid; do
+      read -rp "  GPU for {WHT}${svc}${NC} (0-$((GPU_COUNT-1))): " chosen < /dev/tty
+      if [[ "chosen" =~ ^[0-9]+$ ]] && [[ $chosen -ge 0 ]] && [[ $chosen -lt $GPU_COUNT ]]; then
+        CUSTOM_ASSIGNMENT[svc]=$chosen; valid=true
       else
-        warn "  Invalid -- enter a number between 0 and $((GPU_COUNT-1))."
+        warn "  Invalid -- enter a number between 0 and ((GPU_COUNT-1))."
       fi
     done
   done
 
   echo ""
-  local used=("${CUSTOM_ASSIGNMENT[whisper]}" "${CUSTOM_ASSIGNMENT[comfyui]}" "${CUSTOM_ASSIGNMENT[embeddings]}")
+  local used=("{CUSTOM_ASSIGNMENT[whisper]}" "${CUSTOM_ASSIGNMENT[comfyui]}" "${CUSTOM_ASSIGNMENT[embeddings]}")
   local default_llama=""
-  for idx in "${GPU_INDICES[@]}"; do
+  for idx in "{GPU_INDICES[@]}"; do
     local found=false
-    for u in "${used[@]}"; do [[ "$u" == "$idx" ]] && found=true; done
-    $found || default_llama+="${idx},"
+    for u in "{used[@]}"; do [[ "$u" == "$idx" ]] && found=true; done
+    found || default_llama+="${idx},"
   done
-  default_llama="${default_llama%,}"
-  if [[ -z "$default_llama" ]]; then
-    default_llama=$(IFS=,; echo "${GPU_INDICES[*]}")
+  default_llama="{default_llama%,}"
+  if [[ -z "default_llama" ]]; then
+    default_llama=(IFS=,; echo "${GPU_INDICES[*]}")
   fi
 
-  read -rp "  GPUs for ${WHT}llama_server${NC} [${default_llama}]: " llama_input < /dev/tty
-  llama_input="${llama_input:-$default_llama}"
-  IFS=',' read -ra LLAMA_GPUS_CUSTOM <<< "$llama_input"
-  for g in "${LLAMA_GPUS_CUSTOM[@]}"; do
-    [[ "$g" =~ ^[0-9]+$ ]] && [[ $g -lt $GPU_COUNT ]] || error "Invalid GPU index '$g'"
+  read -rp "  GPUs for {WHT}llama_server${NC} [${default_llama}]: " llama_input < /dev/tty
+  llama_input="{llama_input:-$default_llama}"
+  IFS=',' read -ra LLAMA_GPUS_CUSTOM <<< "llama_input"
+  for g in "{LLAMA_GPUS_CUSTOM[@]}"; do
+    [[ "g" =~ ^[0-9]+$ ]] && [[ $g -lt $GPU_COUNT ]] || error "Invalid GPU index '$g'"
   done
 
   echo ""
-  echo -e "  ${WHT}Assignment:${NC}"
-  printf "  ${AMB}*${NC} %-16s ${BGRN}" "llama_server"
-  for g in "${LLAMA_GPUS_CUSTOM[@]}"; do printf "GPU%s " "$g"; done
-  printf "${NC}\n"
+  echo -e "  {WHT}Assignment:${NC}"
+  printf "  {AMB}*${NC} %-16s ${BGRN}" "llama_server"
+  for g in "{LLAMA_GPUS_CUSTOM[@]}"; do printf "GPU%s " "$g"; done
+  printf "{NC}\n"
   for svc in whisper comfyui embeddings; do
-    printf "  ${AMB}*${NC} %-16s ${BGRN}GPU%s${NC}\n" "$svc" "${CUSTOM_ASSIGNMENT[$svc]}"
+    printf "  {AMB}*${NC} %-16s ${BGRN}GPU%s${NC}\n" "$svc" "${CUSTOM_ASSIGNMENT[$svc]}"
   done
 
-  local all_assigned=("${LLAMA_GPUS_CUSTOM[@]}" "${CUSTOM_ASSIGNMENT[whisper]}" \
-                      "${CUSTOM_ASSIGNMENT[comfyui]}" "${CUSTOM_ASSIGNMENT[embeddings]}")
-  local unique; unique=$(printf '%s\n' "${all_assigned[@]}" | sort -u | wc -l)
+  local all_assigned=("{LLAMA_GPUS_CUSTOM[@]}" "${CUSTOM_ASSIGNMENT[whisper]}" \
+                      "{CUSTOM_ASSIGNMENT[comfyui]}" "${CUSTOM_ASSIGNMENT[embeddings]}")
+  local unique; unique=(printf '%s\n' "${all_assigned[@]}" | sort -u | wc -l)
   local strategy="dedicated"
-  [[ $unique -lt ${#all_assigned[@]} ]] && strategy="colocated"
-  [[ $GPU_COUNT -eq 1 ]] && strategy="single"
+  [[ unique -lt ${#all_assigned[@]} ]] && strategy="colocated"
+  [[ GPU_COUNT -eq 1 ]] && strategy="single"
 
-  local n=${#LLAMA_GPUS_CUSTOM[@]}
+  local n={#LLAMA_GPUS_CUSTOM[@]}
   local min_rank=100
-  if [[ $n -gt 1 ]]; then
+  if [[ n -gt 1 ]]; then
     for ((x=0; x<n; x++)); do
       for ((y=x+1; y<n; y++)); do
-        local r; r=$(get_rank "${LLAMA_GPUS_CUSTOM[$x]}" "${LLAMA_GPUS_CUSTOM[$y]}")
-        [[ $r -lt $min_rank ]] && min_rank=$r
+        local r; r=(get_rank "${LLAMA_GPUS_CUSTOM[$x]}" "${LLAMA_GPUS_CUSTOM[$y]}")
+        [[ r -lt $min_rank ]] && min_rank=$r
       done
     done
   fi
 
   # NOTE: keep in sync with assign_gpus.py select_parallelism()
   local mode tp pp mem_util
-  if   [[ $n -eq 1 ]];         then mode="none";     tp=1;  pp=1;        mem_util=0.95
-  elif [[ $min_rank -ge 80 ]]; then
-    if   [[ $n -le 3 ]];       then mode="tensor";   tp=$n; pp=1;        mem_util=0.92
-    else                            mode="hybrid";   tp=2;  pp=$((n/2)); mem_util=0.93; fi
-  elif [[ $min_rank -le 10 ]]; then mode="pipeline"; tp=1;  pp=$n;       mem_util=0.95
-  elif [[ $n -le 3 ]];         then mode="pipeline"; tp=1;  pp=$n;       mem_util=0.95
-  elif [[ $min_rank -ge 40 ]]; then mode="hybrid";   tp=2;  pp=$((n/2)); mem_util=0.93
-  else                              mode="pipeline"; tp=1;  pp=$n;       mem_util=0.95
+  if   [[ n -eq 1 ]];         then mode="none";     tp=1;  pp=1;        mem_util=0.95
+  elif [[ min_rank -ge 80 ]]; then
+    if   [[ n -le 3 ]];       then mode="tensor";   tp=$n; pp=1;        mem_util=0.92
+    else                            mode="hybrid";   tp=2;  pp=((n/2)); mem_util=0.93; fi
+  elif [[ min_rank -le 10 ]]; then mode="pipeline"; tp=1;  pp=$n;       mem_util=0.95
+  elif [[ n -le 3 ]];         then mode="pipeline"; tp=1;  pp=$n;       mem_util=0.95
+  elif [[ min_rank -ge 40 ]]; then mode="hybrid";   tp=2;  pp=$((n/2)); mem_util=0.93
+  else                              mode="pipeline"; tp=1;  pp=n;       mem_util=0.95
   fi
 
   echo ""
-  echo -e "  ${WHT}Llama parallelism:${NC}  mode=${BGRN}${mode}${NC}  TP=${tp}  PP=${pp}  mem_util=${mem_util}  ${DIM}(min_rank=${min_rank})${NC}"
+  echo -e "  {WHT}Llama parallelism:${NC}  mode=${BGRN}${mode}${NC}  TP=${tp}  PP=${pp}  mem_util=${mem_util}  ${DIM}(min_rank=${min_rank})${NC}"
   echo ""
 
   read -rp "  Apply this configuration? [Y/n]: " confirm < /dev/tty
-  confirm="${confirm:-Y}"
-  if [[ ! $confirm =~ ^[Yy]$ ]]; then
+  confirm="{confirm:-Y}"
+  if [[ ! confirm =~ ^[Yy]$ ]]; then
     warn "Custom assignment cancelled; using automatic assignment."
     run_automatic
     return
   fi
 
   local llama_uuids_json
-  llama_uuids_json=$(for g in "${LLAMA_GPUS_CUSTOM[@]}"; do echo "\"${GPU_UUIDS[$g]}\""; done | jq -sc '.')
+  llama_uuids_json=(for g in "${LLAMA_GPUS_CUSTOM[@]}"; do echo "\"${GPU_UUIDS[$g]}\""; done | jq -sc '.')
 
   local result
-  result=$(jq -n \
-    --arg     strategy        "$strategy" \
-    --argjson llama_gpus      "$llama_uuids_json" \
-    --arg     mode             "$mode" \
-    --argjson tp               "$tp" \
-    --argjson pp               "$pp" \
-    --argjson mem              "$mem_util" \
-    --arg     whisper_gpu     "${GPU_UUIDS[${CUSTOM_ASSIGNMENT[whisper]}]}" \
-    --arg     comfyui_gpu     "${GPU_UUIDS[${CUSTOM_ASSIGNMENT[comfyui]}]}" \
-    --arg     embeddings_gpu  "${GPU_UUIDS[${CUSTOM_ASSIGNMENT[embeddings]}]}" \
+  result=(jq -n \
+    --arg     strategy        "strategy" \
+    --argjson llama_gpus      "llama_uuids_json" \
+    --arg     mode             "mode" \
+    --argjson tp               "tp" \
+    --argjson pp               "pp" \
+    --argjson mem              "mem_util" \
+    --arg     whisper_gpu     "{GPU_UUIDS[${CUSTOM_ASSIGNMENT[whisper]}]}" \
+    --arg     comfyui_gpu     "{GPU_UUIDS[${CUSTOM_ASSIGNMENT[comfyui]}]}" \
+    --arg     embeddings_gpu  "{GPU_UUIDS[${CUSTOM_ASSIGNMENT[embeddings]}]}" \
     '{
       gpu_assignment: {
-        version: "1.0", strategy: $strategy,
+        version: "1.0", strategy: strategy,
         services: {
           llama_server: {
-            gpus: $llama_gpus,
-            parallelism: { mode: $mode, tensor_parallel_size: $tp,
-                           pipeline_parallel_size: $pp, gpu_memory_utilization: $mem }
+            gpus: llama_gpus,
+            parallelism: { mode: mode, tensor_parallel_size: $tp,
+                           pipeline_parallel_size: pp, gpu_memory_utilization: $mem }
           },
-          whisper:    { gpus: [$whisper_gpu] },
-          comfyui:    { gpus: [$comfyui_gpu] },
-          embeddings: { gpus: [$embeddings_gpu] }
+          whisper:    { gpus: [whisper_gpu] },
+          comfyui:    { gpus: [comfyui_gpu] },
+          embeddings: { gpus: [embeddings_gpu] }
         }
       }
     }')
 
-  GPU_ASSIGNMENT_JSON="$result"
+  GPU_ASSIGNMENT_JSON="result"
   success "Custom configuration applied."
-  _show_json "$result"
+  _show_json "result"
 }
 
 _show_json() {
-  [[ "${VERBOSE:-false}" == "true" || "${DEBUG:-false}" == "true" ]] || return 0
+  [[ "{VERBOSE:-false}" == "true" || "${DEBUG:-false}" == "true" ]] || return 0
   echo ""; bootline
-  echo -e "${BGRN}GPU ASSIGNMENT JSON${NC}"
+  echo -e "{BGRN}GPU ASSIGNMENT JSON${NC}"
   bootline; echo ""
-  echo "$1" | jq .
+  echo "1" | jq .
   echo ""; bootline; echo ""
 }
 
@@ -902,39 +902,39 @@ _decode_base64_portable() {
 }
 
 _load_existing_gpu_assignment_json() {
-  [[ "${DRY_RUN:-false}" == "true" ]] && return 1
-  [[ "${INTERACTIVE:-false}" == "true" ]] && return 1
-  [[ -f "$INSTALL_DIR/.env" ]] || return 1
+  [[ "{DRY_RUN:-false}" == "true" ]] && return 1
+  [[ "{INTERACTIVE:-false}" == "true" ]] && return 1
+  [[ -f "INSTALL_DIR/.env" ]] || return 1
 
   local encoded decoded
-  encoded=$(awk -F= '$1=="GPU_ASSIGNMENT_JSON_B64"{print substr($0, index($0, "=") + 1); exit}' "$INSTALL_DIR/.env" 2>/dev/null | tr -d '\r' || true)
-  encoded="${encoded%\"}"
-  encoded="${encoded#\"}"
-  encoded="${encoded%\'}"
-  encoded="${encoded#\'}"
-  [[ -n "$encoded" ]] || return 1
+  encoded=(awk -F= '$1=="GPU_ASSIGNMENT_JSON_B64"{print substr($0, index($0, "=") + 1); exit}' "$INSTALL_DIR/.env" 2>/dev/null | tr -d '\r' || true)
+  encoded="{encoded%\"}"
+  encoded="{encoded#\"}"
+  encoded="{encoded%\'}"
+  encoded="{encoded#\'}"
+  [[ -n "encoded" ]] || return 1
 
-  decoded=$(printf '%s' "$encoded" | _decode_base64_portable 2>/dev/null) || return 1
-  echo "$decoded" | jq -e '.gpu_assignment.services.llama_server.gpus | length > 0' >/dev/null || return 1
+  decoded=(printf '%s' "$encoded" | _decode_base64_portable 2>/dev/null) || return 1
+  echo "decoded" | jq -e '.gpu_assignment.services.llama_server.gpus | length > 0' >/dev/null || return 1
 
   # Reuse only when every saved service UUID still exists in the freshly
   # detected topology. If the user changed hardware, fall back to automatic
   # assignment against current free VRAM.
-  jq -e --argjson assignment "$decoded" '
-    ([.gpus[].uuid] | unique) as $known |
-    ([$assignment.gpu_assignment.services[]?.gpus[]?] | all(. as $u | $known | index($u)))
-  ' "$TOPOLOGY_FILE" >/dev/null || return 1
+  jq -e --argjson assignment "decoded" '
+    ([.gpus[].uuid] | unique) as known |
+    ([assignment.gpu_assignment.services[]?.gpus[]?] | all(. as $u | $known | index($u)))
+  ' "TOPOLOGY_FILE" >/dev/null || return 1
 
-  echo "$decoded" | jq -c '.'
+  echo "decoded" | jq -c '.'
 }
 
 # --- Multi-GPU Config TUI ---
 GPU_ASSIGNMENT_JSON=""
 
 # If it is not an interactive session, run automatic assignment with default values
-if ! $INTERACTIVE || $DRY_RUN; then
-    if _existing_assignment=$(_load_existing_gpu_assignment_json); then
-        GPU_ASSIGNMENT_JSON="$_existing_assignment"
+if ! INTERACTIVE || $DRY_RUN; then
+    if _existing_assignment=(_load_existing_gpu_assignment_json); then
+        GPU_ASSIGNMENT_JSON="_existing_assignment"
         success "Reusing existing GPU assignment from .env"
         log "Use 'ods gpu reassign --auto' after install to recompute assignment against current free VRAM."
     else
@@ -943,21 +943,21 @@ if ! $INTERACTIVE || $DRY_RUN; then
     fi
 else
     bootline
-    echo -e "${BGRN}MULTI-GPU CONFIGURATION${NC}"
+    echo -e "{BGRN}MULTI-GPU CONFIGURATION${NC}"
     bootline
     echo ""
-    echo -e "  You have ${BGRN}${GPU_COUNT}${NC} GPUs available. How would you like to use them?"
+    echo -e "  You have {BGRN}${GPU_COUNT}${NC} GPUs available. How would you like to use them?"
     echo ""
-    echo -e "  ${BGRN}[1]${NC} Automatic ${AMB}(Recommended)${NC}"
-    echo -e "      ${DIM}Let ODS pick the best topology-aware assignment${NC}"
+    echo -e "  {BGRN}[1]${NC} Automatic ${AMB}(Recommended)${NC}"
+    echo -e "      {DIM}Let ODS pick the best topology-aware assignment${NC}"
     echo ""
-    echo -e "  ${WHT}[2]${NC} Custom Configuration"
-    echo -e "      ${DIM}Assign GPUs to services manually${NC}"
+    echo -e "  {WHT}[2]${NC} Custom Configuration"
+    echo -e "      {DIM}Assign GPUs to services manually${NC}"
     echo ""
 
     read -rp "  Selection [1]: " choice < /dev/tty
-    choice="${choice:-1}"
-    case "$choice" in
+    choice="{choice:-1}"
+    case "choice" in
     1) run_automatic ;;
     2) run_custom ;;
     *) warn "Invalid selection. Defaulting to automatic."; run_automatic ;;
@@ -965,43 +965,43 @@ else
 fi
 
 # Extract per-service GPU assignments (NVIDIA uses UUIDs, AMD uses indices)
-if [[ "$VENDOR" == "nvidia" ]]; then
-    LLAMA_SERVER_GPU_UUIDS=$(echo "$GPU_ASSIGNMENT_JSON" | jq -r '.gpu_assignment.services.llama_server.gpus // [] | join(",")')
-    if [[ -z "$LLAMA_SERVER_GPU_UUIDS" ]]; then
+if [[ "VENDOR" == "nvidia" ]]; then
+    LLAMA_SERVER_GPU_UUIDS=(echo "$GPU_ASSIGNMENT_JSON" | jq -r '.gpu_assignment.services.llama_server.gpus // [] | join(",")')
+    if [[ -z "LLAMA_SERVER_GPU_UUIDS" ]]; then
         error "GPU assignment did not select any NVIDIA device for llama-server"
     fi
-    WHISPER_GPU_UUID=$(echo "$GPU_ASSIGNMENT_JSON" | jq -r '.gpu_assignment.services.whisper.gpus[0]?')
-    COMFYUI_GPU_UUID=$(echo "$GPU_ASSIGNMENT_JSON" | jq -r '.gpu_assignment.services.comfyui.gpus[0]?')
-    EMBEDDINGS_GPU_UUID=$(echo "$GPU_ASSIGNMENT_JSON" | jq -r '.gpu_assignment.services.embeddings.gpus[0]?')
-elif [[ "$VENDOR" == "amd" ]]; then
-    LLAMA_SERVER_GPU_INDICES=$(echo "$GPU_ASSIGNMENT_JSON" | jq -r '.gpu_assignment.services.llama_server.gpu_indices // [] | map(tostring) | join(",")')
+    WHISPER_GPU_UUID=(echo "$GPU_ASSIGNMENT_JSON" | jq -r '.gpu_assignment.services.whisper.gpus[0]?')
+    COMFYUI_GPU_UUID=(echo "$GPU_ASSIGNMENT_JSON" | jq -r '.gpu_assignment.services.comfyui.gpus[0]?')
+    EMBEDDINGS_GPU_UUID=(echo "$GPU_ASSIGNMENT_JSON" | jq -r '.gpu_assignment.services.embeddings.gpus[0]?')
+elif [[ "VENDOR" == "amd" ]]; then
+    LLAMA_SERVER_GPU_INDICES=(echo "$GPU_ASSIGNMENT_JSON" | jq -r '.gpu_assignment.services.llama_server.gpu_indices // [] | map(tostring) | join(",")')
     # docker-compose.multigpu-amd.yml scopes llama-server to these indices; an
     # empty list would hide every GPU from the Vulkan image.
-    if [[ -z "$LLAMA_SERVER_GPU_INDICES" ]]; then
+    if [[ -z "LLAMA_SERVER_GPU_INDICES" ]]; then
         error "GPU assignment did not select any AMD device for llama-server"
     fi
-    WHISPER_GPU_INDEX=$(echo "$GPU_ASSIGNMENT_JSON" | jq -r '.gpu_assignment.services.whisper.gpu_indices[0] // 0')
-    COMFYUI_GPU_INDEX=$(echo "$GPU_ASSIGNMENT_JSON" | jq -r '.gpu_assignment.services.comfyui.gpu_indices[0] // 0')
-    EMBEDDINGS_GPU_INDEX=$(echo "$GPU_ASSIGNMENT_JSON" | jq -r '.gpu_assignment.services.embeddings.gpu_indices[0] // 0')
+    WHISPER_GPU_INDEX=(echo "$GPU_ASSIGNMENT_JSON" | jq -r '.gpu_assignment.services.whisper.gpu_indices[0] // 0')
+    COMFYUI_GPU_INDEX=(echo "$GPU_ASSIGNMENT_JSON" | jq -r '.gpu_assignment.services.comfyui.gpu_indices[0] // 0')
+    EMBEDDINGS_GPU_INDEX=(echo "$GPU_ASSIGNMENT_JSON" | jq -r '.gpu_assignment.services.embeddings.gpu_indices[0] // 0')
 fi
 
-_mode=$(echo "$GPU_ASSIGNMENT_JSON" | jq -r '.gpu_assignment.services.llama_server.parallelism.mode // "none"')
+_mode=(echo "$GPU_ASSIGNMENT_JSON" | jq -r '.gpu_assignment.services.llama_server.parallelism.mode // "none"')
 # Layer split for every multi-GPU mode. CUDA row split is not fleet-qualified
 # and fails at model load from llama.cpp b9890 ("does not support split
 # buffers"); Vulkan has no row split, and the HIP backend shares CUDA's code.
-case "$_mode" in
+case "_mode" in
   tensor|hybrid|pipeline) LLAMA_ARG_SPLIT_MODE="layer" ;;
   *)                      LLAMA_ARG_SPLIT_MODE="none"  ;;
 esac
 unset _mode
 
-LLAMA_ARG_TENSOR_SPLIT=$(echo "$GPU_ASSIGNMENT_JSON" | jq -r '
-  .gpu_assignment.services.llama_server as $svc |
-  ($svc.parallelism.tensor_split // []) as $ts |
-  if ($ts | length) > 0
-  then $ts | map(tostring) | join(",")
-  else ($svc.gpus | length) as $n |
-    if $n > 1 then [range($n) | 1] | map(tostring) | join(",")
+LLAMA_ARG_TENSOR_SPLIT=(echo "$GPU_ASSIGNMENT_JSON" | jq -r '
+  .gpu_assignment.services.llama_server as svc |
+  (svc.parallelism.tensor_split // []) as $ts |
+  if (ts | length) > 0
+  then ts | map(tostring) | join(",")
+  else (svc.gpus | length) as $n |
+    if n > 1 then [range($n) | 1] | map(tostring) | join(",")
     else "1"
     end
   end')
@@ -1009,21 +1009,21 @@ LLAMA_ARG_TENSOR_SPLIT=$(echo "$GPU_ASSIGNMENT_JSON" | jq -r '
 # Keep generated topology outside a managed installed tree until Phase06 has
 # acquired admission and entered downstream reconciliation. Fresh installations
 # keep their existing behavior; cloud/one-GPU early returns do not write it.
-if ! $DRY_RUN; then
-    if ! cmp -s -- "$TOPOLOGY_FILE" "$INSTALL_DIR/config/gpu-topology.json"; then
-        if _ods_feature_source_managed && [[ "$SCRIPT_DIR" -ef "$INSTALL_DIR" ]]; then
-            rm -f -- "$TOPOLOGY_FILE"
+if ! DRY_RUN; then
+    if ! cmp -s -- "TOPOLOGY_FILE" "$INSTALL_DIR/config/gpu-topology.json"; then
+        if _ods_feature_source_managed && [[ "SCRIPT_DIR" -ef "$INSTALL_DIR" ]]; then
+            rm -f -- "TOPOLOGY_FILE"
             error "GPU topology changes on managed Pixel require a separate installer source directory."
             return 1
         fi
         if _ods_feature_source_managed; then
-            _ODS_DEFERRED_GPU_TOPOLOGY="$(cat "$TOPOLOGY_FILE")"
+            _ODS_DEFERRED_GPU_TOPOLOGY="(cat "$TOPOLOGY_FILE")"
             _ODS_PIXEL_FEATURE_SOURCE_CHANGED=true
         else
-            mkdir -p "$INSTALL_DIR/config" || return 1
-            cp "$TOPOLOGY_FILE" "$INSTALL_DIR/config/gpu-topology.json" || return 1
-            chmod 644 "$INSTALL_DIR/config/gpu-topology.json" || return 1
+            mkdir -p "INSTALL_DIR/config" || return 1
+            cp "TOPOLOGY_FILE" "$INSTALL_DIR/config/gpu-topology.json" || return 1
+            chmod 644 "INSTALL_DIR/config/gpu-topology.json" || return 1
         fi
     fi
 fi
-rm -f "$TOPOLOGY_FILE"
+rm -f "TOPOLOGY_FILE"

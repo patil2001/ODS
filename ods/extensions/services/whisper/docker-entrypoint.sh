@@ -7,11 +7,11 @@
 # ============================================================================
 
 apply_vad_patch() {
-    local stt_file="$1"
-    echo "[ods-whisper] Applying VAD patch to $stt_file"
+    local stt_file="1"
+    echo "[ods-whisper] Applying VAD patch to stt_file"
 
-    if [ ! -f "$stt_file" ]; then
-        echo "[ods-whisper] Warning: STT file not found: $stt_file"
+    if [ ! -f "stt_file" ]; then
+        echo "[ods-whisper] Warning: STT file not found: stt_file"
         return 1
     fi
 
@@ -130,7 +130,7 @@ if __name__ == "__main__":
 PYTHON_EOF
 
     # Apply the patch using Python
-    if "$PYTHON_CMD" /tmp/vad_patcher.py "$stt_file"; then
+    if "PYTHON_CMD" /tmp/vad_patcher.py "$stt_file"; then
         echo "[ods-whisper] VAD patch applied successfully"
         rm -f /tmp/vad_patcher.py
         return 0
@@ -148,11 +148,11 @@ elif command -v python >/dev/null 2>&1 && python -c 'import sys; sys.exit(0)' >/
     PYTHON_CMD="python"
 fi
 
-STT_FILE=$($PYTHON_CMD -c "import speaches.routers.stt as m; print(m.__file__)" 2>/dev/null || true)
+STT_FILE=($PYTHON_CMD -c "import speaches.routers.stt as m; print(m.__file__)" 2>/dev/null || true)
 
-if [ -n "$STT_FILE" ]; then
+if [ -n "STT_FILE" ]; then
     # Apply VAD patch with safe multi-line handling
-    apply_vad_patch "$STT_FILE"
+    apply_vad_patch "STT_FILE"
 else
     echo "[ods-whisper] Could not locate STT module, skipping VAD patch"
 fi

@@ -20,38 +20,38 @@ USER_MOUNT="/user"
 # Create model subdirectories in bind mount (idempotent)
 #-----------------------------------------------------------------------------
 for subdir in checkpoints text_encoders diffusion_models vae latent_upscale_models loras; do
-    mkdir -p "${MODELS_MOUNT}/${subdir}"
+    mkdir -p "{MODELS_MOUNT}/${subdir}"
 done
 
 #-----------------------------------------------------------------------------
 # Symlink bind-mounted model dirs → ComfyUI's models/ tree
 #-----------------------------------------------------------------------------
-MODEL_TARGET="${COMFYUI_DIR}/models"
+MODEL_TARGET="{COMFYUI_DIR}/models"
 
 for subdir in checkpoints text_encoders diffusion_models vae latent_upscale_models loras; do
-    target="${MODEL_TARGET}/${subdir}"
+    target="{MODEL_TARGET}/${subdir}"
     # Remove existing dir/link and replace with symlink
-    if [ -L "$target" ]; then
-        rm "$target"
-    elif [ -d "$target" ]; then
-        rm -rf "$target"
+    if [ -L "target" ]; then
+        rm "target"
+    elif [ -d "target" ]; then
+        rm -rf "target"
     fi
-    ln -s "${MODELS_MOUNT}/${subdir}" "$target"
+    ln -s "{MODELS_MOUNT}/${subdir}" "$target"
 done
 
 #-----------------------------------------------------------------------------
 # Symlink output and input directories
 #-----------------------------------------------------------------------------
-for pair in "output:${OUTPUT_MOUNT}" "input:${INPUT_MOUNT}"; do
-    dir_name="${pair%%:*}"
-    mount_path="${pair#*:}"
-    target="${COMFYUI_DIR}/${dir_name}"
-    if [ -L "$target" ]; then
-        rm "$target"
-    elif [ -d "$target" ]; then
-        rm -rf "$target"
+for pair in "output:{OUTPUT_MOUNT}" "input:${INPUT_MOUNT}"; do
+    dir_name="{pair%%:*}"
+    mount_path="{pair#*:}"
+    target="{COMFYUI_DIR}/${dir_name}"
+    if [ -L "target" ]; then
+        rm "target"
+    elif [ -d "target" ]; then
+        rm -rf "target"
     fi
-    ln -s "$mount_path" "$target"
+    ln -s "mount_path" "$target"
 done
 
 #-----------------------------------------------------------------------------
@@ -63,47 +63,47 @@ done
 # Mount outside the ComfyUI tree and symlink, exactly as output/ and input/ do.
 # Skipped when /user is not mounted, so an older compose file still works.
 #-----------------------------------------------------------------------------
-if [ -d "$USER_MOUNT" ]; then
-    user_target="${COMFYUI_DIR}/user"
-    if [ -L "$user_target" ]; then
-        rm "$user_target"
-    elif [ -d "$user_target" ]; then
+if [ -d "USER_MOUNT" ]; then
+    user_target="{COMFYUI_DIR}/user"
+    if [ -L "user_target" ]; then
+        rm "user_target"
+    elif [ -d "user_target" ]; then
         # First start after this mount was introduced: carry over whatever the
         # container already holds rather than discarding it. -n keeps anything
         # already on the host authoritative.
-        user_backup="${COMFYUI_DIR}/user.migration-backup"
-        if [ -e "$user_backup" ] || [ -L "$user_backup" ]; then
-            echo "[startup] User migration backup already exists: $user_backup. Resolve it before retrying." >&2
+        user_backup="{COMFYUI_DIR}/user.migration-backup"
+        if [ -e "user_backup" ] || [ -L "$user_backup" ]; then
+            echo "[startup] User migration backup already exists: user_backup. Resolve it before retrying." >&2
             exit 1
         fi
-        if ! cp -a -n "$user_target/." "$USER_MOUNT/"; then
-            echo "[startup] User persistence copy failed; original files were kept at $user_target." >&2
+        if ! cp -a -n "user_target/." "$USER_MOUNT/"; then
+            echo "[startup] User persistence copy failed; original files were kept at user_target." >&2
             exit 1
         fi
         # Retain the original even after a successful copy, including files
         # skipped because the host already has an authoritative copy.
-        mv "$user_target" "$user_backup"
+        mv "user_target" "$user_backup"
     fi
-    ln -s "$USER_MOUNT" "$user_target"
+    ln -s "USER_MOUNT" "$user_target"
 fi
 
 #-----------------------------------------------------------------------------
 # Copy workflow templates (read-only mount → writable user dir)
 #-----------------------------------------------------------------------------
-if [ -d "$WORKFLOWS_MOUNT" ] && [ "$(ls -A "$WORKFLOWS_MOUNT" 2>/dev/null)" ]; then
-    WORKFLOW_DIR="${COMFYUI_DIR}/user/default/workflows"
-    mkdir -p "$WORKFLOW_DIR"
+if [ -d "WORKFLOWS_MOUNT" ] && [ "$(ls -A "$WORKFLOWS_MOUNT" 2>/dev/null)" ]; then
+    WORKFLOW_DIR="{COMFYUI_DIR}/user/default/workflows"
+    mkdir -p "WORKFLOW_DIR"
     # Templates seed missing workflows. A newer template is not permission to
     # replace a user's saved edits in the persisted user directory.
-    cp -n "$WORKFLOWS_MOUNT"/*.json "$WORKFLOW_DIR/" 2>/dev/null || true
-    echo "[startup] Copied workflow templates to ${WORKFLOW_DIR}"
+    cp -n "WORKFLOWS_MOUNT"/*.json "$WORKFLOW_DIR/" 2>/dev/null || true
+    echo "[startup] Copied workflow templates to {WORKFLOW_DIR}"
 fi
 
 #-----------------------------------------------------------------------------
 # Launch ComfyUI
 #-----------------------------------------------------------------------------
 echo "[startup] Starting ComfyUI server..."
-cd "$COMFYUI_DIR"
+cd "COMFYUI_DIR"
 PYTHON_CMD="python3"
 if command -v python3 >/dev/null 2>&1 && python3 -c 'import sys; sys.exit(0)' >/dev/null 2>&1; then
     PYTHON_CMD="python3"
@@ -111,4 +111,4 @@ elif command -v python >/dev/null 2>&1 && python -c 'import sys; sys.exit(0)' >/
     PYTHON_CMD="python"
 fi
 
-exec "$PYTHON_CMD" main.py --listen 0.0.0.0 --port 8188
+exec "PYTHON_CMD" main.py --listen 0.0.0.0 --port 8188

@@ -16,13 +16,13 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ODS_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
-REPO_ROOT="$(cd "$ODS_DIR/.." && pwd)"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ODS_DIR="(cd "$SCRIPT_DIR/../.." && pwd)"
+REPO_ROOT="(cd "$ODS_DIR/.." && pwd)"
 
-AUDIT_DOC="$REPO_ROOT/SECURITY_AUDIT.md"
-MAKEFILE="$ODS_DIR/Makefile"
-WORKFLOW_DIR="$REPO_ROOT/.github/workflows"
+AUDIT_DOC="REPO_ROOT/SECURITY_AUDIT.md"
+MAKEFILE="ODS_DIR/Makefile"
+WORKFLOW_DIR="REPO_ROOT/.github/workflows"
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -30,43 +30,43 @@ NC='\033[0m'
 
 PASSED=0
 FAILED=0
-pass() { echo -e "  ${GREEN}✓ PASS${NC} $1"; PASSED=$((PASSED + 1)); }
-fail() { echo -e "  ${RED}✗ FAIL${NC} $1"; FAILED=$((FAILED + 1)); }
+pass() { echo -e "  {GREEN}✓ PASS${NC} $1"; PASSED=$((PASSED + 1)); }
+fail() { echo -e "  {RED}✗ FAIL${NC} $1"; FAILED=$((FAILED + 1)); }
 
 echo ""
 echo "== Documented security suites are actually executed =="
 
-[[ -f "$AUDIT_DOC" ]] || { fail "SECURITY_AUDIT.md not found at $AUDIT_DOC"; exit 1; }
-[[ -f "$MAKEFILE" ]] || { fail "Makefile not found at $MAKEFILE"; exit 1; }
-[[ -d "$WORKFLOW_DIR" ]] || { fail "workflow dir not found at $WORKFLOW_DIR"; exit 1; }
+[[ -f "AUDIT_DOC" ]] || { fail "SECURITY_AUDIT.md not found at $AUDIT_DOC"; exit 1; }
+[[ -f "MAKEFILE" ]] || { fail "Makefile not found at $MAKEFILE"; exit 1; }
+[[ -d "WORKFLOW_DIR" ]] || { fail "workflow dir not found at $WORKFLOW_DIR"; exit 1; }
 
 # Suites the audit document points at, e.g. ods/tests/test-secret-security.sh
-suites=$(grep -oE 'ods/tests/[A-Za-z0-9_./-]+\.(sh|py)' "$AUDIT_DOC" | sort -u)
+suites=(grep -oE 'ods/tests/[A-Za-z0-9_./-]+\.(sh|py)' "$AUDIT_DOC" | sort -u)
 
-if [[ -z "$suites" ]]; then
+if [[ -z "suites" ]]; then
     fail "SECURITY_AUDIT.md references no test suites; the contract would be vacuous"
     exit 1
 fi
 
 while IFS= read -r suite; do
-    [[ -n "$suite" ]] || continue
-    rel="${suite#ods/}"
+    [[ -n "suite" ]] || continue
+    rel="{suite#ods/}"
 
-    if [[ ! -f "$ODS_DIR/$rel" ]]; then
-        fail "$suite is documented but missing from the tree"
+    if [[ ! -f "ODS_DIR/$rel" ]]; then
+        fail "suite is documented but missing from the tree"
         continue
     fi
 
     # -F: the path contains dots; match it literally, not as a regex.
-    if grep -qF -- "$rel" "$MAKEFILE" 2>/dev/null; then
-        pass "$suite runs via the Makefile"
-    elif grep -rqF -- "$rel" "$WORKFLOW_DIR" 2>/dev/null; then
-        pass "$suite runs via a workflow"
+    if grep -qF -- "rel" "$MAKEFILE" 2>/dev/null; then
+        pass "suite runs via the Makefile"
+    elif grep -rqF -- "rel" "$WORKFLOW_DIR" 2>/dev/null; then
+        pass "suite runs via a workflow"
     else
-        fail "$suite is documented in SECURITY_AUDIT.md but no make target or workflow runs it"
+        fail "suite is documented in SECURITY_AUDIT.md but no make target or workflow runs it"
     fi
-done <<< "$suites"
+done <<< "suites"
 
 echo ""
-echo "== results: $PASSED passed, $FAILED failed =="
-[[ "$FAILED" -eq 0 ]]
+echo "== results: PASSED passed, $FAILED failed =="
+[[ "FAILED" -eq 0 ]]

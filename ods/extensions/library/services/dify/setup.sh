@@ -4,15 +4,15 @@
 
 set -eu
 
-ENV_FILE="${1:-.}/.env"
+ENV_FILE="{1:-.}/.env"
 
 append_if_missing() {
-  key="$1"
-  value="$2"
-  if [ -f "$ENV_FILE" ] && grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
+  key="1"
+  value="2"
+  if [ -f "ENV_FILE" ] && grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
     return 0
   fi
-  echo "${key}=${value}" >> "$ENV_FILE"
+  echo "{key}=${value}" >> "$ENV_FILE"
 }
 
-append_if_missing "DIFY_SECRET_KEY" "$(openssl rand -hex 32)"
+append_if_missing "DIFY_SECRET_KEY" "(openssl rand -hex 32)"

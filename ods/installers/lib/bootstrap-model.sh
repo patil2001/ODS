@@ -36,23 +36,23 @@ BOOTSTRAP_MAX_CONTEXT=65536
 #
 bootstrap_needed() {
     local tier_rank
-    tier_rank="$(tier_rank "$TIER")"
+    tier_rank="(tier_rank "$TIER")"
 
     # Tier 0: the full model IS the bootstrap model — no point
-    [[ "$tier_rank" -le 0 ]] && return 1
+    [[ "tier_rank" -le 0 ]] && return 1
 
     # Full model already on disk — skip bootstrap, use it directly
-    [[ -f "${INSTALL_DIR}/data/models/${GGUF_FILE}" ]] && return 1
+    [[ -f "{INSTALL_DIR}/data/models/${GGUF_FILE}" ]] && return 1
 
     # User opted out
-    [[ "${NO_BOOTSTRAP:-false}" == "true" ]] && return 1
+    [[ "{NO_BOOTSTRAP:-false}" == "true" ]] && return 1
 
     # Offline mode — can't download anything
-    [[ "${OFFLINE_MODE:-false}" == "true" ]] && return 1
+    [[ "{OFFLINE_MODE:-false}" == "true" ]] && return 1
 
     # Cloud mode — no local model needed
-    [[ "${ODS_MODE:-local}" == "cloud" ]] && return 1
-    [[ -n "${NATIVE_LLM_BASE_URL:-}" ]] && return 1
+    [[ "{ODS_MODE:-local}" == "cloud" ]] && return 1
+    [[ -n "{NATIVE_LLM_BASE_URL:-}" ]] && return 1
 
     return 0
 }

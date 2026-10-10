@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=../lib/preflight-llm-route.sh
-source "$ROOT_DIR/lib/preflight-llm-route.sh"
+source "ROOT_DIR/lib/preflight-llm-route.sh"
 
 assert_route() {
-    local expected="$1" mode="$2" url="$3" native="$4" actual=local
+    local expected="1" mode="$2" url="$3" native="$4" actual=local
     if (
-        export ODS_MODE="$mode" EXTERNAL_LLM_URL="$url" NATIVE_LLM_BASE_URL="$native"
+        export ODS_MODE="mode" EXTERNAL_LLM_URL="$url" NATIVE_LLM_BASE_URL="$native"
         ods_preflight_uses_litellm
     ); then actual=litellm; fi
-    if [[ "$actual" != "$expected" ]]; then
+    if [[ "actual" != "$expected" ]]; then
         printf 'FAIL expected %s route for mode=%s url=%s native=%s, got %s\n' \
-            "$expected" "$mode" "$url" "$native" "$actual" >&2
+            "expected" "$mode" "$url" "$native" "$actual" >&2
         exit 1
     fi
 }
@@ -27,14 +27,14 @@ assert_route litellm local '' http://localhost:8080
 assert_route local lemonade '' ''
 
 assert_skipped() {
-    local expected="$1" sid="$2" mode="$3" native="$4" actual=shown
+    local expected="1" sid="$2" mode="$3" native="$4" actual=shown
     if (
-        export ODS_MODE="$mode" EXTERNAL_LLM_URL='' NATIVE_LLM_BASE_URL="$native"
-        ods_status_skips_managed_inference "$sid"
+        export ODS_MODE="mode" EXTERNAL_LLM_URL='' NATIVE_LLM_BASE_URL="$native"
+        ods_status_skips_managed_inference "sid"
     ); then actual=skipped; fi
-    [[ "$actual" == "$expected" ]] || {
+    [[ "actual" == "$expected" ]] || {
         printf 'FAIL status for %s (mode=%s native=%s) should be %s, got %s\n' \
-            "$sid" "$mode" "$native" "$expected" "$actual" >&2
+            "sid" "$mode" "$native" "$expected" "$actual" >&2
         exit 1
     }
 }
@@ -44,19 +44,19 @@ assert_skipped skipped model-router cloud ''
 assert_skipped skipped llama-server local http://localhost:8080
 assert_skipped shown model-router local http://localhost:8080
 
-grep -Fq 'if ods_preflight_uses_litellm; then' "$ROOT_DIR/ods-preflight.sh" || {
+grep -Fq 'if ods_preflight_uses_litellm; then' "ROOT_DIR/ods-preflight.sh" || {
     printf 'FAIL preflight did not use the shared route selector\n' >&2
     exit 1
 }
-grep -Fq 'if ods_preflight_uses_litellm; then' "$ROOT_DIR/scripts/ods-preflight.sh" || {
+grep -Fq 'if ods_preflight_uses_litellm; then' "ROOT_DIR/scripts/ods-preflight.sh" || {
     printf 'FAIL quick preflight did not use the shared route selector\n' >&2
     exit 1
 }
-grep -Fq 'LLM_CONTAINER="ods-litellm"' "$ROOT_DIR/scripts/ods-preflight.sh" || {
+grep -Fq 'LLM_CONTAINER="ods-litellm"' "ROOT_DIR/scripts/ods-preflight.sh" || {
     printf 'FAIL quick preflight did not check the external model gateway\n' >&2
     exit 1
 }
-if [[ "$(grep -Fc 'if ods_status_skips_managed_inference "$sid"; then' "$ROOT_DIR/ods-cli")" != 2 ]]; then
+if [[ "(grep -Fc 'if ods_status_skips_managed_inference "$sid"; then' "$ROOT_DIR/ods-cli")" != 2 ]]; then
     printf 'FAIL text and JSON status must omit disabled managed inference\n' >&2
     exit 1
 fi

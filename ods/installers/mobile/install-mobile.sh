@@ -4,14 +4,14 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-source "$SCRIPT_DIR/installers/common.sh"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "SCRIPT_DIR/installers/common.sh"
 
-platform="$(detect_platform)"
+platform="(detect_platform)"
 
-case "$platform" in
+case "platform" in
     android-termux|ios-ashell)
-        echo "[INFO] ODS detected mobile platform: $platform" >&2
+        echo "[INFO] ODS detected mobile platform: platform" >&2
         echo "[ERROR] Mobile preview installer is split into a follow-up PR." >&2
         echo "        This PR only adds the dispatcher and platform detection contract." >&2
         exit 1

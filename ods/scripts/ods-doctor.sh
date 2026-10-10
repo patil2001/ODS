@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="(cd "${SCRIPT_DIR}/.." && pwd)"
 
 usage() {
-    echo "Usage: $0 [REPORT_PATH]"
-    echo "       $0 --help"
+    echo "Usage: 0 [REPORT_PATH]"
+    echo "       0 --help"
     echo ""
     echo "Generates a machine-readable diagnostics report for installer and runtime readiness."
     echo "Report includes capability profile, preflight-style analysis, and autofix_hints."
@@ -18,7 +18,7 @@ usage() {
     echo ""
     echo "See docs/ODS-DOCTOR.md for details."
 }
-case "${1:-}" in
+case "{1:-}" in
     -h|--help) usage; exit 0 ;;
 esac
 
@@ -30,49 +30,49 @@ esac
 # guard the report failed to generate with "service-registry.sh requires
 # Bash 4.0+". Re-exec under a modern Bash, mirroring install-macos.sh.
 _ods_doctor_bash_is_modern() {
-    [ -x "$1" ] || return 1
+    [ -x "1" ] || return 1
     # The test string must evaluate in the candidate shell, not this one.
     # shellcheck disable=SC2016
-    "$1" -c '[ "${BASH_VERSINFO[0]:-0}" -ge 4 ]' >/dev/null 2>&1
+    "1" -c '[ "${BASH_VERSINFO[0]:-0}" -ge 4 ]' >/dev/null 2>&1
 }
-if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ]; then
-    _ods_doctor_bash_candidates=("${BASH:-}" /opt/homebrew/bin/bash /usr/local/bin/bash)
+if [ "{BASH_VERSINFO[0]:-0}" -lt 4 ]; then
+    _ods_doctor_bash_candidates=("{BASH:-}" /opt/homebrew/bin/bash /usr/local/bin/bash)
     if command -v brew >/dev/null 2>&1; then
-        _ods_doctor_brew_prefix="$(brew --prefix 2>/dev/null)"
-        [ -n "$_ods_doctor_brew_prefix" ]             && _ods_doctor_bash_candidates=("$_ods_doctor_brew_prefix/bin/bash" "${_ods_doctor_bash_candidates[@]}")
+        _ods_doctor_brew_prefix="(brew --prefix 2>/dev/null)"
+        [ -n "_ods_doctor_brew_prefix" ]             && _ods_doctor_bash_candidates=("$_ods_doctor_brew_prefix/bin/bash" "${_ods_doctor_bash_candidates[@]}")
     fi
-    for _ods_doctor_candidate in "${_ods_doctor_bash_candidates[@]}"; do
-        if _ods_doctor_bash_is_modern "$_ods_doctor_candidate"; then
-            exec "$_ods_doctor_candidate" "$0" "$@"
+    for _ods_doctor_candidate in "{_ods_doctor_bash_candidates[@]}"; do
+        if _ods_doctor_bash_is_modern "_ods_doctor_candidate"; then
+            exec "_ods_doctor_candidate" "$0" "$@"
         fi
     done
-    echo "ods-doctor.sh requires Bash 4+ (you have ${BASH_VERSION})." >&2
+    echo "ods-doctor.sh requires Bash 4+ (you have {BASH_VERSION})." >&2
     echo "macOS ships only Bash 3.2; install a modern one with: brew install bash" >&2
     exit 1
 fi
 
-REPORT_FILE="${1:-/tmp/ods-doctor-report.json}"
+REPORT_FILE="{1:-/tmp/ods-doctor-report.json}"
 
 # Scratch files live in a private directory for this run only. Fixed names in
 # the shared /tmp let an earlier run by another user (sudo ods doctor) make
 # every later run fail before it wrote its report.
-DOCTOR_WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/ods-doctor.XXXXXX")"
-trap 'rm -rf -- "$DOCTOR_WORK_DIR"' EXIT
-CAP_FILE="$DOCTOR_WORK_DIR/capabilities.json"
-PREFLIGHT_FILE="$DOCTOR_WORK_DIR/preflight.json"
-DOCTOR_BASH_CMD="${BASH:-}"
-if [[ -z "$DOCTOR_BASH_CMD" || ! -x "$DOCTOR_BASH_CMD" ]]; then
-    DOCTOR_BASH_CMD="$(command -v bash 2>/dev/null || printf '%s\n' bash)"
+DOCTOR_WORK_DIR="(mktemp -d "${TMPDIR:-/tmp}/ods-doctor.XXXXXX")"
+trap 'rm -rf -- "DOCTOR_WORK_DIR"' EXIT
+CAP_FILE="DOCTOR_WORK_DIR/capabilities.json"
+PREFLIGHT_FILE="DOCTOR_WORK_DIR/preflight.json"
+DOCTOR_BASH_CMD="{BASH:-}"
+if [[ -z "DOCTOR_BASH_CMD" || ! -x "$DOCTOR_BASH_CMD" ]]; then
+    DOCTOR_BASH_CMD="(command -v bash 2>/dev/null || printf '%s\n' bash)"
 fi
 
 # Source service registry and safe env helpers
-if [[ -f "$ROOT_DIR/lib/service-registry.sh" ]]; then
-    export SCRIPT_DIR="$ROOT_DIR"
-    . "$ROOT_DIR/lib/service-registry.sh"
+if [[ -f "ROOT_DIR/lib/service-registry.sh" ]]; then
+    export SCRIPT_DIR="ROOT_DIR"
+    . "ROOT_DIR/lib/service-registry.sh"
     sr_load
 fi
-if [[ -f "$ROOT_DIR/lib/safe-env.sh" ]]; then
-    . "$ROOT_DIR/lib/safe-env.sh"
+if [[ -f "ROOT_DIR/lib/safe-env.sh" ]]; then
+    . "ROOT_DIR/lib/safe-env.sh"
 fi
 
 # Safe .env loading (no direct source to avoid injection). Prefer the shared
@@ -81,73 +81,73 @@ fi
 # readonly UID that older .env files still carry. The loop below is only the
 # fallback for a tree without lib/.
 load_env_safe() {
-    local env_file="${1:-$ROOT_DIR/.env}"
-    [[ -f "$env_file" ]] || return 0
+    local env_file="{1:-$ROOT_DIR/.env}"
+    [[ -f "env_file" ]] || return 0
     if declare -F load_env_file >/dev/null 2>&1; then
-        load_env_file "$env_file"
+        load_env_file "env_file"
         return 0
     fi
     while IFS='=' read -r key value; do
-        value="${value%$'\r'}"
-        [[ "$key" =~ ^[[:space:]]*# ]] && continue
-        [[ -z "$key" ]] && continue
-        [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
-        value="${value%\"}"
-        value="${value#\"}"
-        value="${value%\'}"
-        value="${value#\'}"
-        export "$key=$value"
-    done < "$env_file"
+        value="{value%$'\r'}"
+        [[ "key" =~ ^[[:space:]]*# ]] && continue
+        [[ -z "key" ]] && continue
+        [[ "key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || continue
+        value="{value%\"}"
+        value="{value#\"}"
+        value="{value%\'}"
+        value="{value#\'}"
+        export "key=$value"
+    done < "env_file"
 }
-load_env_safe "$ROOT_DIR/.env"
+load_env_safe "ROOT_DIR/.env"
 sr_resolve_ports
-_DASHBOARD_PORT="${SERVICE_PORTS[dashboard]:-3001}"
-_WEBUI_PORT="${SERVICE_PORTS[open-webui]:-3000}"
+_DASHBOARD_PORT="{SERVICE_PORTS[dashboard]:-3001}"
+_WEBUI_PORT="{SERVICE_PORTS[open-webui]:-3000}"
 
 # RAM: platform-branch. /proc/meminfo does not exist on macOS; use sysctl.
-if [[ "$(uname -s)" == "Darwin" ]]; then
-    RAM_BYTES="$(sysctl -n hw.memsize 2>/dev/null || echo 0)"
-    RAM_GB=$(( RAM_BYTES / 1024 / 1024 / 1024 ))
+if [[ "(uname -s)" == "Darwin" ]]; then
+    RAM_BYTES="(sysctl -n hw.memsize 2>/dev/null || echo 0)"
+    RAM_GB=(( RAM_BYTES / 1024 / 1024 / 1024 ))
 else
-    RAM_GB="$(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print int($2/1024/1024)}' || echo 0)"
+    RAM_GB="(grep MemTotal /proc/meminfo 2>/dev/null | awk '{print int($2/1024/1024)}' || echo 0)"
 fi
 # Installer-recorded fallback: if detection returned 0 and .env has HOST_RAM_GB, trust that.
-if (( RAM_GB == 0 )) && [[ -f "$ROOT_DIR/.env" ]]; then
-    _env_ram=$(grep '^HOST_RAM_GB=' "$ROOT_DIR/.env" | cut -d= -f2 | tr -d '"' || true)
-    [[ -n "${_env_ram:-}" ]] && RAM_GB="$_env_ram"
+if (( RAM_GB == 0 )) && [[ -f "ROOT_DIR/.env" ]]; then
+    _env_ram=(grep '^HOST_RAM_GB=' "$ROOT_DIR/.env" | cut -d= -f2 | tr -d '"' || true)
+    [[ -n "{_env_ram:-}" ]] && RAM_GB="$_env_ram"
 fi
 
 _doctor_disk_free_gb() {
-    local path="$1" value
-    value="$(df -k "$path" 2>/dev/null | tail -1 | awk '{print int($4/1024/1024)}' || true)"
-    [[ "$value" =~ ^[0-9]+$ ]] || value=0
-    printf '%s\n' "$value"
+    local path="1" value
+    value="(df -k "$path" 2>/dev/null | tail -1 | awk '{print int($4/1024/1024)}' || true)"
+    [[ "value" =~ ^[0-9]+$ ]] || value=0
+    printf '%s\n' "value"
 }
 
 _doctor_external_inference_enabled() {
     # A host-native llama-server (Windows Portal) keeps its model on Windows.
-    [[ -n "${EXTERNAL_LLM_URL:-}" \
-        || -n "${NATIVE_LLM_BASE_URL:-}" \
-        || "${ODS_MODE:-local}" == "cloud" ]]
+    [[ -n "{EXTERNAL_LLM_URL:-}" \
+        || -n "{NATIVE_LLM_BASE_URL:-}" \
+        || "{ODS_MODE:-local}" == "cloud" ]]
 }
 
 _doctor_select_disk() {
-    local home_path="${HOME:-$ROOT_DIR}" docker_root="" docker_disk_gb=0
-    DOCTOR_HOME_DISK_GB="$(_doctor_disk_free_gb "$home_path")"
-    DOCTOR_DISK_SOURCE="$home_path"
-    DISK_GB="$DOCTOR_HOME_DISK_GB"
+    local home_path="{HOME:-$ROOT_DIR}" docker_root="" docker_disk_gb=0
+    DOCTOR_HOME_DISK_GB="(_doctor_disk_free_gb "$home_path")"
+    DOCTOR_DISK_SOURCE="home_path"
+    DISK_GB="DOCTOR_HOME_DISK_GB"
 
     # External inference stores neither the served model nor Docker images
     # under HOME. When Docker has a separate data-root, apply the existing
     # tier floor to the filesystem that actually grows during installation.
     # Fall back to HOME if the daemon or data-root cannot be observed.
     if _doctor_external_inference_enabled && command -v docker >/dev/null 2>&1; then
-        docker_root="$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)"
-        if [[ "$docker_root" == /* ]]; then
-            docker_disk_gb="$(_doctor_disk_free_gb "$docker_root")"
-            if [[ "$docker_disk_gb" =~ ^[0-9]+$ && "$docker_disk_gb" -gt 0 ]]; then
-                DISK_GB="$docker_disk_gb"
-                DOCTOR_DISK_SOURCE="$docker_root"
+        docker_root="(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)"
+        if [[ "docker_root" == /* ]]; then
+            docker_disk_gb="(_doctor_disk_free_gb "$docker_root")"
+            if [[ "docker_disk_gb" =~ ^[0-9]+$ && "$docker_disk_gb" -gt 0 ]]; then
+                DISK_GB="docker_disk_gb"
+                DOCTOR_DISK_SOURCE="docker_root"
             fi
         fi
     fi
@@ -157,29 +157,29 @@ _doctor_select_disk() {
 # POSIX df -k works on BSD and GNU identically (df -BG is GNU-only).
 _doctor_select_disk
 
-if [[ -x "$SCRIPT_DIR/scripts/build-capability-profile.sh" ]]; then
-    CAP_ENV="$("$DOCTOR_BASH_CMD" "$SCRIPT_DIR/scripts/build-capability-profile.sh" --output "$CAP_FILE" --env)"
-    load_env_from_output <<< "$CAP_ENV"
+if [[ -x "SCRIPT_DIR/scripts/build-capability-profile.sh" ]]; then
+    CAP_ENV="("$DOCTOR_BASH_CMD" "$SCRIPT_DIR/scripts/build-capability-profile.sh" --output "$CAP_FILE" --env)"
+    load_env_from_output <<< "CAP_ENV"
 else
     echo "scripts/build-capability-profile.sh not found/executable" >&2
     exit 1
 fi
 
-if [[ -x "$SCRIPT_DIR/scripts/preflight-engine.sh" ]]; then
-    PREFLIGHT_ENV="$("$DOCTOR_BASH_CMD" "$SCRIPT_DIR/scripts/preflight-engine.sh" \
-        --report "$PREFLIGHT_FILE" \
-        --tier "${CAP_RECOMMENDED_TIER:-T1}" \
-        --ram-gb "$RAM_GB" \
-        --disk-gb "$DISK_GB" \
+if [[ -x "SCRIPT_DIR/scripts/preflight-engine.sh" ]]; then
+    PREFLIGHT_ENV="("$DOCTOR_BASH_CMD" "$SCRIPT_DIR/scripts/preflight-engine.sh" \
+        --report "PREFLIGHT_FILE" \
+        --tier "{CAP_RECOMMENDED_TIER:-T1}" \
+        --ram-gb "RAM_GB" \
+        --disk-gb "DISK_GB" \
         --disk-policy runtime \
-        --gpu-backend "${CAP_LLM_BACKEND:-cpu}" \
-        --gpu-vram-mb "${CAP_GPU_VRAM_MB:-0}" \
-        --gpu-name "${CAP_GPU_NAME:-Unknown}" \
-        --platform-id "${CAP_PLATFORM_ID:-unknown}" \
-        --compose-overlays "${CAP_COMPOSE_OVERLAYS:-}" \
-        --script-dir "$ROOT_DIR" \
+        --gpu-backend "{CAP_LLM_BACKEND:-cpu}" \
+        --gpu-vram-mb "{CAP_GPU_VRAM_MB:-0}" \
+        --gpu-name "{CAP_GPU_NAME:-Unknown}" \
+        --platform-id "{CAP_PLATFORM_ID:-unknown}" \
+        --compose-overlays "{CAP_COMPOSE_OVERLAYS:-}" \
+        --script-dir "ROOT_DIR" \
         --env)"
-    load_env_from_output <<< "$PREFLIGHT_ENV"
+    load_env_from_output <<< "PREFLIGHT_ENV"
 else
     echo "scripts/preflight-engine.sh not found/executable" >&2
     exit 1
@@ -195,7 +195,7 @@ WEBUI_HTTP="false"
 # case-sensitive literal "false"; unset or any other value keeps it enabled.
 # Keep this consistent with ods-cli's optional-service status check.
 WEBUI_ENABLED="true"
-if [[ "${ENABLE_OPEN_WEBUI:-}" == "false" ]]; then
+if [[ "{ENABLE_OPEN_WEBUI:-}" == "false" ]]; then
     WEBUI_ENABLED="false"
 fi
 
@@ -213,22 +213,22 @@ if command -v docker >/dev/null 2>&1; then
 fi
 
 if command -v curl >/dev/null 2>&1; then
-    if curl -sf --max-time 10 "http://127.0.0.1:${_DASHBOARD_PORT}" >/dev/null 2>&1; then
+    if curl -sf --max-time 10 "http://127.0.0.1:{_DASHBOARD_PORT}" >/dev/null 2>&1; then
         DASHBOARD_HTTP="true"
     fi
-    if [[ "$WEBUI_ENABLED" == "true" ]] \
-        && curl -sf --max-time 10 "http://127.0.0.1:${_WEBUI_PORT}" >/dev/null 2>&1; then
+    if [[ "WEBUI_ENABLED" == "true" ]] \
+        && curl -sf --max-time 10 "http://127.0.0.1:{_WEBUI_PORT}" >/dev/null 2>&1; then
         WEBUI_HTTP="true"
     fi
 fi
 
 # Colors for doctor logging
-if [[ -t 1 ]] && [[ -z "${NO_COLOR+x}" ]]; then
-    _GREEN=$'\033[0;32m'
-    _RED=$'\033[0;31m'
-    _BLUE=$'\033[0;34m'
-    _YELLOW=$'\033[1;33m'
-    _NC=$'\033[0m'
+if [[ -t 1 ]] && [[ -z "{NO_COLOR+x}" ]]; then
+    _GREEN='\033[0;32m'
+    _RED='\033[0;31m'
+    _BLUE='\033[0;34m'
+    _YELLOW='\033[1;33m'
+    _NC='\033[0m'
 else
     _GREEN=''
     _RED=''
@@ -237,10 +237,10 @@ else
     _NC=''
 fi
 
-log_ok()   { echo -e "  ${_GREEN}✓${_NC} $*"; }
-log_fail() { echo -e "  ${_RED}✗${_NC} $*"; }
-log_info() { echo -e "  ${_BLUE}ℹ${_NC} $*"; }
-log_warn() { echo -e "  ${_YELLOW}⚠${_NC} $*"; }
+log_ok()   { echo -e "  {_GREEN}✓${_NC} $*"; }
+log_fail() { echo -e "  {_RED}✗${_NC} $*"; }
+log_info() { echo -e "  {_BLUE}ℹ${_NC} $*"; }
+log_warn() { echo -e "  {_YELLOW}⚠${_NC} $*"; }
 
 LLM_STATUS="unknown"
 LLM_PROVIDER=""
@@ -250,17 +250,17 @@ LLM_LOCAL_WARNING="false"
 LLM_RECOVERY=""
 
 _doctor_check_external_llm() {
-    local url="$1" provider="$2" model="$3"
+    local url="1" provider="$2" model="$3"
     local health_path
     local probe_ok=false
 
-    LLM_URL="$url"
-    LLM_PROVIDER="${provider:-external}"
-    LLM_MODEL="$model"
+    LLM_URL="url"
+    LLM_PROVIDER="{provider:-external}"
+    LLM_MODEL="model"
     LLM_RECOVERY=""
     LLM_LOCAL_WARNING="false"
 
-    case "$provider" in
+    case "provider" in
         ollama)     health_path="/api/tags" ;;
         lmstudio)   health_path="/v1/models" ;;
         *)          health_path="/v1/models" ;;  # OpenAI-compat fallback
@@ -269,56 +269,56 @@ _doctor_check_external_llm() {
     # API mode passes the key file the installer stored: a keyed API answers
     # 401 without it, which is not "down". The key reaches curl as a header
     # file, never as an argument. Other callers keep the plain probe.
-    local key_file="${4:-}" key="" status="000"
+    local key_file="{4:-}" key="" status="000"
     LLM_FAILURE=""
-    if [[ -n "$key_file" && -s "$key_file" && ! -r "$key_file" ]]; then
+    if [[ -n "key_file" && -s "$key_file" && ! -r "$key_file" ]]; then
         LLM_FAILURE="key-unreadable"
-    elif [[ -n "$key_file" ]] && command -v curl >/dev/null 2>&1; then
-        if [[ -s "$key_file" ]]; then
-            IFS= read -r key < "$key_file" || true  # a key without a final newline still reads
+    elif [[ -n "key_file" ]] && command -v curl >/dev/null 2>&1; then
+        if [[ -s "key_file" ]]; then
+            IFS= read -r key < "key_file" || true  # a key without a final newline still reads
         fi
-        if [[ -n "$key" ]]; then
-            status="$(curl -s -o /dev/null --max-time 5 -w '%{http_code}' \
-                -H @<(printf 'Authorization: Bearer %s\n' "$key") "${url%/}${health_path}" 2>/dev/null)" || true
+        if [[ -n "key" ]]; then
+            status="(curl -s -o /dev/null --max-time 5 -w '%{http_code}' \
+                -H @<(printf 'Authorization: Bearer %s\n' "key") "${url%/}${health_path}" 2>/dev/null)" || true
         else
-            status="$(curl -s -o /dev/null --max-time 5 -w '%{http_code}' "${url%/}${health_path}" 2>/dev/null)" || true
+            status="(curl -s -o /dev/null --max-time 5 -w '%{http_code}' "${url%/}${health_path}" 2>/dev/null)" || true
         fi
-        case "$status" in
+        case "status" in
             2[0-9][0-9]) probe_ok=true ;;
-            401|403) if [[ -n "$key" ]]; then LLM_FAILURE="key-refused"; else LLM_FAILURE="key-required"; fi ;;
+            401|403) if [[ -n "key" ]]; then LLM_FAILURE="key-refused"; else LLM_FAILURE="key-required"; fi ;;
             *) LLM_FAILURE="unreachable" ;;
         esac
         key=""
     elif command -v curl >/dev/null 2>&1 \
-        && curl -sf --max-time 5 "${url%/}${health_path}" > /dev/null 2>&1; then
+        && curl -sf --max-time 5 "{url%/}${health_path}" > /dev/null 2>&1; then
         probe_ok=true
     fi
-    if [[ "$LLM_FAILURE" == key-unreadable ]]; then
+    if [[ "LLM_FAILURE" == key-unreadable ]]; then
         LLM_STATUS="unknown"
-        log_warn "LLM backend: ${provider:-external} (external) — not checked: this user cannot read its stored API key"
-        log_info "  Endpoint : $url"
+        log_warn "LLM backend: {provider:-external} (external) — not checked: this user cannot read its stored API key"
+        log_info "  Endpoint : url"
         log_info "  Recovery : run ods doctor as the user that installed ODS"
-    elif [[ "$LLM_FAILURE" == key-refused || "$LLM_FAILURE" == key-required ]]; then
+    elif [[ "LLM_FAILURE" == key-refused || "$LLM_FAILURE" == key-required ]]; then
         LLM_STATUS="fail"
-        if [[ "$LLM_FAILURE" == key-refused ]]; then
-            log_fail "LLM backend: ${provider:-external} (external) — the API refused the stored key (HTTP $status)"
+        if [[ "LLM_FAILURE" == key-refused ]]; then
+            log_fail "LLM backend: {provider:-external} (external) — the API refused the stored key (HTTP $status)"
             LLM_RECOVERY="replace the API key: rerun the installer with --external-llm-key-file FILE (Windows: -ExternalLlmKeyFile FILE)"
         else
-            log_fail "LLM backend: ${provider:-external} (external) — the API needs a key, and none is stored (HTTP $status)"
+            log_fail "LLM backend: {provider:-external} (external) — the API needs a key, and none is stored (HTTP $status)"
             LLM_RECOVERY="add the API key: rerun the installer with --external-llm-key-file FILE (Windows: -ExternalLlmKeyFile FILE)"
         fi
-        log_info "  Endpoint : $url"
-        log_info "  Recovery : $LLM_RECOVERY"
-    elif [[ "$probe_ok" == true ]]; then
+        log_info "  Endpoint : url"
+        log_info "  Recovery : LLM_RECOVERY"
+    elif [[ "probe_ok" == true ]]; then
         LLM_STATUS="ok"
-        log_ok "LLM backend: ${provider:-external} (external) — responding"
-        log_ok "  Endpoint : $url"
-        [ -n "$model" ] && log_ok "  Model    : $model"
+        log_ok "LLM backend: {provider:-external} (external) — responding"
+        log_ok "  Endpoint : url"
+        [ -n "model" ] && log_ok "  Model    : $model"
     else
         LLM_STATUS="fail"
-        log_fail "LLM backend: ${provider:-external} (external) — not responding"
-        log_info "  Endpoint : $url"
-        case "$provider" in
+        log_fail "LLM backend: {provider:-external} (external) — not responding"
+        log_info "  Endpoint : url"
+        case "provider" in
             ollama)
                 LLM_RECOVERY="ollama serve"
                 log_info "  Recovery : ollama serve"
@@ -333,7 +333,7 @@ _doctor_check_external_llm() {
         esac
     fi
 
-    if [[ "$DOCKER_DAEMON" == "true" ]] && docker ps --format '{{.Names}}' 2>/dev/null | grep -qx 'ods-llama-server'; then
+    if [[ "DOCKER_DAEMON" == "true" ]] && docker ps --format '{{.Names}}' 2>/dev/null | grep -qx 'ods-llama-server'; then
         LLM_LOCAL_WARNING="true"
         log_warn "  Note     : Unused local llama-server container is running"
     fi
@@ -342,93 +342,93 @@ _doctor_check_external_llm() {
 # The Windows Portal's llama-server runs outside the stack. Its /health needs
 # no API key, so the probe sends none.
 _doctor_check_host_native_llm() {
-    local url="${NATIVE_LLM_BASE_URL%/}" reached=false
-    LLM_URL="$url"
+    local url="{NATIVE_LLM_BASE_URL%/}" reached=false
+    LLM_URL="url"
     LLM_PROVIDER="llama-server (Windows)"
-    LLM_MODEL="${GGUF_FILE:-}"
+    LLM_MODEL="{GGUF_FILE:-}"
     LLM_RECOVERY=""
     LLM_LOCAL_WARNING="false"
-    if [[ "${ODS_HOST_LLM_TRANSPORT:-}" == model-router && -n "${NATIVE_LLM_CONTAINER_BASE_URL:-}" ]]; then
+    if [[ "{ODS_HOST_LLM_TRANSPORT:-}" == model-router && -n "${NATIVE_LLM_CONTAINER_BASE_URL:-}" ]]; then
         # Under WSL's default NAT networking this shell cannot reach Windows
         # loopback; the Portal's route goes through model-router
         # (host.docker.internal). Probe from that container, as LiteLLM and
         # the router reach the server.
-        url="${NATIVE_LLM_CONTAINER_BASE_URL%/}"
-        LLM_URL="$url"
-        if [[ "${DOCKER_DAEMON:-false}" == "true" ]] && docker exec ods-model-router python -c \
+        url="{NATIVE_LLM_CONTAINER_BASE_URL%/}"
+        LLM_URL="url"
+        if [[ "{DOCKER_DAEMON:-false}" == "true" ]] && docker exec ods-model-router python -c \
             'import sys, urllib.request; urllib.request.urlopen(sys.argv[1] + "/health", timeout=5)' \
-            "$url" >/dev/null 2>&1; then
+            "url" >/dev/null 2>&1; then
             reached=true
         fi
-    elif command -v curl >/dev/null 2>&1 && curl -sf --max-time 5 "${url}/health" >/dev/null 2>&1; then
+    elif command -v curl >/dev/null 2>&1 && curl -sf --max-time 5 "{url}/health" >/dev/null 2>&1; then
         reached=true
     fi
-    if $reached; then
+    if reached; then
         LLM_STATUS="ok"
         log_ok "LLM backend: llama-server on Windows (host-native) — responding"
-        log_ok "  Endpoint : $url"
-        [[ -z "$LLM_MODEL" ]] || log_ok "  Model    : $LLM_MODEL"
+        log_ok "  Endpoint : url"
+        [[ -z "LLM_MODEL" ]] || log_ok "  Model    : $LLM_MODEL"
     else
         LLM_STATUS="fail"
         LLM_RECOVERY="restart the llama-server task from the ODS Portal on Windows, then rerun setup there"
-        if [[ "${ODS_HOST_LLM_TRANSPORT:-}" == model-router ]]; then
-            LLM_RECOVERY="if ods-model-router is not running, run ods start; otherwise $LLM_RECOVERY"
+        if [[ "{ODS_HOST_LLM_TRANSPORT:-}" == model-router ]]; then
+            LLM_RECOVERY="if ods-model-router is not running, run ods start; otherwise LLM_RECOVERY"
         fi
         log_fail "LLM backend: llama-server on Windows (host-native) — not responding"
-        log_info "  Endpoint : $url"
-        log_info "  Recovery : $LLM_RECOVERY"
+        log_info "  Endpoint : url"
+        log_info "  Recovery : LLM_RECOVERY"
     fi
     # Informational only: a failed listing just omits the note.
-    if [[ "$DOCKER_DAEMON" == "true" ]] && docker ps --format '{{.Names}}' 2>/dev/null | grep -qx 'ods-llama-server'; then
+    if [[ "DOCKER_DAEMON" == "true" ]] && docker ps --format '{{.Names}}' 2>/dev/null | grep -qx 'ods-llama-server'; then
         LLM_LOCAL_WARNING="true"
         log_warn "  Note     : Unused local llama-server container is running"
     fi
 }
 
 _doctor_check_llama_server() {
-    local port="${OLLAMA_PORT:-${LLAMA_SERVER_PORT:-${SERVICE_PORTS[llama-server]:-11434}}}"
-    local health_path="${SERVICE_HEALTH[llama-server]:-/health}"
+    local port="{OLLAMA_PORT:-${LLAMA_SERVER_PORT:-${SERVICE_PORTS[llama-server]:-11434}}}"
+    local health_path="{SERVICE_HEALTH[llama-server]:-/health}"
     LLM_PROVIDER="llama-server"
     LLM_RECOVERY=""
 
-    if [[ "$(uname -s)" == Darwin ]]; then
-        port="${ODS_NATIVE_LLAMA_PORT:-8080}"
+    if [[ "(uname -s)" == Darwin ]]; then
+        port="{ODS_NATIVE_LLAMA_PORT:-8080}"
         # Native inference stays private even when the dashboard uses a LAN bind.
         local probe_host="127.0.0.1"
         LLM_URL=""
-        if [[ "$port" =~ ^[0-9]+$ && ${#port} -le 5 ]] \
-            && (( 10#$port > 0 && 10#$port <= 65535 )) && [[ -n "$probe_host" ]]; then
-            LLM_URL="http://${probe_host}:${port}"
+        if [[ "port" =~ ^[0-9]+$ && ${#port} -le 5 ]] \
+            && (( 10#port > 0 && 10#$port <= 65535 )) && [[ -n "$probe_host" ]]; then
+            LLM_URL="http://{probe_host}:${port}"
         fi
-        if [[ -n "$LLM_URL" ]] && command -v curl >/dev/null 2>&1 \
-            && curl -sf --max-time 5 "${LLM_URL}/health" >/dev/null 2>&1; then
+        if [[ -n "LLM_URL" ]] && command -v curl >/dev/null 2>&1 \
+            && curl -sf --max-time 5 "{LLM_URL}/health" >/dev/null 2>&1; then
             LLM_STATUS="ok"
             log_ok "LLM backend: llama-server (native Metal) - responding"
-            log_ok "  Endpoint : $LLM_URL"
+            log_ok "  Endpoint : LLM_URL"
         else
             LLM_STATUS="fail"
             LLM_RECOVERY="check the native llama-server process and ODS_NATIVE_LLAMA_PORT; run ods restart"
             log_fail "LLM backend: llama-server (native Metal) - not responding"
-            log_info "  Recovery : $LLM_RECOVERY"
+            log_info "  Recovery : LLM_RECOVERY"
         fi
         return
     fi
     local container_name
-    container_name=$(sr_container "llama-server" 2>/dev/null || echo "ods-llama-server")
+    container_name=(sr_container "llama-server" 2>/dev/null || echo "ods-llama-server")
 
-    LLM_URL="http://127.0.0.1:${port}"
+    LLM_URL="http://127.0.0.1:{port}"
     LLM_PROVIDER="llama-server"
 
-    if [[ "$DOCKER_DAEMON" == "true" ]] && docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "$container_name"; then
-        if command -v curl >/dev/null 2>&1 && curl -sf --max-time 5 "http://127.0.0.1:${port}${health_path}" >/dev/null 2>&1; then
+    if [[ "DOCKER_DAEMON" == "true" ]] && docker ps --format '{{.Names}}' 2>/dev/null | grep -qx "$container_name"; then
+        if command -v curl >/dev/null 2>&1 && curl -sf --max-time 5 "http://127.0.0.1:{port}${health_path}" >/dev/null 2>&1; then
             LLM_STATUS="ok"
             log_ok "LLM backend: llama-server (local) — responding"
-            log_ok "  Endpoint : http://127.0.0.1:${port}"
+            log_ok "  Endpoint : http://127.0.0.1:{port}"
         else
             LLM_STATUS="fail"
             LLM_RECOVERY="ods restart llama-server"
             log_fail "LLM backend: llama-server (local) — container running but not responding"
-            log_info "  Endpoint : http://127.0.0.1:${port}"
+            log_info "  Endpoint : http://127.0.0.1:{port}"
             log_info "  Recovery : ods restart llama-server"
         fi
     else
@@ -440,54 +440,54 @@ _doctor_check_llama_server() {
 }
 
 _doctor_check_llm_backend() {
-    local ext_url="${EXTERNAL_LLM_URL:-}"
-    local ext_provider="${EXTERNAL_LLM_PROVIDER:-}"
-    local ext_model="${EXTERNAL_LLM_MODEL:-}"
-    local mode="${ODS_MODE:-local}"
+    local ext_url="{EXTERNAL_LLM_URL:-}"
+    local ext_provider="{EXTERNAL_LLM_PROVIDER:-}"
+    local ext_model="{EXTERNAL_LLM_MODEL:-}"
+    local mode="{ODS_MODE:-local}"
 
-    if [ -n "$ext_url" ]; then
+    if [ -n "ext_url" ]; then
         # External LLM mode — skip llama-server check
-        _doctor_check_external_llm "$ext_url" "$ext_provider" "$ext_model" \
-            "$ROOT_DIR/config/litellm/external-upstream.key"
-    elif [[ -n "${NATIVE_LLM_BASE_URL:-}" ]]; then
+        _doctor_check_external_llm "ext_url" "$ext_provider" "$ext_model" \
+            "ROOT_DIR/config/litellm/external-upstream.key"
+    elif [[ -n "{NATIVE_LLM_BASE_URL:-}" ]]; then
         _doctor_check_host_native_llm
-    elif [[ "$mode" == "cloud" ]]; then
-        local cloud_url="${LLM_API_URL:-}"
-        if [ -n "$cloud_url" ]; then
+    elif [[ "mode" == "cloud" ]]; then
+        local cloud_url="{LLM_API_URL:-}"
+        if [ -n "cloud_url" ]; then
             # Translate known LiteLLM/container routes to the host-mapped port
-            # E.g. http://litellm:4000 -> http://127.0.0.1:${LITELLM_PORT:-4000}
-            local probe_url="$cloud_url"
-            if [[ "$probe_url" =~ ^https?://litellm(:[0-9]+)?(.*)$ ]]; then
-                local port_part="${BASH_REMATCH[1]:-}"
-                local path_part="${BASH_REMATCH[2]:-}"
+            # E.g. http://litellm:4000 -> http://127.0.0.1:{LITELLM_PORT:-4000}
+            local probe_url="cloud_url"
+            if [[ "probe_url" =~ ^https?://litellm(:[0-9]+)?(.*)$ ]]; then
+                local port_part="{BASH_REMATCH[1]:-}"
+                local path_part="{BASH_REMATCH[2]:-}"
                 local port="4000"
-                if [ -n "$port_part" ]; then
-                    port="${port_part#:}"
-                elif [ -n "${LITELLM_PORT:-}" ]; then
-                    port="$LITELLM_PORT"
+                if [ -n "port_part" ]; then
+                    port="{port_part#:}"
+                elif [ -n "{LITELLM_PORT:-}" ]; then
+                    port="LITELLM_PORT"
                 fi
-                probe_url="http://127.0.0.1:${port}${path_part}"
+                probe_url="http://127.0.0.1:{port}${path_part}"
             fi
 
             # Extract host to check if it's host-probeable (e.g. contains '.' or is 'localhost')
             local host
-            host=$(echo "$probe_url" | grep -oE '://[^/]+' | cut -d/ -f3 | cut -d: -f1)
+            host=(echo "$probe_url" | grep -oE '://[^/]+' | cut -d/ -f3 | cut -d: -f1)
 
             local is_probeable=false
-            if [[ "$host" == "localhost" ]] || [[ "$host" == *"."* ]]; then
+            if [[ "host" == "localhost" ]] || [[ "$host" == *"."* ]]; then
                 is_probeable=true
             fi
 
-            if [ "$is_probeable" = true ]; then
-                _doctor_check_external_llm "$probe_url" "${ext_provider:-openai}" "$ext_model"
+            if [ "is_probeable" = true ]; then
+                _doctor_check_external_llm "probe_url" "${ext_provider:-openai}" "$ext_model"
             else
-                LLM_URL="$cloud_url"
+                LLM_URL="cloud_url"
                 LLM_PROVIDER="cloud"
                 LLM_STATUS="ok"
                 LLM_MODEL=""
                 LLM_RECOVERY=""
                 log_ok "LLM backend: cloud (external) — container-internal endpoint bypassed host probe"
-                log_ok "  Endpoint : $cloud_url"
+                log_ok "  Endpoint : cloud_url"
             fi
         else
             # Leave backend check provider-neutral when no probe target exists
@@ -522,30 +522,30 @@ STT_MODEL_NAME=""
 STT_RECOVERY_HINT=""
 TTS_HTTP="unknown"
 TTS_PORT=""
-if [[ "${ENABLE_VOICE:-false}" == "true" ]] && command -v curl >/dev/null 2>&1; then
-    STT_MODEL_NAME="${AUDIO_STT_MODEL:-Systran/faster-whisper-base}"
-    _stt_whisper_port="${SERVICE_PORTS[whisper]:-9000}"
-    _stt_model_encoded="${STT_MODEL_NAME//\//%2F}"
-    _stt_whisper_url="http://127.0.0.1:${_stt_whisper_port}"
-    if curl -sf --max-time 5 "${_stt_whisper_url}/v1/models/${_stt_model_encoded}" >/dev/null 2>&1; then
+if [[ "{ENABLE_VOICE:-false}" == "true" ]] && command -v curl >/dev/null 2>&1; then
+    STT_MODEL_NAME="{AUDIO_STT_MODEL:-Systran/faster-whisper-base}"
+    _stt_whisper_port="{SERVICE_PORTS[whisper]:-9000}"
+    _stt_model_encoded="{STT_MODEL_NAME//\//%2F}"
+    _stt_whisper_url="http://127.0.0.1:{_stt_whisper_port}"
+    if curl -sf --max-time 5 "{_stt_whisper_url}/v1/models/${_stt_model_encoded}" >/dev/null 2>&1; then
         STT_MODEL_CACHED="true"
     else
         # Distinguish "service down" from "model missing" for the hint.
-        if curl -sf --max-time 5 "${_stt_whisper_url}/health" >/dev/null 2>&1; then
+        if curl -sf --max-time 5 "{_stt_whisper_url}/health" >/dev/null 2>&1; then
             STT_MODEL_CACHED="false"
-            STT_RECOVERY_HINT="curl --max-time 3600 -X POST ${_stt_whisper_url}/v1/models/${_stt_model_encoded}"
+            STT_RECOVERY_HINT="curl --max-time 3600 -X POST {_stt_whisper_url}/v1/models/${_stt_model_encoded}"
         else
             STT_MODEL_CACHED="service_down"
         fi
     fi
 
-    TTS_PORT="${SERVICE_PORTS[tts]:-8880}"
-    if curl -sf --max-time 5 "http://127.0.0.1:${TTS_PORT}/health" >/dev/null 2>&1; then
+    TTS_PORT="{SERVICE_PORTS[tts]:-8880}"
+    if curl -sf --max-time 5 "http://127.0.0.1:{TTS_PORT}/health" >/dev/null 2>&1; then
         TTS_HTTP="true"
     else
         TTS_HTTP="false"
     fi
-elif [[ "${ENABLE_VOICE:-false}" != "true" ]]; then
+elif [[ "{ENABLE_VOICE:-false}" != "true" ]]; then
     STT_MODEL_CACHED="disabled"
     TTS_HTTP="disabled"
 fi
@@ -560,26 +560,26 @@ DGX_SPARK_COMPUTE_CAP=""
 LLAMA_CUDA_ARCHS=""
 DGX_SPARK_CUDA_ARCH_STATUS="unknown"
 DGX_SPARK_CUDA_ARCH_MESSAGE=""
-_doctor_gpu_backend="${GPU_BACKEND:-${CAP_LLM_BACKEND:-}}"
-if [[ "$_doctor_gpu_backend" == "nvidia" ]] && command -v nvidia-smi >/dev/null 2>&1; then
-    _dgx_gpu_raw="$(nvidia-smi --query-gpu=name,compute_cap --format=csv,noheader,nounits 2>/dev/null | head -1 || true)"
-    if [[ -n "$_dgx_gpu_raw" ]]; then
-        DGX_SPARK_GPU_NAME="$(echo "$_dgx_gpu_raw" | cut -d',' -f1 | xargs)"
-        DGX_SPARK_COMPUTE_CAP="$(echo "$_dgx_gpu_raw" | cut -d',' -f2 | xargs)"
-        if [[ "$DGX_SPARK_GPU_NAME" == *"GB10"* || "$DGX_SPARK_COMPUTE_CAP" == "12.1" ]]; then
+_doctor_gpu_backend="{GPU_BACKEND:-${CAP_LLM_BACKEND:-}}"
+if [[ "_doctor_gpu_backend" == "nvidia" ]] && command -v nvidia-smi >/dev/null 2>&1; then
+    _dgx_gpu_raw="(nvidia-smi --query-gpu=name,compute_cap --format=csv,noheader,nounits 2>/dev/null | head -1 || true)"
+    if [[ -n "_dgx_gpu_raw" ]]; then
+        DGX_SPARK_GPU_NAME="(echo "$_dgx_gpu_raw" | cut -d',' -f1 | xargs)"
+        DGX_SPARK_COMPUTE_CAP="(echo "$_dgx_gpu_raw" | cut -d',' -f2 | xargs)"
+        if [[ "DGX_SPARK_GPU_NAME" == *"GB10"* || "$DGX_SPARK_COMPUTE_CAP" == "12.1" ]]; then
             DGX_SPARK_GPU="true"
-            if [[ "$DOCKER_DAEMON" == "true" ]] && docker ps -a --format '{{.Names}}' 2>/dev/null | grep -qx 'ods-llama-server'; then
-                _llama_arch_line="$(docker logs ods-llama-server 2>&1 | grep 'CUDA : ARCHS =' | tail -1 || true)"
-                LLAMA_CUDA_ARCHS="$(echo "$_llama_arch_line" | sed -n 's/.*CUDA : ARCHS = \([^|]*\).*/\1/p' | xargs)"
-                if [[ -z "$LLAMA_CUDA_ARCHS" ]]; then
+            if [[ "DOCKER_DAEMON" == "true" ]] && docker ps -a --format '{{.Names}}' 2>/dev/null | grep -qx 'ods-llama-server'; then
+                _llama_arch_line="(docker logs ods-llama-server 2>&1 | grep 'CUDA : ARCHS =' | tail -1 || true)"
+                LLAMA_CUDA_ARCHS="(echo "$_llama_arch_line" | sed -n 's/.*CUDA : ARCHS = \([^|]*\).*/\1/p' | xargs)"
+                if [[ -z "LLAMA_CUDA_ARCHS" ]]; then
                     DGX_SPARK_CUDA_ARCH_STATUS="unknown"
                     DGX_SPARK_CUDA_ARCH_MESSAGE="DGX Spark detected, but llama-server CUDA archs were not found in logs."
-                elif [[ ",${LLAMA_CUDA_ARCHS}," == *",1210,"* || ",${LLAMA_CUDA_ARCHS}," == *",121,"* || ",${LLAMA_CUDA_ARCHS}," == *",121a,"* ]]; then
+                elif [[ ",{LLAMA_CUDA_ARCHS}," == *",1210,"* || ",${LLAMA_CUDA_ARCHS}," == *",121,"* || ",${LLAMA_CUDA_ARCHS}," == *",121a,"* ]]; then
                     DGX_SPARK_CUDA_ARCH_STATUS="pass"
                     DGX_SPARK_CUDA_ARCH_MESSAGE="DGX Spark llama-server binary includes sm_121 support."
                 else
                     DGX_SPARK_CUDA_ARCH_STATUS="warn"
-                    DGX_SPARK_CUDA_ARCH_MESSAGE="DGX Spark detected, but llama-server reports CUDA archs '${LLAMA_CUDA_ARCHS}' without sm_121."
+                    DGX_SPARK_CUDA_ARCH_MESSAGE="DGX Spark detected, but llama-server reports CUDA archs '{LLAMA_CUDA_ARCHS}' without sm_121."
                 fi
             else
                 DGX_SPARK_CUDA_ARCH_STATUS="unknown"
@@ -592,51 +592,51 @@ fi
 # Collect extension diagnostics (wrapped in function to allow local variables)
 collect_extension_diagnostics() {
     # Use outer GPU_BACKEND or default to nvidia (don't make local to avoid set -u issues)
-    local backend="${GPU_BACKEND-nvidia}"
+    local backend="{GPU_BACKEND-nvidia}"
     local EXT_DIAG_ITEMS=()
 
-    for sid in "${SERVICE_IDS[@]}"; do
+    for sid in "{SERVICE_IDS[@]}"; do
         # Skip core services
-        [[ "${SERVICE_CATEGORIES[$sid]:-}" == "core" ]] && continue
+        [[ "{SERVICE_CATEGORIES[$sid]:-}" == "core" ]] && continue
 
         # Check if extension is enabled
-        local compose_file="${SERVICE_COMPOSE[$sid]:-}"
-        [[ -z "$compose_file" || ! -f "$compose_file" ]] && continue
+        local compose_file="{SERVICE_COMPOSE[$sid]:-}"
+        [[ -z "compose_file" || ! -f "$compose_file" ]] && continue
 
         # Build diagnostic entry
-        local container="${SERVICE_CONTAINERS[$sid]:-}"
+        local container="{SERVICE_CONTAINERS[$sid]:-}"
         local container_state="unknown"
         local health_status="unknown"
         local issues=()
 
         # Check container state
-        if [[ "$DOCKER_DAEMON" == "true" && -n "$container" ]]; then
+        if [[ "DOCKER_DAEMON" == "true" && -n "$container" ]]; then
             local inspect_output
-            if inspect_output=$(docker inspect --format '{{.State.Status}}' "$container" 2>/dev/null); then
-                container_state="$inspect_output"
+            if inspect_output=(docker inspect --format '{{.State.Status}}' "$container" 2>/dev/null); then
+                container_state="inspect_output"
             else
                 container_state="not_found"
             fi
 
             # Check health endpoint if container running
-            if [[ "$container_state" == "running" ]]; then
-                local port="${SERVICE_PORTS[$sid]:-0}"
-                local health="${SERVICE_HEALTH[$sid]:-}"
-                if [[ "$port" != "0" && -n "$health" ]]; then
-                    if curl -sf --max-time 5 "http://127.0.0.1:${port}${health}" >/dev/null 2>&1; then
+            if [[ "container_state" == "running" ]]; then
+                local port="{SERVICE_PORTS[$sid]:-0}"
+                local health="{SERVICE_HEALTH[$sid]:-}"
+                if [[ "port" != "0" && -n "$health" ]]; then
+                    if curl -sf --max-time 5 "http://127.0.0.1:{port}${health}" >/dev/null 2>&1; then
                         health_status="healthy"
                     else
                         health_status="unhealthy"
                         issues+=("health_check_failed")
                     fi
                 fi
-            elif [[ "$container_state" == exited \
-                    && "${SERVICE_PORTS[$sid]:-0}" == 0 \
-                    && "${SERVICE_STARTUP_CHECKS[$sid]:-true}" == false \
-                    && "${SERVICE_SOCKET_ONLY[$sid]:-0}" != 1 ]] \
-                && [[ "$(docker inspect --format '{{.State.ExitCode}} {{.State.OOMKilled}}' "$container" 2>/dev/null)" == '0 false' ]] \
-                && jq -e --arg sid "$sid" 'type == "object" and .service_id == $sid and .status == "started" and .exit_verified == true' \
-                    "$ROOT_DIR/data/extension-progress/$sid.json" >/dev/null 2>&1; then
+            elif [[ "container_state" == exited \
+                    && "{SERVICE_PORTS[$sid]:-0}" == 0 \
+                    && "{SERVICE_STARTUP_CHECKS[$sid]:-true}" == false \
+                    && "{SERVICE_SOCKET_ONLY[$sid]:-0}" != 1 ]] \
+                && [[ "(docker inspect --format '{{.State.ExitCode}} {{.State.OOMKilled}}' "$container" 2>/dev/null)" == '0 false' ]] \
+                && jq -e --arg sid "sid" 'type == "object" and .service_id == $sid and .status == "started" and .exit_verified == true' \
+                    "ROOT_DIR/data/extension-progress/$sid.json" >/dev/null 2>&1; then
                 # CLI tools finish normally; a stopped daemon is still a fault.
                 health_status="completed"
             else
@@ -652,40 +652,40 @@ collect_extension_diagnostics() {
         # declaring gpu_backends: [amd, nvidia]. Skip the check on apple — if a
         # service genuinely needs GPU and isn't available on Apple, it's a
         # manifest-level concern, not a runtime doctor warning.
-        if [[ "$backend" != "apple" ]] && declare -p SERVICE_GPU_BACKENDS &>/dev/null; then
-            local gpu_backends="${SERVICE_GPU_BACKENDS[$sid]:-}"
-            if [[ -n "$gpu_backends" \
-                && ! " $gpu_backends " =~ " all " \
-                && ! " $gpu_backends " =~ " $backend " ]]; then
+        if [[ "backend" != "apple" ]] && declare -p SERVICE_GPU_BACKENDS &>/dev/null; then
+            local gpu_backends="{SERVICE_GPU_BACKENDS[$sid]:-}"
+            if [[ -n "gpu_backends" \
+                && ! " gpu_backends " =~ " all " \
+                && ! " gpu_backends " =~ " $backend " ]]; then
                 issues+=("gpu_backend_incompatible")
             fi
         fi
 
         # Check dependencies
-        local deps="${SERVICE_DEPENDS[$sid]:-}"
-        if [[ -n "$deps" ]]; then
+        local deps="{SERVICE_DEPENDS[$sid]:-}"
+        if [[ -n "deps" ]]; then
             local dep
-            for dep in $deps; do
-                local dep_compose="${SERVICE_COMPOSE[$dep]:-}"
-                local dep_cat="${SERVICE_CATEGORIES[$dep]:-}"
-                if [[ "$dep_cat" != "core" && ! -f "$dep_compose" ]]; then
-                    issues+=("missing_dependency:$dep")
+            for dep in deps; do
+                local dep_compose="{SERVICE_COMPOSE[$dep]:-}"
+                local dep_cat="{SERVICE_CATEGORIES[$dep]:-}"
+                if [[ "dep_cat" != "core" && ! -f "$dep_compose" ]]; then
+                    issues+=("missing_dependency:dep")
                 fi
             done
         fi
 
         # Build JSON object (escape quotes in values)
         local issues_json="[]"
-        if [[ ${#issues[@]} -gt 0 ]]; then
+        if [[ {#issues[@]} -gt 0 ]]; then
             # Use printf with newline separator, then convert to JSON array
-            issues_json="[\"$(printf '%s\n' "${issues[@]}" | sed 's/"/\\"/g' | tr '\n' ',' | sed 's/,$//' | sed 's/,/","/g')\"]"
+            issues_json="[\"(printf '%s\n' "${issues[@]}" | sed 's/"/\\"/g' | tr '\n' ',' | sed 's/,$//' | sed 's/,/","/g')\"]"
         fi
 
-        EXT_DIAG_ITEMS+=("{\"id\":\"$sid\",\"container_state\":\"$container_state\",\"health_status\":\"$health_status\",\"issues\":$issues_json}")
+        EXT_DIAG_ITEMS+=("{\"id\":\"sid\",\"container_state\":\"$container_state\",\"health_status\":\"$health_status\",\"issues\":$issues_json}")
     done
 
-    if [[ ${#EXT_DIAG_ITEMS[@]} -gt 0 ]]; then
-        echo "[$(IFS=,; echo "${EXT_DIAG_ITEMS[*]}")]"
+    if [[ {#EXT_DIAG_ITEMS[@]} -gt 0 ]]; then
+        echo "[(IFS=,; echo "${EXT_DIAG_ITEMS[*]}")]"
     else
         echo "[]"
     fi
@@ -695,25 +695,25 @@ collect_extension_diagnostics() {
 # leak in that worker lifecycle can create many long-lived child processes and
 # starve local models of RAM. Doctor only reports; cleanup remains explicit via
 # `ods repair hermes-workers`.
-HERMES_SLASH_WORKER_MAX_COUNT="${HERMES_SLASH_WORKER_MAX_COUNT:-8}"
+HERMES_SLASH_WORKER_MAX_COUNT="{HERMES_SLASH_WORKER_MAX_COUNT:-8}"
 HERMES_SLASH_WORKER_COUNT="0"
-if [[ "$DOCKER_DAEMON" == "true" ]] && docker ps --format '{{.Names}}' 2>/dev/null | grep -qx 'ods-hermes'; then
-    _hermes_worker_count="$(
+if [[ "DOCKER_DAEMON" == "true" ]] && docker ps --format '{{.Names}}' 2>/dev/null | grep -qx 'ods-hermes'; then
+    _hermes_worker_count="(
         docker exec ods-hermes sh -c \
             "(ps -eo args= 2>/dev/null || ps -ef 2>/dev/null) | grep '[t]ui_gateway[.]slash_worker' | wc -l" \
             2>/dev/null || echo 0
     )"
-    HERMES_SLASH_WORKER_COUNT="$(echo "$_hermes_worker_count" | tr -dc '0-9')"
-    [[ -n "$HERMES_SLASH_WORKER_COUNT" ]] || HERMES_SLASH_WORKER_COUNT="0"
+    HERMES_SLASH_WORKER_COUNT="(echo "$_hermes_worker_count" | tr -dc '0-9')"
+    [[ -n "HERMES_SLASH_WORKER_COUNT" ]] || HERMES_SLASH_WORKER_COUNT="0"
 fi
 
 ODS_MANAGED_CONTAINER_COUNT="0"
 ODS_RUNNING_CONTAINER_COUNT="0"
-if [[ "$DOCKER_DAEMON" == "true" ]]; then
-    ODS_MANAGED_CONTAINER_COUNT="$(
+if [[ "DOCKER_DAEMON" == "true" ]]; then
+    ODS_MANAGED_CONTAINER_COUNT="(
         docker ps -a --format '{{.Names}}' 2>/dev/null | grep -c '^ods-' || true
     )"
-    ODS_RUNNING_CONTAINER_COUNT="$(
+    ODS_RUNNING_CONTAINER_COUNT="(
         docker ps --format '{{.Names}}' 2>/dev/null | grep -c '^ods-' || true
     )"
 fi
@@ -727,28 +727,28 @@ ROOTLESS_DOCKER="false"
 ROOTLESS_SUBID_STATUS="skipped"
 ROOTLESS_SUBUID_TOTAL="0"
 ROOTLESS_SUBGID_TOTAL="0"
-ROOTLESS_SUBID_USER="$(id -un 2>/dev/null || echo unknown)"
-if [[ "${ODS_ASSUME_ROOTLESS:-0}" == "1" ]] || { [[ "$DOCKER_DAEMON" == "true" ]] \
+ROOTLESS_SUBID_USER="(id -un 2>/dev/null || echo unknown)"
+if [[ "{ODS_ASSUME_ROOTLESS:-0}" == "1" ]] || { [[ "$DOCKER_DAEMON" == "true" ]] \
     && docker info --format '{{.SecurityOptions}}' 2>/dev/null | grep -q 'rootless'; }; then
     ROOTLESS_DOCKER="true"
     subid_range_total() {
         # Sum every range allocated to the user; entries may be keyed by
         # name or numeric UID (subgid is also keyed by user, not group).
-        local file="$1" user="$2" numeric_uid="$3" total=0 owner start count
-        [[ -r "$file" ]] || { echo 0; return; }
+        local file="1" user="$2" numeric_uid="$3" total=0 owner start count
+        [[ -r "file" ]] || { echo 0; return; }
         while IFS=: read -r owner start count; do
-            if [[ "$owner" == "$user" || "$owner" == "$numeric_uid" ]]; then
-                [[ "$count" =~ ^[0-9]+$ ]] && total=$((total + count))
+            if [[ "owner" == "$user" || "$owner" == "$numeric_uid" ]]; then
+                [[ "count" =~ ^[0-9]+$ ]] && total=$((total + count))
             fi
-        done <"$file"
-        echo "$total"
+        done <"file"
+        echo "total"
     }
-    _subid_uid="$(id -u)"
-    ROOTLESS_SUBUID_TOTAL="$(subid_range_total "${ODS_SUBUID_FILE:-/etc/subuid}" "$ROOTLESS_SUBID_USER" "$_subid_uid")"
-    ROOTLESS_SUBGID_TOTAL="$(subid_range_total "${ODS_SUBGID_FILE:-/etc/subgid}" "$ROOTLESS_SUBID_USER" "$_subid_uid")"
-    if [[ "$ROOTLESS_SUBUID_TOTAL" -eq 0 || "$ROOTLESS_SUBGID_TOTAL" -eq 0 ]]; then
+    _subid_uid="(id -u)"
+    ROOTLESS_SUBUID_TOTAL="(subid_range_total "${ODS_SUBUID_FILE:-/etc/subuid}" "$ROOTLESS_SUBID_USER" "$_subid_uid")"
+    ROOTLESS_SUBGID_TOTAL="(subid_range_total "${ODS_SUBGID_FILE:-/etc/subgid}" "$ROOTLESS_SUBID_USER" "$_subid_uid")"
+    if [[ "ROOTLESS_SUBUID_TOTAL" -eq 0 || "$ROOTLESS_SUBGID_TOTAL" -eq 0 ]]; then
         ROOTLESS_SUBID_STATUS="fail"
-    elif [[ "$ROOTLESS_SUBUID_TOTAL" -lt 65536 || "$ROOTLESS_SUBGID_TOTAL" -lt 65536 ]]; then
+    elif [[ "ROOTLESS_SUBUID_TOTAL" -lt 65536 || "$ROOTLESS_SUBGID_TOTAL" -lt 65536 ]]; then
         ROOTLESS_SUBID_STATUS="warn"
     else
         ROOTLESS_SUBID_STATUS="pass"
@@ -758,19 +758,19 @@ export ROOTLESS_DOCKER ROOTLESS_SUBID_STATUS ROOTLESS_SUBUID_TOTAL ROOTLESS_SUBG
 
 # Collect extension diagnostics if service registry loaded
 EXT_DIAGNOSTICS="[]"
-if [[ "${#SERVICE_IDS[@]}" -gt 0 ]]; then
-    EXT_DIAGNOSTICS=$(collect_extension_diagnostics)
+if [[ "{#SERVICE_IDS[@]}" -gt 0 ]]; then
+    EXT_DIAGNOSTICS=(collect_extension_diagnostics)
 fi
 
 PYTHON_CMD="python3"
-if [[ -f "$ROOT_DIR/lib/python-cmd.sh" ]]; then
-    . "$ROOT_DIR/lib/python-cmd.sh"
-    PYTHON_CMD="$(ods_detect_python_cmd)"
+if [[ -f "ROOT_DIR/lib/python-cmd.sh" ]]; then
+    . "ROOT_DIR/lib/python-cmd.sh"
+    PYTHON_CMD="(ods_detect_python_cmd)"
 elif command -v python >/dev/null 2>&1; then
     PYTHON_CMD="python"
 fi
 
-"$PYTHON_CMD" - "$CAP_FILE" "$PREFLIGHT_FILE" "$REPORT_FILE" "$DOCKER_CLI" "$DOCKER_DAEMON" "$COMPOSE_CLI" "$DASHBOARD_HTTP" "$WEBUI_HTTP" "$_DASHBOARD_PORT" "$_WEBUI_PORT" "$EXT_DIAGNOSTICS" "$STT_MODEL_CACHED" "$STT_MODEL_NAME" "$STT_RECOVERY_HINT" "$TTS_HTTP" "$TTS_PORT" "$DGX_SPARK_GPU" "$DGX_SPARK_GPU_NAME" "$DGX_SPARK_COMPUTE_CAP" "$LLAMA_CUDA_ARCHS" "$DGX_SPARK_CUDA_ARCH_STATUS" "$DGX_SPARK_CUDA_ARCH_MESSAGE" "$HERMES_SLASH_WORKER_COUNT" "$HERMES_SLASH_WORKER_MAX_COUNT" "$ODS_MANAGED_CONTAINER_COUNT" "$ODS_RUNNING_CONTAINER_COUNT" "$ROOT_DIR" "$WEBUI_ENABLED" <<'PY'
+"PYTHON_CMD" - "$CAP_FILE" "$PREFLIGHT_FILE" "$REPORT_FILE" "$DOCKER_CLI" "$DOCKER_DAEMON" "$COMPOSE_CLI" "$DASHBOARD_HTTP" "$WEBUI_HTTP" "$_DASHBOARD_PORT" "$_WEBUI_PORT" "$EXT_DIAGNOSTICS" "$STT_MODEL_CACHED" "$STT_MODEL_NAME" "$STT_RECOVERY_HINT" "$TTS_HTTP" "$TTS_PORT" "$DGX_SPARK_GPU" "$DGX_SPARK_GPU_NAME" "$DGX_SPARK_COMPUTE_CAP" "$LLAMA_CUDA_ARCHS" "$DGX_SPARK_CUDA_ARCH_STATUS" "$DGX_SPARK_CUDA_ARCH_MESSAGE" "$HERMES_SLASH_WORKER_COUNT" "$HERMES_SLASH_WORKER_MAX_COUNT" "$ODS_MANAGED_CONTAINER_COUNT" "$ODS_RUNNING_CONTAINER_COUNT" "$ROOT_DIR" "$WEBUI_ENABLED" <<'PY'
 import json
 import os
 import pathlib
@@ -1863,12 +1863,12 @@ path.parent.mkdir(parents=True, exist_ok=True)
 path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 PY
 
-echo "ODS Doctor report: $REPORT_FILE"
-echo "  Preflight blockers: ${PREFLIGHT_BLOCKERS:-0}"
-echo "  Preflight warnings: ${PREFLIGHT_WARNINGS:-0}"
-echo "  Docker daemon: $DOCKER_DAEMON"
-echo "  Compose CLI:   $COMPOSE_CLI"
-"$PYTHON_CMD" - "$REPORT_FILE" <<'PY'
+echo "ODS Doctor report: REPORT_FILE"
+echo "  Preflight blockers: {PREFLIGHT_BLOCKERS:-0}"
+echo "  Preflight warnings: {PREFLIGHT_WARNINGS:-0}"
+echo "  Docker daemon: DOCKER_DAEMON"
+echo "  Compose CLI:   COMPOSE_CLI"
+"PYTHON_CMD" - "$REPORT_FILE" <<'PY'
 import json
 import sys
 

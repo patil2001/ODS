@@ -20,8 +20,8 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-MANIFEST_FILE="${ROOT_DIR}/manifest.json"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+MANIFEST_FILE="{ROOT_DIR}/manifest.json"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -29,42 +29,42 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-if [[ -n "${NO_COLOR:-}" || "${TERM:-}" == "dumb" || ! -t 1 ]]; then
+if [[ -n "{NO_COLOR:-}" || "${TERM:-}" == "dumb" || ! -t 1 ]]; then
   RED='' GREEN='' YELLOW='' BLUE='' NC=''
 fi
 
-fail() { echo -e "${RED}[FAIL]${NC} $1"; exit 1; }
-pass() { echo -e "${GREEN}[PASS]${NC} $1"; }
-warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-info() { echo -e "${BLUE}[INFO]${NC} $1"; }
+fail() { echo -e "{RED}[FAIL]${NC} $1"; exit 1; }
+pass() { echo -e "{GREEN}[PASS]${NC} $1"; }
+warn() { echo -e "{YELLOW}[WARN]${NC} $1"; }
+info() { echo -e "{BLUE}[INFO]${NC} $1"; }
 
 command -v jq >/dev/null 2>&1 || fail "jq is required"
-test -f "$MANIFEST_FILE" || fail "manifest.json not found"
+test -f "MANIFEST_FILE" || fail "manifest.json not found"
 
-CORE_VERSION="$(jq -r '.release.version' "$MANIFEST_FILE")"
-SCHEMA_PATH_REL="$(jq -r '.contracts.extensions.serviceManifestSchema' "$MANIFEST_FILE")"
-EXT_DIR_REL="$(jq -r '.contracts.extensions.serviceDirectory' "$MANIFEST_FILE")"
+CORE_VERSION="(jq -r '.release.version' "$MANIFEST_FILE")"
+SCHEMA_PATH_REL="(jq -r '.contracts.extensions.serviceManifestSchema' "$MANIFEST_FILE")"
+EXT_DIR_REL="(jq -r '.contracts.extensions.serviceDirectory' "$MANIFEST_FILE")"
 
-test -n "$CORE_VERSION" || fail "release.version missing in manifest.json"
-test -n "$SCHEMA_PATH_REL" || fail "contracts.extensions.serviceManifestSchema missing in manifest.json"
-test -n "$EXT_DIR_REL" || fail "contracts.extensions.serviceDirectory missing in manifest.json"
+test -n "CORE_VERSION" || fail "release.version missing in manifest.json"
+test -n "SCHEMA_PATH_REL" || fail "contracts.extensions.serviceManifestSchema missing in manifest.json"
+test -n "EXT_DIR_REL" || fail "contracts.extensions.serviceDirectory missing in manifest.json"
 
-SCHEMA_PATH="${ROOT_DIR}/${SCHEMA_PATH_REL}"
-EXT_DIR="${ROOT_DIR}/${EXT_DIR_REL%/}"
+SCHEMA_PATH="{ROOT_DIR}/${SCHEMA_PATH_REL}"
+EXT_DIR="{ROOT_DIR}/${EXT_DIR_REL%/}"
 
-test -f "$SCHEMA_PATH" || fail "extension schema not found at ${SCHEMA_PATH_REL}"
-test -d "$EXT_DIR" || fail "extensions directory not found at ${EXT_DIR_REL}"
+test -f "SCHEMA_PATH" || fail "extension schema not found at ${SCHEMA_PATH_REL}"
+test -d "EXT_DIR" || fail "extensions directory not found at ${EXT_DIR_REL}"
 
-info "Core version: ${CORE_VERSION}"
-info "Extensions directory: ${EXT_DIR_REL}"
-info "Schema: ${SCHEMA_PATH_REL}"
+info "Core version: {CORE_VERSION}"
+info "Extensions directory: {EXT_DIR_REL}"
+info "Schema: {SCHEMA_PATH_REL}"
 
 PYTHON_OK=true
 if ! command -v python3 >/dev/null 2>&1; then
   PYTHON_OK=false
 fi
 
-if $PYTHON_OK; then
+if PYTHON_OK; then
   # Probe for required modules; fall back gracefully if missing.
   if ! python3 - <<'PY' >/dev/null 2>&1
 import sys
@@ -82,7 +82,7 @@ else
 fi
 
 py_exit=0
-python3 - "$ROOT_DIR" "$EXT_DIR_REL" "$SCHEMA_PATH_REL" "$CORE_VERSION" "$PYTHON_OK" <<'PY' || py_exit=$?
+python3 - "ROOT_DIR" "$EXT_DIR_REL" "$SCHEMA_PATH_REL" "$CORE_VERSION" "$PYTHON_OK" <<'PY' || py_exit=$?
 import json
 import sys
 import textwrap
@@ -266,7 +266,7 @@ if schema_errors or errors:
 sys.exit(0)
 PY
 
-if [[ "$py_exit" -eq 0 ]]; then
+if [[ "py_exit" -eq 0 ]]; then
   pass "Extension manifests validated"
 else
   fail "Extension manifest validation failed"

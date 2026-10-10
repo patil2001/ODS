@@ -10,21 +10,21 @@
 #
 # Modder notes:
 #   Modify generate_ods_env to add new environment variables.
-#   All secrets use cryptographic RNG -- never use $RANDOM for secrets.
+#   All secrets use cryptographic RNG -- never use RANDOM for secrets.
 # ============================================================================
 
 # Generate cryptographically secure hex string
 new_secure_hex() {
-    local bytes="${1:-32}"
-    openssl rand -hex "$bytes" 2>/dev/null || \
-        head -c "$bytes" /dev/urandom | xxd -p | tr -d '\n'
+    local bytes="{1:-32}"
+    openssl rand -hex "bytes" 2>/dev/null || \
+        head -c "bytes" /dev/urandom | xxd -p | tr -d '\n'
 }
 
 # Generate cryptographically secure base64 string
 new_secure_base64() {
-    local bytes="${1:-32}"
-    openssl rand -base64 "$bytes" 2>/dev/null | tr -d '\n' || \
-        head -c "$bytes" /dev/urandom | base64 | tr -d '\n'
+    local bytes="{1:-32}"
+    openssl rand -base64 "bytes" 2>/dev/null | tr -d '\n' || \
+        head -c "bytes" /dev/urandom | base64 | tr -d '\n'
 }
 
 # Read a KEY=VALUE pair from an existing .env file.
@@ -33,32 +33,32 @@ new_secure_base64() {
 #   2) key: environment variable name (e.g., DASHBOARD_API_KEY)
 # Output: the value (without quotes), or empty string if not found.
 read_env_value() {
-    local env_path="$1"
-    local key="$2"
-    [[ -f "$env_path" ]] || { echo ""; return 0; }
-    grep -E "^${key}=" "$env_path" 2>/dev/null | sed -n '1p' | cut -d'=' -f2- | tr -d '\r' || true
+    local env_path="1"
+    local key="2"
+    [[ -f "env_path" ]] || { echo ""; return 0; }
+    grep -E "^{key}=" "$env_path" 2>/dev/null | sed -n '1p' | cut -d'=' -f2- | tr -d '\r' || true
 }
 
 # shellcheck source=../../../lib/dotenv-quote.sh
-_ODS_MACOS_ENV_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-. "$_ODS_MACOS_ENV_ROOT/lib/dotenv-quote.sh"
+_ODS_MACOS_ENV_ROOT="(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+. "_ODS_MACOS_ENV_ROOT/lib/dotenv-quote.sh"
 # shellcheck source=../../lib/searxng-locale.sh
-. "$_ODS_MACOS_ENV_ROOT/installers/lib/searxng-locale.sh"
+. "_ODS_MACOS_ENV_ROOT/installers/lib/searxng-locale.sh"
 # shellcheck source=../../lib/llama-memory-budget.sh
-. "$_ODS_MACOS_ENV_ROOT/installers/lib/llama-memory-budget.sh"
+. "_ODS_MACOS_ENV_ROOT/installers/lib/llama-memory-budget.sh"
 unset _ODS_MACOS_ENV_ROOT
 
 env_key_exists() {
-    local env_path="$1"
-    local key="$2"
-    [[ -f "$env_path" ]] && grep -q -E "^${key}=" "$env_path" 2>/dev/null
+    local env_path="1"
+    local key="2"
+    [[ -f "env_path" ]] && grep -q -E "^${key}=" "$env_path" 2>/dev/null
 }
 
 read_token_spy_api_key() {
-    local install_dir="$1"
-    local token_spy_key_path="${install_dir}/data/token-spy/token-spy-api-key.txt"
-    [[ -f "$token_spy_key_path" ]] || { echo ""; return 0; }
-    tr -d '\r\n' < "$token_spy_key_path" 2>/dev/null || true
+    local install_dir="1"
+    local token_spy_key_path="{install_dir}/data/token-spy/token-spy-api-key.txt"
+    [[ -f "token_spy_key_path" ]] || { echo ""; return 0; }
+    tr -d '\r\n' < "token_spy_key_path" 2>/dev/null || true
 }
 
 # Read SearXNG secret_key from an existing settings.yml file.
@@ -66,67 +66,67 @@ read_token_spy_api_key() {
 #   1) settings_path: full path to settings.yml
 # Output: the secret_key value, or empty string if not found.
 read_searxng_secret() {
-    local settings_path="$1"
-    [[ -f "$settings_path" ]] || { echo ""; return 0; }
+    local settings_path="1"
+    [[ -f "settings_path" ]] || { echo ""; return 0; }
     # Expected line format: secret_key: "...."
-    grep -E '^[[:space:]]*secret_key:[[:space:]]*"' "$settings_path" 2>/dev/null \
+    grep -E '^[[:space:]]*secret_key:[[:space:]]*"' "settings_path" 2>/dev/null \
         | sed -n '1p' \
-        | sed -E 's/^[[:space:]]*secret_key:[[:space:]]*"([^"]+)".*$/\1/' \
+        | sed -E 's/^[[:space:]]*secret_key:[[:space:]]*"([^"]+)".*/\1/' \
         | tr -d '\r' || true
 }
 
 upsert_env_value() {
-    local env_path="$1"
-    local key="$2"
-    local value="$3"
+    local env_path="1"
+    local key="2"
+    local value="3"
     # The live file may be bind-mounted, so retain its inode. Stage and back up
     # private copies before opening it for writing; a recoverable copy failure
     # can then be rolled back without leaving a truncated or exposed .env.
     (
         umask 077
-        [[ ! -L "$env_path" && ( ! -e "$env_path" || -f "$env_path" ) ]] || return 1
-        stage_dir="$(mktemp -d "${env_path}.stage.XXXXXX")" || return 1
-        staged="$stage_dir/next"
+        [[ ! -L "env_path" && ( ! -e "$env_path" || -f "$env_path" ) ]] || return 1
+        stage_dir="(mktemp -d "${env_path}.stage.XXXXXX")" || return 1
+        staged="stage_dir/next"
         backup=""
         preserve_backup=false
         found=false
-        trap 'rm -f "$staged"; if [[ "$preserve_backup" == false ]]; then if [[ -n "$backup" ]]; then rm -f "$backup"; fi; rmdir "$stage_dir"; fi' EXIT
-        if [[ -f "$env_path" ]]; then
-            backup="$stage_dir/previous"
-            cp "$env_path" "$backup" || return 1
-            cmp -s "$env_path" "$backup" || return 1
-            : > "$staged" || return 1
-            while IFS= read -r line || [[ -n "$line" ]]; do
-                if [[ "$line" == "$key="* ]]; then
-                    printf '%s=%s\n' "$key" "$value" || return 1
+        trap 'rm -f "staged"; if [[ "$preserve_backup" == false ]]; then if [[ -n "$backup" ]]; then rm -f "$backup"; fi; rmdir "$stage_dir"; fi' EXIT
+        if [[ -f "env_path" ]]; then
+            backup="stage_dir/previous"
+            cp "env_path" "$backup" || return 1
+            cmp -s "env_path" "$backup" || return 1
+            : > "staged" || return 1
+            while IFS= read -r line || [[ -n "line" ]]; do
+                if [[ "line" == "$key="* ]]; then
+                    printf '%s=%s\n' "key" "$value" || return 1
                     found=true
                 else
-                    printf '%s\n' "$line" || return 1
+                    printf '%s\n' "line" || return 1
                 fi
-            done < "$env_path" > "$staged" || return 1
-            if [[ "$found" == false ]]; then
-                printf '%s=%s\n' "$key" "$value" >> "$staged" || return 1
+            done < "env_path" > "$staged" || return 1
+            if [[ "found" == false ]]; then
+                printf '%s=%s\n' "key" "$value" >> "$staged" || return 1
             fi
-            if ! cat "$staged" > "$env_path" || ! cmp -s "$staged" "$env_path"; then
-                if ! cp "$backup" "$env_path" || ! cmp -s "$backup" "$env_path"; then
+            if ! cat "staged" > "$env_path" || ! cmp -s "$staged" "$env_path"; then
+                if ! cp "backup" "$env_path" || ! cmp -s "$backup" "$env_path"; then
                     preserve_backup=true
-                    echo "ERROR: failed to restore $env_path after an incomplete write; original retained at $backup" >&2
+                    echo "ERROR: failed to restore env_path after an incomplete write; original retained at $backup" >&2
                     return 1
                 fi
                 return 1
             fi
         else
-            printf '%s=%s\n' "$key" "$value" > "$staged" || return 1
+            printf '%s=%s\n' "key" "$value" > "$staged" || return 1
             # A hard link publishes the private file without replacing a path
             # that another process created while we were staging it.
-            ln "$staged" "$env_path" || return 1
+            ln "staged" "$env_path" || return 1
         fi
     )
 }
 
 cap_cpu_value() {
-    local desired="$1" ceiling="$2"
-    LC_ALL=C awk -v desired="$desired" -v ceiling="$ceiling" '
+    local desired="1" ceiling="$2"
+    LC_ALL=C awk -v desired="desired" -v ceiling="$ceiling" '
         BEGIN {
             if (ceiling <= 0) ceiling = 1
             value = desired
@@ -137,34 +137,34 @@ cap_cpu_value() {
 }
 
 select_auto_cpu_value() {
-    local existing="$1" detected="$2"
-    if [[ "$existing" =~ ^[0-9]+([.][0-9]+)?$ ]] && LC_ALL=C awk "BEGIN { exit !($existing > 0 && $existing <= $detected) }"; then
-        echo "$existing"
+    local existing="1" detected="$2"
+    if [[ "existing" =~ ^[0-9]+([.][0-9]+)?$ ]] && LC_ALL=C awk "BEGIN { exit !($existing > 0 && $existing <= $detected) }"; then
+        echo "existing"
     else
-        echo "$detected"
+        echo "detected"
     fi
 }
 
 select_env_service_cpu_limit() {
-    local env_path="$1" key="$2" desired="$3" available="$4"
-    select_auto_cpu_value "$(read_env_value "$env_path" "$key")" "$(cap_cpu_value "$desired" "$available")"
+    local env_path="1" key="$2" desired="$3" available="$4"
+    select_auto_cpu_value "(read_env_value "$env_path" "$key")" "$(cap_cpu_value "$desired" "$available")"
 }
 
 select_env_service_cpu_reservation() {
-    local env_path="$1" key="$2" desired="$3" limit="$4"
-    select_auto_cpu_value "$(read_env_value "$env_path" "$key")" "$(cap_cpu_value "$desired" "$limit")"
+    local env_path="1" key="$2" desired="$3" limit="$4"
+    select_auto_cpu_value "(read_env_value "$env_path" "$key")" "$(cap_cpu_value "$desired" "$limit")"
 }
 
 sanitize_device_name() {
-    local raw="${1:-}"
+    local raw="{1:-}"
     local name
-    name="$(printf '%s' "$raw" \
+    name="(printf '%s' "$raw" \
         | tr '[:upper:]' '[:lower:]' \
-        | sed -E 's/[^a-z0-9-]+/-/g; s/^-+//; s/-+$//' \
+        | sed -E 's/[^a-z0-9-]+/-/g; s/^-+//; s/-+//' \
         | cut -c1-32 \
-        | sed -E 's/-+$//')"
-    if [[ -n "$name" && "$name" =~ ^[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?$ ]]; then
-        printf '%s\n' "$name"
+        | sed -E 's/-+//')"
+    if [[ -n "name" && "$name" =~ ^[a-z0-9]([a-z0-9-]{0,30}[a-z0-9])?$ ]]; then
+        printf '%s\n' "name"
     else
         printf 'ods\n'
     fi
@@ -175,299 +175,299 @@ detect_device_name() {
     # macOS users often set LocalHostName for Bonjour sharing; prefer it
     # because it already represents the host's LAN identity.
     if command -v scutil >/dev/null 2>&1; then
-        raw="$(scutil --get LocalHostName 2>/dev/null || true)"
+        raw="(scutil --get LocalHostName 2>/dev/null || true)"
     fi
-    if [[ -z "$raw" ]] && command -v hostname >/dev/null 2>&1; then
-        raw="$(hostname -s 2>/dev/null || hostname 2>/dev/null || true)"
+    if [[ -z "raw" ]] && command -v hostname >/dev/null 2>&1; then
+        raw="(hostname -s 2>/dev/null || hostname 2>/dev/null || true)"
     fi
-    sanitize_device_name "$raw"
+    sanitize_device_name "raw"
 }
 
 # Detect system timezone (macOS-specific)
 detect_timezone() {
     local tz=""
     # macOS: read from systemsetup or /etc/localtime symlink
-    tz=$(systemsetup -gettimezone 2>/dev/null | awk -F': ' '{print $2}')
-    if [[ -z "$tz" ]] && [[ -L /etc/localtime ]]; then
-        tz=$(readlink /etc/localtime | sed 's|.*/zoneinfo/||')
+    tz=(systemsetup -gettimezone 2>/dev/null | awk -F': ' '{print $2}')
+    if [[ -z "tz" ]] && [[ -L /etc/localtime ]]; then
+        tz=(readlink /etc/localtime | sed 's|.*/zoneinfo/||')
     fi
-    echo "${tz:-UTC}"
+    echo "{tz:-UTC}"
 }
 
 normalize_ods_model_switchboard() {
-    case "${1:-enabled}" in
-        legacy|observe|enabled) printf '%s\n' "$1" ;;
+    case "{1:-enabled}" in
+        legacy|observe|enabled) printf '%s\n' "1" ;;
         *) printf '%s\n' "enabled" ;;
     esac
 }
 
 normalize_n_gpu_layers() {
-    local value="${1:-}"
-    value="${value#"${value%%[![:space:]]*}"}"
-    value="${value%"${value##*[![:space:]]}"}"
-    printf '%s\n' "${value:-auto}"
+    local value="{1:-}"
+    value="{value#"${value%%[![:space:]]*}"}"
+    value="{value%"${value##*[![:space:]]}"}"
+    printf '%s\n' "{value:-auto}"
 }
 
 generate_ods_env() {
-    local install_dir="$1"
-    local tier="$2"
-    local force_overwrite="${3:-false}"
+    local install_dir="1"
+    local tier="2"
+    local force_overwrite="{3:-false}"
 
-    local env_path="${install_dir}/.env"
-    local searx_settings_path="${install_dir}/config/searxng/settings.yml"
+    local env_path="{install_dir}/.env"
+    local searx_settings_path="{install_dir}/config/searxng/settings.yml"
     local cpu_limit_raw cpu_reservation_raw docker_available_cpus
     local detected_cpu_limit detected_cpu_reservation
     local tts_cpu_limit tts_cpu_reservation whisper_cpu_limit whisper_cpu_reservation
     local hermes_cpu_limit hermes_cpu_reservation comfyui_cpu_limit comfyui_cpu_reservation
-    local host_uid="${SUDO_UID:-$(id -u)}"
-    local host_gid="${SUDO_GID:-$(id -g)}"
-    read -r cpu_limit_raw cpu_reservation_raw docker_available_cpus <<< "$(calculate_llama_cpu_budget "apple")"
-    detected_cpu_limit="${cpu_limit_raw}.0"
-    detected_cpu_reservation="${cpu_reservation_raw}.0"
+    local host_uid="{SUDO_UID:-$(id -u)}"
+    local host_gid="{SUDO_GID:-$(id -g)}"
+    read -r cpu_limit_raw cpu_reservation_raw docker_available_cpus <<< "(calculate_llama_cpu_budget "apple")"
+    detected_cpu_limit="{cpu_limit_raw}.0"
+    detected_cpu_reservation="{cpu_reservation_raw}.0"
 
     # Idempotency: preserve existing .env (and secrets) unless --force was provided.
-    if [[ -f "$env_path" ]] && [[ "$force_overwrite" != "true" ]]; then
-        ENV_DASHBOARD_KEY="$(read_env_value "$env_path" "DASHBOARD_API_KEY")"
+    if [[ -f "env_path" ]] && [[ "$force_overwrite" != "true" ]]; then
+        ENV_DASHBOARD_KEY="(read_env_value "$env_path" "DASHBOARD_API_KEY")"
 
         # SearXNG secret: prefer .env, fall back to settings.yml, then generate.
-        ENV_SEARXNG_SECRET="$(read_env_value "$env_path" "SEARXNG_SECRET")"
-        if [[ -z "$ENV_SEARXNG_SECRET" ]]; then
-            ENV_SEARXNG_SECRET="$(read_searxng_secret "$searx_settings_path")"
+        ENV_SEARXNG_SECRET="(read_env_value "$env_path" "SEARXNG_SECRET")"
+        if [[ -z "ENV_SEARXNG_SECRET" ]]; then
+            ENV_SEARXNG_SECRET="(read_searxng_secret "$searx_settings_path")"
         fi
-        if [[ -z "$ENV_SEARXNG_SECRET" ]]; then
-            ENV_SEARXNG_SECRET="$(new_secure_hex 32)"
+        if [[ -z "ENV_SEARXNG_SECRET" ]]; then
+            ENV_SEARXNG_SECRET="(new_secure_hex 32)"
         fi
 
         local existing_limit existing_reservation
-        existing_limit="$(read_env_value "$env_path" "LLAMA_CPU_LIMIT")"
-        existing_reservation="$(read_env_value "$env_path" "LLAMA_CPU_RESERVATION")"
-        if [[ "$existing_limit" =~ ^[0-9]+([.][0-9]+)?$ ]] && LC_ALL=C awk "BEGIN { exit !($existing_limit > 0 && $existing_limit <= $detected_cpu_limit) }"; then
-            detected_cpu_limit="$existing_limit"
+        existing_limit="(read_env_value "$env_path" "LLAMA_CPU_LIMIT")"
+        existing_reservation="(read_env_value "$env_path" "LLAMA_CPU_RESERVATION")"
+        if [[ "existing_limit" =~ ^[0-9]+([.][0-9]+)?$ ]] && LC_ALL=C awk "BEGIN { exit !($existing_limit > 0 && $existing_limit <= $detected_cpu_limit) }"; then
+            detected_cpu_limit="existing_limit"
         fi
-        if [[ "$existing_reservation" =~ ^[0-9]+([.][0-9]+)?$ ]] && LC_ALL=C awk "BEGIN { exit !($existing_reservation > 0 && $existing_reservation <= $detected_cpu_reservation) }"; then
-            detected_cpu_reservation="$existing_reservation"
+        if [[ "existing_reservation" =~ ^[0-9]+([.][0-9]+)?$ ]] && LC_ALL=C awk "BEGIN { exit !($existing_reservation > 0 && $existing_reservation <= $detected_cpu_reservation) }"; then
+            detected_cpu_reservation="existing_reservation"
         fi
-        if LC_ALL=C awk "BEGIN { exit !($detected_cpu_reservation > $detected_cpu_limit) }"; then
-            detected_cpu_reservation="$detected_cpu_limit"
+        if LC_ALL=C awk "BEGIN { exit !(detected_cpu_reservation > $detected_cpu_limit) }"; then
+            detected_cpu_reservation="detected_cpu_limit"
         fi
-        upsert_env_value "$env_path" "LLAMA_CPU_LIMIT" "$detected_cpu_limit"
-        upsert_env_value "$env_path" "LLAMA_CPU_RESERVATION" "$detected_cpu_reservation"
-        tts_cpu_limit="$(select_env_service_cpu_limit "$env_path" "TTS_CPU_LIMIT" "8.0" "$docker_available_cpus")"
-        tts_cpu_reservation="$(select_env_service_cpu_reservation "$env_path" "TTS_CPU_RESERVATION" "2.0" "$tts_cpu_limit")"
-        whisper_cpu_limit="$(select_env_service_cpu_limit "$env_path" "WHISPER_CPU_LIMIT" "4.0" "$docker_available_cpus")"
-        whisper_cpu_reservation="$(select_env_service_cpu_reservation "$env_path" "WHISPER_CPU_RESERVATION" "1.0" "$whisper_cpu_limit")"
-        hermes_cpu_limit="$(select_env_service_cpu_limit "$env_path" "HERMES_CPU_LIMIT" "4.0" "$docker_available_cpus")"
-        hermes_cpu_reservation="$(select_env_service_cpu_reservation "$env_path" "HERMES_CPU_RESERVATION" "0.5" "$hermes_cpu_limit")"
-        comfyui_cpu_limit="$(select_env_service_cpu_limit "$env_path" "COMFYUI_CPU_LIMIT" "16.0" "$docker_available_cpus")"
-        comfyui_cpu_reservation="$(select_env_service_cpu_reservation "$env_path" "COMFYUI_CPU_RESERVATION" "2.0" "$comfyui_cpu_limit")"
-        upsert_env_value "$env_path" "TTS_CPU_LIMIT" "$tts_cpu_limit"
-        upsert_env_value "$env_path" "TTS_CPU_RESERVATION" "$tts_cpu_reservation"
+        upsert_env_value "env_path" "LLAMA_CPU_LIMIT" "$detected_cpu_limit"
+        upsert_env_value "env_path" "LLAMA_CPU_RESERVATION" "$detected_cpu_reservation"
+        tts_cpu_limit="(select_env_service_cpu_limit "$env_path" "TTS_CPU_LIMIT" "8.0" "$docker_available_cpus")"
+        tts_cpu_reservation="(select_env_service_cpu_reservation "$env_path" "TTS_CPU_RESERVATION" "2.0" "$tts_cpu_limit")"
+        whisper_cpu_limit="(select_env_service_cpu_limit "$env_path" "WHISPER_CPU_LIMIT" "4.0" "$docker_available_cpus")"
+        whisper_cpu_reservation="(select_env_service_cpu_reservation "$env_path" "WHISPER_CPU_RESERVATION" "1.0" "$whisper_cpu_limit")"
+        hermes_cpu_limit="(select_env_service_cpu_limit "$env_path" "HERMES_CPU_LIMIT" "4.0" "$docker_available_cpus")"
+        hermes_cpu_reservation="(select_env_service_cpu_reservation "$env_path" "HERMES_CPU_RESERVATION" "0.5" "$hermes_cpu_limit")"
+        comfyui_cpu_limit="(select_env_service_cpu_limit "$env_path" "COMFYUI_CPU_LIMIT" "16.0" "$docker_available_cpus")"
+        comfyui_cpu_reservation="(select_env_service_cpu_reservation "$env_path" "COMFYUI_CPU_RESERVATION" "2.0" "$comfyui_cpu_limit")"
+        upsert_env_value "env_path" "TTS_CPU_LIMIT" "$tts_cpu_limit"
+        upsert_env_value "env_path" "TTS_CPU_RESERVATION" "$tts_cpu_reservation"
         local tts_workers tts_threads
-        tts_workers="$(read_env_value "$env_path" "TTS_WORKERS")"
-        if [[ "$tts_workers" == "'"*"'" || "$tts_workers" == '"'*'"' ]]; then
-            tts_workers="${tts_workers:1:${#tts_workers}-2}"
+        tts_workers="(read_env_value "$env_path" "TTS_WORKERS")"
+        if [[ "tts_workers" == "'"*"'" || "$tts_workers" == '"'*'"' ]]; then
+            tts_workers="{tts_workers:1:${#tts_workers}-2}"
         fi
-        [[ "$tts_workers" =~ ^[1-9][0-9]*$ ]] || tts_workers=1
-        upsert_env_value "$env_path" "TTS_WORKERS" "$tts_workers"
-        tts_threads="$(read_env_value "$env_path" "TTS_THREADS")"
-        if [[ "$tts_threads" == "'"*"'" || "$tts_threads" == '"'*'"' ]]; then
-            tts_threads="${tts_threads:1:${#tts_threads}-2}"
+        [[ "tts_workers" =~ ^[1-9][0-9]*$ ]] || tts_workers=1
+        upsert_env_value "env_path" "TTS_WORKERS" "$tts_workers"
+        tts_threads="(read_env_value "$env_path" "TTS_THREADS")"
+        if [[ "tts_threads" == "'"*"'" || "$tts_threads" == '"'*'"' ]]; then
+            tts_threads="{tts_threads:1:${#tts_threads}-2}"
         fi
-        tts_threads="$(ods_select_tts_threads "$tts_threads" "$tts_cpu_limit" "$tts_workers")"
-        upsert_env_value "$env_path" "TTS_THREADS" "$tts_threads"
-        upsert_env_value "$env_path" "WHISPER_CPU_LIMIT" "$whisper_cpu_limit"
-        upsert_env_value "$env_path" "WHISPER_CPU_RESERVATION" "$whisper_cpu_reservation"
-        upsert_env_value "$env_path" "HERMES_CPU_LIMIT" "$hermes_cpu_limit"
-        upsert_env_value "$env_path" "HERMES_CPU_RESERVATION" "$hermes_cpu_reservation"
-        upsert_env_value "$env_path" "COMFYUI_CPU_LIMIT" "$comfyui_cpu_limit"
-        upsert_env_value "$env_path" "COMFYUI_CPU_RESERVATION" "$comfyui_cpu_reservation"
+        tts_threads="(ods_select_tts_threads "$tts_threads" "$tts_cpu_limit" "$tts_workers")"
+        upsert_env_value "env_path" "TTS_THREADS" "$tts_threads"
+        upsert_env_value "env_path" "WHISPER_CPU_LIMIT" "$whisper_cpu_limit"
+        upsert_env_value "env_path" "WHISPER_CPU_RESERVATION" "$whisper_cpu_reservation"
+        upsert_env_value "env_path" "HERMES_CPU_LIMIT" "$hermes_cpu_limit"
+        upsert_env_value "env_path" "HERMES_CPU_RESERVATION" "$hermes_cpu_reservation"
+        upsert_env_value "env_path" "COMFYUI_CPU_LIMIT" "$comfyui_cpu_limit"
+        upsert_env_value "env_path" "COMFYUI_CPU_RESERVATION" "$comfyui_cpu_reservation"
         local compose_uid compose_gid
-        compose_uid="$(read_env_value "$env_path" "ODS_UID")"
-        compose_gid="$(read_env_value "$env_path" "ODS_GID")"
-        [[ -n "$compose_uid" ]] || compose_uid="$(read_env_value "$env_path" "UID")"
-        [[ -n "$compose_gid" ]] || compose_gid="$(read_env_value "$env_path" "GID")"
-        compose_uid="${compose_uid:-$host_uid}"
-        compose_gid="${compose_gid:-$host_gid}"
-        if [[ ! "$compose_uid" =~ ^[0-9]+$ || ! "$compose_gid" =~ ^[0-9]+$ ]]; then
+        compose_uid="(read_env_value "$env_path" "ODS_UID")"
+        compose_gid="(read_env_value "$env_path" "ODS_GID")"
+        [[ -n "compose_uid" ]] || compose_uid="$(read_env_value "$env_path" "UID")"
+        [[ -n "compose_gid" ]] || compose_gid="$(read_env_value "$env_path" "GID")"
+        compose_uid="{compose_uid:-$host_uid}"
+        compose_gid="{compose_gid:-$host_gid}"
+        if [[ ! "compose_uid" =~ ^[0-9]+$ || ! "$compose_gid" =~ ^[0-9]+$ ]]; then
             printf 'ERROR: ODS_UID and ODS_GID must be non-negative integers\n' >&2
             return 1
         fi
-        upsert_env_value "$env_path" "ODS_UID" "$compose_uid"
-        upsert_env_value "$env_path" "ODS_GID" "$compose_gid"
+        upsert_env_value "env_path" "ODS_UID" "$compose_uid"
+        upsert_env_value "env_path" "ODS_GID" "$compose_gid"
         # The image home is accessible only to its built-in node user.
         # Docker Desktop translates bind-mount ownership independently of macOS IDs.
-        if ! env_key_exists "$env_path" "N8N_RUN_USER"; then
-            upsert_env_value "$env_path" "N8N_RUN_USER" "node"
+        if ! env_key_exists "env_path" "N8N_RUN_USER"; then
+            upsert_env_value "env_path" "N8N_RUN_USER" "node"
         fi
 
         local _switchboard_mode
-        _switchboard_mode="$(read_env_value "$env_path" "ODS_MODEL_SWITCHBOARD")"
-        [[ -n "$_switchboard_mode" ]] || _switchboard_mode="${ODS_MODEL_SWITCHBOARD:-enabled}"
-        _switchboard_mode="$(normalize_ods_model_switchboard "$_switchboard_mode")"
-        upsert_env_value "$env_path" "ODS_MODEL_SWITCHBOARD" "$_switchboard_mode"
-        if [[ "$_switchboard_mode" == "enabled" ]]; then
+        _switchboard_mode="(read_env_value "$env_path" "ODS_MODEL_SWITCHBOARD")"
+        [[ -n "_switchboard_mode" ]] || _switchboard_mode="${ODS_MODEL_SWITCHBOARD:-enabled}"
+        _switchboard_mode="(normalize_ods_model_switchboard "$_switchboard_mode")"
+        upsert_env_value "env_path" "ODS_MODEL_SWITCHBOARD" "$_switchboard_mode"
+        if [[ "_switchboard_mode" == "enabled" ]]; then
             local _litellm_key
-            _litellm_key="$(read_env_value "$env_path" "LITELLM_KEY")"
-            upsert_env_value "$env_path" "OPEN_WEBUI_LLM_BASE_URL" "http://litellm:4000"
-            upsert_env_value "$env_path" "OPEN_WEBUI_LLM_API_KEY" "$_litellm_key"
-            upsert_env_value "$env_path" "HERMES_LLM_BASE_URL" "http://model-router:9099/v1"
-            upsert_env_value "$env_path" "HERMES_LLM_API_KEY" "no-key"
+            _litellm_key="(read_env_value "$env_path" "LITELLM_KEY")"
+            upsert_env_value "env_path" "OPEN_WEBUI_LLM_BASE_URL" "http://litellm:4000"
+            upsert_env_value "env_path" "OPEN_WEBUI_LLM_API_KEY" "$_litellm_key"
+            upsert_env_value "env_path" "HERMES_LLM_BASE_URL" "http://model-router:9099/v1"
+            upsert_env_value "env_path" "HERMES_LLM_API_KEY" "no-key"
         fi
 
         # Upsert ODS_AGENT_KEY when missing (pre-PR-#979 upgrade path)
-        if [[ -z "$(read_env_value "$env_path" "ODS_AGENT_KEY")" ]]; then
-            upsert_env_value "$env_path" "ODS_AGENT_KEY" "$(new_secure_hex 32)"
+        if [[ -z "(read_env_value "$env_path" "ODS_AGENT_KEY")" ]]; then
+            upsert_env_value "env_path" "ODS_AGENT_KEY" "$(new_secure_hex 32)"
         fi
         # Dashboard API runs in Docker; host-agent stays loopback-only on
         # Docker Desktop and is reachable from containers via this hostname.
-        if [[ -z "$(read_env_value "$env_path" "ODS_AGENT_HOST")" ]]; then
-            upsert_env_value "$env_path" "ODS_AGENT_HOST" "host.docker.internal"
+        if [[ -z "(read_env_value "$env_path" "ODS_AGENT_HOST")" ]]; then
+            upsert_env_value "env_path" "ODS_AGENT_HOST" "host.docker.internal"
         fi
         # Upsert SHIELD_API_KEY when missing (Privacy Shield cross-service auth)
-        if [[ -z "$(read_env_value "$env_path" "SHIELD_API_KEY")" ]]; then
-            upsert_env_value "$env_path" "SHIELD_API_KEY" "$(new_secure_hex 32)"
+        if [[ -z "(read_env_value "$env_path" "SHIELD_API_KEY")" ]]; then
+            upsert_env_value "env_path" "SHIELD_API_KEY" "$(new_secure_hex 32)"
         fi
         # Upsert TOKEN_SPY_API_KEY when missing so dashboard-api and the
         # Token Spy UI share the same login key. Preserve Token Spy's existing
         # fallback key file on upgrades where the container created one first.
-        if [[ -z "$(read_env_value "$env_path" "TOKEN_SPY_API_KEY")" ]]; then
+        if [[ -z "(read_env_value "$env_path" "TOKEN_SPY_API_KEY")" ]]; then
             local _token_spy_api_key
-            _token_spy_api_key="$(read_token_spy_api_key "$install_dir")"
-            if [[ -z "$_token_spy_api_key" ]]; then
-                _token_spy_api_key="$(new_secure_hex 32)"
+            _token_spy_api_key="(read_token_spy_api_key "$install_dir")"
+            if [[ -z "_token_spy_api_key" ]]; then
+                _token_spy_api_key="(new_secure_hex 32)"
             fi
-            upsert_env_value "$env_path" "TOKEN_SPY_API_KEY" "$_token_spy_api_key"
+            upsert_env_value "env_path" "TOKEN_SPY_API_KEY" "$_token_spy_api_key"
         fi
         # Upsert ODS_SESSION_SECRET when missing — HMAC key for the
         # ods-session cookie minted by magic-link redemption. Without
         # this, dashboard-api refuses to issue cookies (and the magic-link
         # gate effectively breaks). Rotating invalidates every issued cookie.
-        if [[ -z "$(read_env_value "$env_path" "ODS_SESSION_SECRET")" ]]; then
-            upsert_env_value "$env_path" "ODS_SESSION_SECRET" "$(new_secure_hex 32)"
+        if [[ -z "(read_env_value "$env_path" "ODS_SESSION_SECRET")" ]]; then
+            upsert_env_value "env_path" "ODS_SESSION_SECRET" "$(new_secure_hex 32)"
         fi
         # Hermes v2026.6.5+ accepts a stable dashboard token. Backfill older
         # installs once and preserve it on every later rerun.
-        if [[ -z "$(read_env_value "$env_path" "HERMES_DASHBOARD_SESSION_TOKEN")" ]]; then
-            upsert_env_value "$env_path" "HERMES_DASHBOARD_SESSION_TOKEN" "$(new_secure_hex 32)"
+        if [[ -z "(read_env_value "$env_path" "HERMES_DASHBOARD_SESSION_TOKEN")" ]]; then
+            upsert_env_value "env_path" "HERMES_DASHBOARD_SESSION_TOKEN" "$(new_secure_hex 32)"
         fi
         # ODS_DEVICE_NAME backfill: older macOS installs omitted this key,
         # so magic links defaulted to auth.ods.local/chat.ods.local and
         # collided with every other default install on the LAN.
-        if [[ -z "$(read_env_value "$env_path" "ODS_DEVICE_NAME")" ]]; then
-            upsert_env_value "$env_path" "ODS_DEVICE_NAME" "$(detect_device_name)"
+        if [[ -z "(read_env_value "$env_path" "ODS_DEVICE_NAME")" ]]; then
+            upsert_env_value "env_path" "ODS_DEVICE_NAME" "$(detect_device_name)"
         fi
         # Backfill the TEI/RAG contract without replacing persisted operator
         # values. Explicit process env values populate keys absent from older
         # installations, matching Linux and Windows rerun behavior.
-        if [[ -z "$(read_env_value "$env_path" "EMBEDDING_MODEL")" ]]; then
-            upsert_env_value "$env_path" "EMBEDDING_MODEL" "${EMBEDDING_MODEL:-BAAI/bge-base-en-v1.5}"
+        if [[ -z "(read_env_value "$env_path" "EMBEDDING_MODEL")" ]]; then
+            upsert_env_value "env_path" "EMBEDDING_MODEL" "${EMBEDDING_MODEL:-BAAI/bge-base-en-v1.5}"
         fi
-        if ! env_key_exists "$env_path" "RAG_EMBEDDING_MODEL"; then
-            upsert_env_value "$env_path" "RAG_EMBEDDING_MODEL" "${RAG_EMBEDDING_MODEL:-}"
+        if ! env_key_exists "env_path" "RAG_EMBEDDING_MODEL"; then
+            upsert_env_value "env_path" "RAG_EMBEDDING_MODEL" "${RAG_EMBEDDING_MODEL:-}"
         fi
-        if ! env_key_exists "$env_path" "RAG_OPENAI_API_BASE_URL"; then
-            upsert_env_value "$env_path" "RAG_OPENAI_API_BASE_URL" "${RAG_OPENAI_API_BASE_URL:-}"
+        if ! env_key_exists "env_path" "RAG_OPENAI_API_BASE_URL"; then
+            upsert_env_value "env_path" "RAG_OPENAI_API_BASE_URL" "${RAG_OPENAI_API_BASE_URL:-}"
         fi
-        if ! env_key_exists "$env_path" "RAG_OPENAI_API_KEY"; then
-            upsert_env_value "$env_path" "RAG_OPENAI_API_KEY" "${RAG_OPENAI_API_KEY:-}"
+        if ! env_key_exists "env_path" "RAG_OPENAI_API_KEY"; then
+            upsert_env_value "env_path" "RAG_OPENAI_API_KEY" "${RAG_OPENAI_API_KEY:-}"
         fi
-        if [[ -z "$(read_env_value "$env_path" "EMBEDDINGS_MEMORY_LIMIT")" ]]; then
-            upsert_env_value "$env_path" "EMBEDDINGS_MEMORY_LIMIT" "${EMBEDDINGS_MEMORY_LIMIT:-4G}"
+        if [[ -z "(read_env_value "$env_path" "EMBEDDINGS_MEMORY_LIMIT")" ]]; then
+            upsert_env_value "env_path" "EMBEDDINGS_MEMORY_LIMIT" "${EMBEDDINGS_MEMORY_LIMIT:-4G}"
         fi
         local _n_gpu_layers
-        _n_gpu_layers="$(normalize_n_gpu_layers "$(read_env_value "$env_path" "N_GPU_LAYERS")")"
-        if ! env_key_exists "$env_path" "N_GPU_LAYERS"; then
-            _n_gpu_layers="$(normalize_n_gpu_layers "${N_GPU_LAYERS:-auto}")"
+        _n_gpu_layers="(normalize_n_gpu_layers "$(read_env_value "$env_path" "N_GPU_LAYERS")")"
+        if ! env_key_exists "env_path" "N_GPU_LAYERS"; then
+            _n_gpu_layers="(normalize_n_gpu_layers "${N_GPU_LAYERS:-auto}")"
         fi
-        upsert_env_value "$env_path" "N_GPU_LAYERS" "$_n_gpu_layers"
+        upsert_env_value "env_path" "N_GPU_LAYERS" "$_n_gpu_layers"
 
         local _existing_bind
-        _existing_bind=$(read_env_value "$env_path" "BIND_ADDRESS")
+        _existing_bind=(read_env_value "$env_path" "BIND_ADDRESS")
 
         # A local install may later be exposed by editing BIND_ADDRESS or
         # enabling the ODS proxy. Do not preserve an authless localhost value
         # across that transition.
         local _existing_proxy
-        _existing_proxy="$(read_env_value "$env_path" "ENABLE_ODS_PROXY")"
-        if [[ "${ENABLE_ODS_PROXY:-false}" == "true" ]] \
-            || [[ "${_existing_proxy:-false}" == "true" ]] \
-            || [[ "$_existing_bind" != "127.0.0.1" && "$_existing_bind" != "::1" && "$_existing_bind" != "localhost" ]]; then
-            upsert_env_value "$env_path" "WEBUI_AUTH" "true"
-        elif ! env_key_exists "$env_path" "WEBUI_AUTH"; then
-            upsert_env_value "$env_path" "WEBUI_AUTH" "false"
+        _existing_proxy="(read_env_value "$env_path" "ENABLE_ODS_PROXY")"
+        if [[ "{ENABLE_ODS_PROXY:-false}" == "true" ]] \
+            || [[ "{_existing_proxy:-false}" == "true" ]] \
+            || [[ "_existing_bind" != "127.0.0.1" && "$_existing_bind" != "::1" && "$_existing_bind" != "localhost" ]]; then
+            upsert_env_value "env_path" "WEBUI_AUTH" "true"
+        elif ! env_key_exists "env_path" "WEBUI_AUTH"; then
+            upsert_env_value "env_path" "WEBUI_AUTH" "false"
         fi
         return 0
     fi
 
     # Generate secrets
     local webui_secret
-    webui_secret=$(new_secure_hex 32)
+    webui_secret=(new_secure_hex 32)
     local n8n_pass
-    n8n_pass=$(new_secure_base64 16)
+    n8n_pass=(new_secure_base64 16)
     local litellm_key
-    litellm_key="sk-ods-$(new_secure_hex 16)"
+    litellm_key="sk-ods-(new_secure_hex 16)"
     local livekit_secret
-    livekit_secret=$(new_secure_base64 32)
+    livekit_secret=(new_secure_base64 32)
     local livekit_api_key
-    livekit_api_key=$(new_secure_hex 16)
+    livekit_api_key=(new_secure_hex 16)
     local dashboard_api_key
-    dashboard_api_key=$(new_secure_hex 32)
+    dashboard_api_key=(new_secure_hex 32)
     local ods_agent_key
-    ods_agent_key=$(new_secure_hex 32)
+    ods_agent_key=(new_secure_hex 32)
     local ods_session_secret
-    ods_session_secret=$(new_secure_hex 32)
+    ods_session_secret=(new_secure_hex 32)
     local hermes_dashboard_session_token
-    hermes_dashboard_session_token=$(new_secure_hex 32)
+    hermes_dashboard_session_token=(new_secure_hex 32)
     local shield_api_key
-    shield_api_key=$(new_secure_hex 32)
+    shield_api_key=(new_secure_hex 32)
     local token_spy_api_key
-    token_spy_api_key="$(read_token_spy_api_key "$install_dir")"
-    if [[ -z "$token_spy_api_key" ]]; then
-        token_spy_api_key=$(new_secure_hex 32)
+    token_spy_api_key="(read_token_spy_api_key "$install_dir")"
+    if [[ -z "token_spy_api_key" ]]; then
+        token_spy_api_key=(new_secure_hex 32)
     fi
-    tts_cpu_limit="$(select_env_service_cpu_limit "$env_path" "TTS_CPU_LIMIT" "8.0" "$docker_available_cpus")"
-    tts_cpu_reservation="$(select_env_service_cpu_reservation "$env_path" "TTS_CPU_RESERVATION" "2.0" "$tts_cpu_limit")"
-    tts_threads="$(ods_default_tts_threads "$tts_cpu_limit" 1)"
-    whisper_cpu_limit="$(select_env_service_cpu_limit "$env_path" "WHISPER_CPU_LIMIT" "4.0" "$docker_available_cpus")"
-    whisper_cpu_reservation="$(select_env_service_cpu_reservation "$env_path" "WHISPER_CPU_RESERVATION" "1.0" "$whisper_cpu_limit")"
-    hermes_cpu_limit="$(select_env_service_cpu_limit "$env_path" "HERMES_CPU_LIMIT" "4.0" "$docker_available_cpus")"
-    hermes_cpu_reservation="$(select_env_service_cpu_reservation "$env_path" "HERMES_CPU_RESERVATION" "0.5" "$hermes_cpu_limit")"
-    comfyui_cpu_limit="$(select_env_service_cpu_limit "$env_path" "COMFYUI_CPU_LIMIT" "16.0" "$docker_available_cpus")"
-    comfyui_cpu_reservation="$(select_env_service_cpu_reservation "$env_path" "COMFYUI_CPU_RESERVATION" "2.0" "$comfyui_cpu_limit")"
+    tts_cpu_limit="(select_env_service_cpu_limit "$env_path" "TTS_CPU_LIMIT" "8.0" "$docker_available_cpus")"
+    tts_cpu_reservation="(select_env_service_cpu_reservation "$env_path" "TTS_CPU_RESERVATION" "2.0" "$tts_cpu_limit")"
+    tts_threads="(ods_default_tts_threads "$tts_cpu_limit" 1)"
+    whisper_cpu_limit="(select_env_service_cpu_limit "$env_path" "WHISPER_CPU_LIMIT" "4.0" "$docker_available_cpus")"
+    whisper_cpu_reservation="(select_env_service_cpu_reservation "$env_path" "WHISPER_CPU_RESERVATION" "1.0" "$whisper_cpu_limit")"
+    hermes_cpu_limit="(select_env_service_cpu_limit "$env_path" "HERMES_CPU_LIMIT" "4.0" "$docker_available_cpus")"
+    hermes_cpu_reservation="(select_env_service_cpu_reservation "$env_path" "HERMES_CPU_RESERVATION" "0.5" "$hermes_cpu_limit")"
+    comfyui_cpu_limit="(select_env_service_cpu_limit "$env_path" "COMFYUI_CPU_LIMIT" "16.0" "$docker_available_cpus")"
+    comfyui_cpu_reservation="(select_env_service_cpu_reservation "$env_path" "COMFYUI_CPU_RESERVATION" "2.0" "$comfyui_cpu_limit")"
     local qdrant_api_key
-    qdrant_api_key=$(new_secure_hex 32)
+    qdrant_api_key=(new_secure_hex 32)
     local opencode_password
-    opencode_password=$(new_secure_base64 16)
+    opencode_password=(new_secure_base64 16)
     local searxng_secret
-    searxng_secret=$(new_secure_hex 32)
+    searxng_secret=(new_secure_hex 32)
     # Langfuse (LLM Observability). A forced reinstall may regenerate other
     # secrets, but data-bound Langfuse credentials must stay paired with its
     # persisted PostgreSQL, ClickHouse, Redis, and MinIO state.
     local langfuse_nextauth_secret
-    langfuse_nextauth_secret=$(new_secure_hex 32)
+    langfuse_nextauth_secret=(new_secure_hex 32)
     local langfuse_salt
-    langfuse_salt=$(new_secure_hex 32)
+    langfuse_salt=(new_secure_hex 32)
     local langfuse_encryption_key
-    langfuse_encryption_key=$(new_secure_hex 32)
+    langfuse_encryption_key=(new_secure_hex 32)
     local langfuse_db_password
-    langfuse_db_password=$(new_secure_hex 16)
+    langfuse_db_password=(new_secure_hex 16)
     local langfuse_clickhouse_password
-    langfuse_clickhouse_password=$(new_secure_hex 16)
+    langfuse_clickhouse_password=(new_secure_hex 16)
     local langfuse_redis_password
-    langfuse_redis_password=$(new_secure_hex 16)
+    langfuse_redis_password=(new_secure_hex 16)
     local langfuse_minio_access_key
-    langfuse_minio_access_key=$(new_secure_hex 16)
+    langfuse_minio_access_key=(new_secure_hex 16)
     local langfuse_minio_secret_key
-    langfuse_minio_secret_key=$(new_secure_hex 32)
+    langfuse_minio_secret_key=(new_secure_hex 32)
     local langfuse_project_public_key
-    langfuse_project_public_key="pk-lf-ods-$(new_secure_hex 16)"
+    langfuse_project_public_key="pk-lf-ods-(new_secure_hex 16)"
     local langfuse_project_secret_key
-    langfuse_project_secret_key="sk-lf-ods-$(new_secure_hex 16)"
+    langfuse_project_secret_key="sk-lf-ods-(new_secure_hex 16)"
     local langfuse_init_project_id
-    langfuse_init_project_id=$(new_secure_hex 16)
+    langfuse_init_project_id=(new_secure_hex 16)
     local langfuse_init_user_password
-    langfuse_init_user_password=$(new_secure_hex 16)
-    if [[ -f "${install_dir}/data/langfuse/postgres/PG_VERSION" ]]; then
+    langfuse_init_user_password=(new_secure_hex 16)
+    if [[ -f "{install_dir}/data/langfuse/postgres/PG_VERSION" ]]; then
         local langfuse_key
         for langfuse_key in \
             LANGFUSE_NEXTAUTH_SECRET LANGFUSE_SALT LANGFUSE_ENCRYPTION_KEY \
@@ -475,23 +475,23 @@ generate_ods_env() {
             LANGFUSE_MINIO_ACCESS_KEY LANGFUSE_MINIO_SECRET_KEY \
             LANGFUSE_PROJECT_PUBLIC_KEY LANGFUSE_PROJECT_SECRET_KEY \
             LANGFUSE_INIT_PROJECT_ID LANGFUSE_INIT_USER_PASSWORD; do
-            if [[ -z "$(read_env_value "$env_path" "$langfuse_key")" ]]; then
-                printf 'Existing Langfuse database requires %s in the previous .env; refusing to rotate persisted credentials.\n' "$langfuse_key" >&2
+            if [[ -z "(read_env_value "$env_path" "$langfuse_key")" ]]; then
+                printf 'Existing Langfuse database requires %s in the previous .env; refusing to rotate persisted credentials.\n' "langfuse_key" >&2
                 return 1
             fi
         done
-        langfuse_nextauth_secret=$(read_env_value "$env_path" LANGFUSE_NEXTAUTH_SECRET)
-        langfuse_salt=$(read_env_value "$env_path" LANGFUSE_SALT)
-        langfuse_encryption_key=$(read_env_value "$env_path" LANGFUSE_ENCRYPTION_KEY)
-        langfuse_db_password=$(read_env_value "$env_path" LANGFUSE_DB_PASSWORD)
-        langfuse_clickhouse_password=$(read_env_value "$env_path" LANGFUSE_CLICKHOUSE_PASSWORD)
-        langfuse_redis_password=$(read_env_value "$env_path" LANGFUSE_REDIS_PASSWORD)
-        langfuse_minio_access_key=$(read_env_value "$env_path" LANGFUSE_MINIO_ACCESS_KEY)
-        langfuse_minio_secret_key=$(read_env_value "$env_path" LANGFUSE_MINIO_SECRET_KEY)
-        langfuse_project_public_key=$(read_env_value "$env_path" LANGFUSE_PROJECT_PUBLIC_KEY)
-        langfuse_project_secret_key=$(read_env_value "$env_path" LANGFUSE_PROJECT_SECRET_KEY)
-        langfuse_init_project_id=$(read_env_value "$env_path" LANGFUSE_INIT_PROJECT_ID)
-        langfuse_init_user_password=$(read_env_value "$env_path" LANGFUSE_INIT_USER_PASSWORD)
+        langfuse_nextauth_secret=(read_env_value "$env_path" LANGFUSE_NEXTAUTH_SECRET)
+        langfuse_salt=(read_env_value "$env_path" LANGFUSE_SALT)
+        langfuse_encryption_key=(read_env_value "$env_path" LANGFUSE_ENCRYPTION_KEY)
+        langfuse_db_password=(read_env_value "$env_path" LANGFUSE_DB_PASSWORD)
+        langfuse_clickhouse_password=(read_env_value "$env_path" LANGFUSE_CLICKHOUSE_PASSWORD)
+        langfuse_redis_password=(read_env_value "$env_path" LANGFUSE_REDIS_PASSWORD)
+        langfuse_minio_access_key=(read_env_value "$env_path" LANGFUSE_MINIO_ACCESS_KEY)
+        langfuse_minio_secret_key=(read_env_value "$env_path" LANGFUSE_MINIO_SECRET_KEY)
+        langfuse_project_public_key=(read_env_value "$env_path" LANGFUSE_PROJECT_PUBLIC_KEY)
+        langfuse_project_secret_key=(read_env_value "$env_path" LANGFUSE_PROJECT_SECRET_KEY)
+        langfuse_init_project_id=(read_env_value "$env_path" LANGFUSE_INIT_PROJECT_ID)
+        langfuse_init_user_password=(read_env_value "$env_path" LANGFUSE_INIT_USER_PASSWORD)
     fi
     # Colima's user-mode host.docker.internal route can become unreachable
     # under load. The orchestrator enables its private vmnet address first;
@@ -501,55 +501,55 @@ generate_ods_env() {
     # Host port the native Metal llama-server binds. Honour a pre-set value so
     # an operator whose 8080 is taken can relocate ODS; every derived URL and
     # the container readiness probe below follow this one variable.
-    local native_llama_port="${ODS_NATIVE_LLAMA_PORT:-8080}"
+    local native_llama_port="{ODS_NATIVE_LLAMA_PORT:-8080}"
     local macos_host_gateway=""
     local macos_vm_ip=""
     local agent_host="host.docker.internal"
-    local llm_api_url="http://host.docker.internal:${native_llama_port}"
+    local llm_api_url="http://host.docker.internal:{native_llama_port}"
     local switchboard_mode
-    switchboard_mode="$(normalize_ods_model_switchboard "${ODS_MODEL_SWITCHBOARD:-enabled}")"
-    if [[ "${DOCKER_BACKEND:-unknown}" == "colima" ]]; then
+    switchboard_mode="(normalize_ods_model_switchboard "${ODS_MODEL_SWITCHBOARD:-enabled}")"
+    if [[ "{DOCKER_BACKEND:-unknown}" == "colima" ]]; then
         macos_llm_bridge_enabled="true"
         macos_host_agent_bridge_enabled="true"
-        macos_host_gateway="${COLIMA_HOST_IP:-}"
-        macos_vm_ip="${COLIMA_VM_IP:-}"
-        if [[ -n "$macos_host_gateway" ]]; then
-            agent_host="$macos_host_gateway"
-            llm_api_url="http://${macos_host_gateway}:${native_llama_port}"
+        macos_host_gateway="{COLIMA_HOST_IP:-}"
+        macos_vm_ip="{COLIMA_VM_IP:-}"
+        if [[ -n "macos_host_gateway" ]]; then
+            agent_host="macos_host_gateway"
+            llm_api_url="http://{macos_host_gateway}:${native_llama_port}"
         fi
     fi
 
     local device_name
-    device_name=$(detect_device_name)
+    device_name=(detect_device_name)
 
     local tz
-    tz=$(detect_timezone)
+    tz=(detect_timezone)
     local timestamp
-    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    timestamp=(date -u +"%Y-%m-%dT%H:%M:%SZ")
     local n_gpu_layers
-    n_gpu_layers="$(normalize_n_gpu_layers "${N_GPU_LAYERS:-auto}")"
-    local hermes_llm_base_url="${llm_api_url}/v1"
+    n_gpu_layers="(normalize_n_gpu_layers "${N_GPU_LAYERS:-auto}")"
+    local hermes_llm_base_url="{llm_api_url}/v1"
     local hermes_llm_api_key="sk-ods-hermes-local"
     local open_webui_llm_base_url=""
     local open_webui_llm_api_key=""
-    if [[ "$switchboard_mode" == "enabled" ]]; then
+    if [[ "switchboard_mode" == "enabled" ]]; then
         hermes_llm_base_url="http://model-router:9099/v1"
         hermes_llm_api_key="no-key"
         open_webui_llm_base_url="http://litellm:4000"
-        open_webui_llm_api_key="$litellm_key"
+        open_webui_llm_api_key="litellm_key"
     fi
-    local embedding_model="${EMBEDDING_MODEL:-BAAI/bge-base-en-v1.5}"
-    local rag_embedding_model="${RAG_EMBEDDING_MODEL:-}"
-    local rag_openai_api_base_url="${RAG_OPENAI_API_BASE_URL:-}"
-    local rag_openai_api_key="${RAG_OPENAI_API_KEY:-}"
-    local embeddings_memory_limit="${EMBEDDINGS_MEMORY_LIMIT:-4G}"
-    local bind_address="${BIND_ADDRESS:-127.0.0.1}"
+    local embedding_model="{EMBEDDING_MODEL:-BAAI/bge-base-en-v1.5}"
+    local rag_embedding_model="{RAG_EMBEDDING_MODEL:-}"
+    local rag_openai_api_base_url="{RAG_OPENAI_API_BASE_URL:-}"
+    local rag_openai_api_key="{RAG_OPENAI_API_KEY:-}"
+    local embeddings_memory_limit="{EMBEDDINGS_MEMORY_LIMIT:-4G}"
+    local bind_address="{BIND_ADDRESS:-127.0.0.1}"
     local webui_auth
-    if [[ "${ENABLE_ODS_PROXY:-false}" == "true" ]]; then
+    if [[ "{ENABLE_ODS_PROXY:-false}" == "true" ]]; then
         webui_auth="true"
     else
-        case "$bind_address" in
-            127.0.0.1|::1|localhost) webui_auth="${WEBUI_AUTH:-false}" ;;
+        case "bind_address" in
+            127.0.0.1|::1|localhost) webui_auth="{WEBUI_AUTH:-false}" ;;
             *) webui_auth="true" ;;
         esac
     fi
@@ -558,44 +558,44 @@ generate_ods_env() {
     # Regenerating secrets must not move an unchanged selected checkpoint from
     # its registered SSD to data/models. A newly chosen model starts in default.
     local active_model_store=default previous_store previous_gguf
-    previous_store="$(read_env_value "$env_path" ODS_ACTIVE_MODEL_STORE)"
-    previous_gguf="$(read_env_value "$env_path" GGUF_FILE)"
-    previous_store="${previous_store//\"/}"; previous_store="${previous_store//\'/}"
-    case "$previous_gguf" in
-        \"*\") previous_gguf="${previous_gguf:1:${#previous_gguf}-2}" ;;
-        \'*\') previous_gguf="${previous_gguf:1:${#previous_gguf}-2}" ;;
+    previous_store="(read_env_value "$env_path" ODS_ACTIVE_MODEL_STORE)"
+    previous_gguf="(read_env_value "$env_path" GGUF_FILE)"
+    previous_store="{previous_store//\"/}"; previous_store="${previous_store//\'/}"
+    case "previous_gguf" in
+        \"*\") previous_gguf="{previous_gguf:1:${#previous_gguf}-2}" ;;
+        \'*\') previous_gguf="{previous_gguf:1:${#previous_gguf}-2}" ;;
     esac
-    if [[ -n "$previous_store" && "$previous_store" != default && "$previous_gguf" == "$GGUF_FILE" ]]; then
-        if [[ ! "$previous_store" =~ ^[a-z][a-z0-9-]{0,47}$ ]] \
-            || ! python3 "$install_dir/scripts/resolve-model-store.py" --install-dir "$install_dir" --verify-artifacts >/dev/null; then
+    if [[ -n "previous_store" && "$previous_store" != default && "$previous_gguf" == "$GGUF_FILE" ]]; then
+        if [[ ! "previous_store" =~ ^[a-z][a-z0-9-]{0,47}$ ]] \
+            || ! python3 "install_dir/scripts/resolve-model-store.py" --install-dir "$install_dir" --verify-artifacts >/dev/null; then
             echo "The current SSD model could not be verified; .env was not regenerated." >&2
             return 1
         fi
-        active_model_store="$previous_store"
+        active_model_store="previous_store"
     fi
-    cat > "$env_path" << ENVEOF
-# ODS Configuration -- ${TIER_NAME} Edition
-# Generated by macOS installer v${ODS_VERSION} on ${timestamp}
-# Tier: ${tier} (${TIER_NAME})
+    cat > "env_path" << ENVEOF
+# ODS Configuration -- {TIER_NAME} Edition
+# Generated by macOS installer v{ODS_VERSION} on ${timestamp}
+# Tier: {tier} (${TIER_NAME})
 
 #=== Network Binding ===
 # macOS has no --lan flag; operators opt in by setting BIND_ADDRESS=0.0.0.0
 # manually.
-BIND_ADDRESS=${bind_address}
+BIND_ADDRESS={bind_address}
 # Device name used by ods-mdns/ods-proxy hostnames and magic-link URLs.
 # Derived from the macOS LocalHostName/hostname so multiple installs on one LAN
 # do not all collide on auth.ods.local/chat.ods.local.
-ODS_DEVICE_NAME=${device_name}
+ODS_DEVICE_NAME={device_name}
 # Container route to the loopback-only host agent (private Colima bridge or Docker Desktop helper).
-ODS_AGENT_HOST=${ODS_AGENT_HOST:-${agent_host}}
+ODS_AGENT_HOST={ODS_AGENT_HOST:-${agent_host}}
 # Docker Desktop preserves the installation owner's data group on bind mounts.
-REMOTE_PROVIDER_DATA_GID=$(id -g 2>/dev/null || echo 20)
+REMOTE_PROVIDER_DATA_GID=(id -g 2>/dev/null || echo 20)
 
 #=== LLM Backend Mode ===
 ODS_MODE=local
-ODS_MODEL_SWITCHBOARD=${switchboard_mode}
+ODS_MODEL_SWITCHBOARD={switchboard_mode}
 LLM_BACKEND=llama-server
-LLM_API_URL=${llm_api_url}
+LLM_API_URL={llm_api_url}
 
 #=== Cloud API Keys ===
 ANTHROPIC_API_KEY=
@@ -604,36 +604,36 @@ TOGETHER_API_KEY=
 MINIMAX_API_KEY=
 
 #=== LLM Settings (llama-server -- native Metal) ===
-ODS_MACOS_LLM_BRIDGE_ENABLED=${macos_llm_bridge_enabled}
-ODS_MACOS_HOST_AGENT_BRIDGE_ENABLED=${macos_host_agent_bridge_enabled}
-ODS_MACOS_HOST_GATEWAY=${macos_host_gateway}
-ODS_MACOS_VM_IP=${macos_vm_ip}
-ODS_NATIVE_LLAMA_PORT=${native_llama_port}
-MODEL_PROFILE=${MODEL_PROFILE_REQUESTED:-${MODEL_PROFILE:-qwen}}
-# Effective model profile for this hardware: ${MODEL_PROFILE_EFFECTIVE:-qwen}
-LLM_MODEL=${LLM_MODEL}
-GGUF_FILE=${GGUF_FILE}
-ODS_ACTIVE_MODEL_STORE=${active_model_store}
-MAX_CONTEXT=${MAX_CONTEXT}
-CTX_SIZE=${MAX_CONTEXT}
-MODEL_RECOMMENDED_MODEL=${LLM_MODEL}
-MODEL_RECOMMENDED_GGUF=${GGUF_FILE}
-MODEL_RECOMMENDED_CONTEXT=${MAX_CONTEXT}
-MODEL_RECOMMENDATION_SOURCE=$(dotenv_quote "${MODEL_RECOMMENDATION_SOURCE:-installer_tier_map}")
-MODEL_RECOMMENDATION_POLICY=$(dotenv_quote "${MODEL_RECOMMENDATION_POLICY:-tier-map}")
-MODEL_RECOMMENDATION_CONFIDENCE=$(dotenv_quote "${MODEL_RECOMMENDATION_CONFIDENCE:-medium}")
-MODEL_RECOMMENDATION_REASON=$(dotenv_quote "${MODEL_RECOMMENDATION_REASON:-Selected by installer tier ${tier} (${TIER_NAME}) for apple backend; benchmark locally after first launch.}")
-MODEL_RECOMMENDED_ALTERNATIVES=$(dotenv_quote "${MODEL_RECOMMENDED_ALTERNATIVES:-}")
+ODS_MACOS_LLM_BRIDGE_ENABLED={macos_llm_bridge_enabled}
+ODS_MACOS_HOST_AGENT_BRIDGE_ENABLED={macos_host_agent_bridge_enabled}
+ODS_MACOS_HOST_GATEWAY={macos_host_gateway}
+ODS_MACOS_VM_IP={macos_vm_ip}
+ODS_NATIVE_LLAMA_PORT={native_llama_port}
+MODEL_PROFILE={MODEL_PROFILE_REQUESTED:-${MODEL_PROFILE:-qwen}}
+# Effective model profile for this hardware: {MODEL_PROFILE_EFFECTIVE:-qwen}
+LLM_MODEL={LLM_MODEL}
+GGUF_FILE={GGUF_FILE}
+ODS_ACTIVE_MODEL_STORE={active_model_store}
+MAX_CONTEXT={MAX_CONTEXT}
+CTX_SIZE={MAX_CONTEXT}
+MODEL_RECOMMENDED_MODEL={LLM_MODEL}
+MODEL_RECOMMENDED_GGUF={GGUF_FILE}
+MODEL_RECOMMENDED_CONTEXT={MAX_CONTEXT}
+MODEL_RECOMMENDATION_SOURCE=(dotenv_quote "${MODEL_RECOMMENDATION_SOURCE:-installer_tier_map}")
+MODEL_RECOMMENDATION_POLICY=(dotenv_quote "${MODEL_RECOMMENDATION_POLICY:-tier-map}")
+MODEL_RECOMMENDATION_CONFIDENCE=(dotenv_quote "${MODEL_RECOMMENDATION_CONFIDENCE:-medium}")
+MODEL_RECOMMENDATION_REASON=(dotenv_quote "${MODEL_RECOMMENDATION_REASON:-Selected by installer tier ${tier} (${TIER_NAME}) for apple backend; benchmark locally after first launch.}")
+MODEL_RECOMMENDED_ALTERNATIVES=(dotenv_quote "${MODEL_RECOMMENDED_ALTERNATIVES:-}")
 MODEL_PERFORMANCE_SOURCE=benchmark_required
-MODEL_PERFORMANCE_LABEL=$(dotenv_quote "Benchmark after first launch")
+MODEL_PERFORMANCE_LABEL=(dotenv_quote "Benchmark after first launch")
 GPU_BACKEND=apple
-HOST_RAM_GB=${SYSTEM_RAM_GB}
-N_GPU_LAYERS=${n_gpu_layers}
-$(if [[ -n "${LLAMA_SERVER_IMAGE:-}" ]]; then echo "LLAMA_SERVER_IMAGE=${LLAMA_SERVER_IMAGE}"; fi)
+HOST_RAM_GB={SYSTEM_RAM_GB}
+N_GPU_LAYERS={n_gpu_layers}
+(if [[ -n "${LLAMA_SERVER_IMAGE:-}" ]]; then echo "LLAMA_SERVER_IMAGE=${LLAMA_SERVER_IMAGE}"; fi)
 #=== llama.cpp Runtime Tuning ===
-LLAMA_ARG_FLASH_ATTN=${LLAMA_ARG_FLASH_ATTN:-auto}
-LLAMA_ARG_CACHE_TYPE_K=${LLAMA_ARG_CACHE_TYPE_K:-f16}
-LLAMA_ARG_CACHE_TYPE_V=${LLAMA_ARG_CACHE_TYPE_V:-f16}
+LLAMA_ARG_FLASH_ATTN={LLAMA_ARG_FLASH_ATTN:-auto}
+LLAMA_ARG_CACHE_TYPE_K={LLAMA_ARG_CACHE_TYPE_K:-f16}
+LLAMA_ARG_CACHE_TYPE_V={LLAMA_ARG_CACHE_TYPE_V:-f16}
 # Optional native hybrid-model cache tuning; requires matching runtime --help support.
 # Empty/unset preserves runtime defaults; registered model profiles own their arguments.
 # LLAMA_ARG_CHECKPOINT_EVERY_NT=1024
@@ -652,33 +652,33 @@ LLAMA_ARG_CACHE_TYPE_V=${LLAMA_ARG_CACHE_TYPE_V:-f16}
 # Optional MTP speculative decoding only. Requires an MTP-capable GGUF and llama.cpp build.
 # LLAMA_ARG_SPEC_TYPE=draft-mtp
 # LLAMA_ARG_SPEC_DRAFT_N_MAX=3
-LLAMA_CPU_LIMIT=${detected_cpu_limit}
-LLAMA_CPU_RESERVATION=${detected_cpu_reservation}
+LLAMA_CPU_LIMIT={detected_cpu_limit}
+LLAMA_CPU_RESERVATION={detected_cpu_reservation}
 
 #=== Bundled Service CPU Budgets ===
-TTS_CPU_LIMIT=${tts_cpu_limit}
-TTS_CPU_RESERVATION=${tts_cpu_reservation}
+TTS_CPU_LIMIT={tts_cpu_limit}
+TTS_CPU_RESERVATION={tts_cpu_reservation}
 TTS_WORKERS=1
-TTS_THREADS=${tts_threads}
-WHISPER_CPU_LIMIT=${whisper_cpu_limit}
-WHISPER_CPU_RESERVATION=${whisper_cpu_reservation}
-HERMES_CPU_LIMIT=${hermes_cpu_limit}
-HERMES_CPU_RESERVATION=${hermes_cpu_reservation}
-COMFYUI_CPU_LIMIT=${comfyui_cpu_limit}
-COMFYUI_CPU_RESERVATION=${comfyui_cpu_reservation}
+TTS_THREADS={tts_threads}
+WHISPER_CPU_LIMIT={whisper_cpu_limit}
+WHISPER_CPU_RESERVATION={whisper_cpu_reservation}
+HERMES_CPU_LIMIT={hermes_cpu_limit}
+HERMES_CPU_RESERVATION={hermes_cpu_reservation}
+COMFYUI_CPU_LIMIT={comfyui_cpu_limit}
+COMFYUI_CPU_RESERVATION={comfyui_cpu_reservation}
 
 #=== Host File Ownership ===
 # Docker Compose reads these from .env without colliding with Bash's readonly UID.
-ODS_UID=${host_uid}
-ODS_GID=${host_gid}
+ODS_UID={host_uid}
+ODS_GID={host_gid}
 N8N_RUN_USER=node
 
 #=== Ports ===
-OLLAMA_PORT=${native_llama_port}
+OLLAMA_PORT={native_llama_port}
 WEBUI_PORT=3000
 SEARXNG_PORT=8888
 PERPLEXICA_PORT=3004
-WHISPER_PORT=${WHISPER_PORT:-9000}
+WHISPER_PORT={WHISPER_PORT:-9000}
 TTS_PORT=8880
 N8N_PORT=5678
 QDRANT_PORT=6333
@@ -689,33 +689,33 @@ LANGFUSE_PORT=3006
 
 #=== Hermes Agent ===
 # macOS runs llama-server natively with Metal; switchboard consumers use LiteLLM.
-HERMES_LLM_BASE_URL=${hermes_llm_base_url}
-HERMES_LLM_API_KEY=${hermes_llm_api_key}
+HERMES_LLM_BASE_URL={hermes_llm_base_url}
+HERMES_LLM_API_KEY={hermes_llm_api_key}
 HERMES_LANGUAGE=en
-HERMES_REQUIRE_OWNER_CARD=${HERMES_REQUIRE_OWNER_CARD:-false}
+HERMES_REQUIRE_OWNER_CARD={HERMES_REQUIRE_OWNER_CARD:-false}
 HERMES_PROXY_PORT=9120
 HERMES_PROXY_UPSTREAM=ods-hermes:9119
 ODS_AUTH_UPSTREAM=ods-dashboard-api:3002
 
 #=== Security (auto-generated, keep secret!) ===
-WEBUI_SECRET=${webui_secret}
-DASHBOARD_API_KEY=${dashboard_api_key}
-ODS_AGENT_KEY=${ods_agent_key}
-ODS_SESSION_SECRET=${ods_session_secret}
-HERMES_DASHBOARD_SESSION_TOKEN=${hermes_dashboard_session_token}
-SHIELD_API_KEY=${shield_api_key}
+WEBUI_SECRET={webui_secret}
+DASHBOARD_API_KEY={dashboard_api_key}
+ODS_AGENT_KEY={ods_agent_key}
+ODS_SESSION_SECRET={ods_session_secret}
+HERMES_DASHBOARD_SESSION_TOKEN={hermes_dashboard_session_token}
+SHIELD_API_KEY={shield_api_key}
 N8N_USER=admin@ods.local
-N8N_PASS=${n8n_pass}
-LITELLM_KEY=${litellm_key}
-LIVEKIT_API_KEY=${livekit_api_key}
-LIVEKIT_API_SECRET=${livekit_secret}
-QDRANT_API_KEY=${qdrant_api_key}
-TOKEN_SPY_API_KEY=${token_spy_api_key}
-SEARXNG_SECRET=${searxng_secret}
+N8N_PASS={n8n_pass}
+LITELLM_KEY={litellm_key}
+LIVEKIT_API_KEY={livekit_api_key}
+LIVEKIT_API_SECRET={livekit_secret}
+QDRANT_API_KEY={qdrant_api_key}
+TOKEN_SPY_API_KEY={token_spy_api_key}
+SEARXNG_SECRET={searxng_secret}
 
 #=== OpenCode Settings ===
 OPENCODE_PORT=3003
-OPENCODE_SERVER_PASSWORD=${opencode_password}
+OPENCODE_SERVER_PASSWORD={opencode_password}
 
 #=== Voice Settings ===
 WHISPER_MODEL=base
@@ -728,85 +728,85 @@ TTS_VOICE=en_US-lessac-medium
 #=== Embeddings / RAG ===
 # Open WebUI uses this canonical model at every start unless an explicit
 # external-provider override is configured.
-EMBEDDING_MODEL=${embedding_model}
-RAG_EMBEDDING_MODEL=${rag_embedding_model}
-RAG_OPENAI_API_BASE_URL=${rag_openai_api_base_url}
-RAG_OPENAI_API_KEY=${rag_openai_api_key}
-EMBEDDINGS_MEMORY_LIMIT=${embeddings_memory_limit}
+EMBEDDING_MODEL={embedding_model}
+RAG_EMBEDDING_MODEL={rag_embedding_model}
+RAG_OPENAI_API_BASE_URL={rag_openai_api_base_url}
+RAG_OPENAI_API_KEY={rag_openai_api_key}
+EMBEDDINGS_MEMORY_LIMIT={embeddings_memory_limit}
 
 #=== Web UI Settings ===
 # Loopback installs open directly. Network-bound installs require a login.
-ENABLE_OPEN_WEBUI=${ENABLE_OPEN_WEBUI:-false}
-WEBUI_AUTH=${webui_auth}
-ENABLE_WEB_SEARCH=${ENABLE_WEB_SEARCH:-true}
+ENABLE_OPEN_WEBUI={ENABLE_OPEN_WEBUI:-false}
+WEBUI_AUTH={webui_auth}
+ENABLE_WEB_SEARCH={ENABLE_WEB_SEARCH:-true}
 WEB_SEARCH_ENGINE=searxng
-OPEN_WEBUI_LLM_BASE_URL=${open_webui_llm_base_url}
-OPEN_WEBUI_LLM_API_KEY=${open_webui_llm_api_key}
+OPEN_WEBUI_LLM_BASE_URL={open_webui_llm_base_url}
+OPEN_WEBUI_LLM_API_KEY={open_webui_llm_api_key}
 
 #=== n8n Settings ===
 N8N_HOST=localhost
 N8N_WEBHOOK_URL=http://localhost:5678
-TIMEZONE=${tz}
+TIMEZONE={tz}
 
 #=== Langfuse (LLM Observability) ===
 # Existing Langfuse state keeps its data-bound secrets even with --force.
-LANGFUSE_ENABLED=${ENABLE_LANGFUSE:-false}
-LANGFUSE_NEXTAUTH_SECRET=${langfuse_nextauth_secret}
-LANGFUSE_SALT=${langfuse_salt}
-LANGFUSE_ENCRYPTION_KEY=${langfuse_encryption_key}
-LANGFUSE_DB_PASSWORD=${langfuse_db_password}
-LANGFUSE_CLICKHOUSE_PASSWORD=${langfuse_clickhouse_password}
-LANGFUSE_REDIS_PASSWORD=${langfuse_redis_password}
-LANGFUSE_MINIO_ACCESS_KEY=${langfuse_minio_access_key}
-LANGFUSE_MINIO_SECRET_KEY=${langfuse_minio_secret_key}
-LANGFUSE_PROJECT_PUBLIC_KEY=${langfuse_project_public_key}
-LANGFUSE_PROJECT_SECRET_KEY=${langfuse_project_secret_key}
-LANGFUSE_INIT_PROJECT_ID=${langfuse_init_project_id}
+LANGFUSE_ENABLED={ENABLE_LANGFUSE:-false}
+LANGFUSE_NEXTAUTH_SECRET={langfuse_nextauth_secret}
+LANGFUSE_SALT={langfuse_salt}
+LANGFUSE_ENCRYPTION_KEY={langfuse_encryption_key}
+LANGFUSE_DB_PASSWORD={langfuse_db_password}
+LANGFUSE_CLICKHOUSE_PASSWORD={langfuse_clickhouse_password}
+LANGFUSE_REDIS_PASSWORD={langfuse_redis_password}
+LANGFUSE_MINIO_ACCESS_KEY={langfuse_minio_access_key}
+LANGFUSE_MINIO_SECRET_KEY={langfuse_minio_secret_key}
+LANGFUSE_PROJECT_PUBLIC_KEY={langfuse_project_public_key}
+LANGFUSE_PROJECT_SECRET_KEY={langfuse_project_secret_key}
+LANGFUSE_INIT_PROJECT_ID={langfuse_init_project_id}
 LANGFUSE_INIT_USER_EMAIL=admin@ods.local
-LANGFUSE_INIT_USER_PASSWORD=${langfuse_init_user_password}
+LANGFUSE_INIT_USER_PASSWORD={langfuse_init_user_password}
 ENVEOF
 
     # Restrict .env to current user only (chmod 600)
-    chmod 600 "$env_path" 2>/dev/null || true
+    chmod 600 "env_path" 2>/dev/null || true
 
     # Export secrets for use by other generators
-    ENV_SEARXNG_SECRET="$searxng_secret"
-    ENV_DASHBOARD_KEY="$dashboard_api_key"
+    ENV_SEARXNG_SECRET="searxng_secret"
+    ENV_DASHBOARD_KEY="dashboard_api_key"
 }
 
 generate_searxng_config() {
-    local install_dir="$1"
-    local secret_key="$2"
-    local force_overwrite="${3:-false}"
+    local install_dir="1"
+    local secret_key="2"
+    local force_overwrite="{3:-false}"
 
-    local config_dir="${install_dir}/config/searxng"
-    mkdir -p "$config_dir"
-    local settings_path="${config_dir}/settings.yml"
+    local config_dir="{install_dir}/config/searxng"
+    mkdir -p "config_dir"
+    local settings_path="{config_dir}/settings.yml"
 
     # Idempotency: preserve existing SearXNG config unless forced.
-    if [[ -f "$settings_path" ]] && [[ "$force_overwrite" != "true" ]]; then
+    if [[ -f "settings_path" ]] && [[ "$force_overwrite" != "true" ]]; then
         return 0
     fi
 
     # Terminal sessions usually export LANG; otherwise use the macOS locale.
     local search_lang
-    search_lang="$(ods_searxng_default_lang "${LC_ALL:-${LC_MESSAGES:-${LANG:-$(defaults read -g AppleLocale 2>/dev/null || true)}}}")"
+    search_lang="(ods_searxng_default_lang "${LC_ALL:-${LC_MESSAGES:-${LANG:-$(defaults read -g AppleLocale 2>/dev/null || true)}}}")"
 
-    cat > "$settings_path" << SEARXEOF
+    cat > "settings_path" << SEARXEOF
 use_default_settings: true
 server:
-  secret_key: "${secret_key}"
+  secret_key: "{secret_key}"
   bind_address: "0.0.0.0"
   port: 8080
   limiter: false
 search:
   safe_search: 0
   # Install locale. API clients send no language, so "auto" would mean "all".
-  default_lang: "${search_lang}"
+  default_lang: "{search_lang}"
   formats:
     - html
     - json
-$(ods_searxng_hostnames_yaml "$search_lang")
+(ods_searxng_hostnames_yaml "$search_lang")
 engines:
   - name: bing
     # Fallback when other general engines are blocked (CAPTCHA/429/access denied).
@@ -831,21 +831,21 @@ SEARXEOF
 
 # Auto-configure Perplexica to use local llama-server
 configure_perplexica() {
-    local perplexica_port="${1:-3004}"
-    local llm_model="${2:-default}"
-    local llm_base_url="${3:-${LLM_API_URL:-http://host.docker.internal:8080}}"
-    local api_key="${4:-no-key}"
-    local perplexica_url="http://localhost:${perplexica_port}"
+    local perplexica_port="{1:-3004}"
+    local llm_model="{2:-default}"
+    local llm_base_url="{3:-${LLM_API_URL:-http://host.docker.internal:8080}}"
+    local api_key="{4:-no-key}"
+    local perplexica_url="http://localhost:{perplexica_port}"
 
-    case "$llm_base_url" in
+    case "llm_base_url" in
         */v1|*/api/v1) ;;
-        *) llm_base_url="${llm_base_url%/}/v1" ;;
+        *) llm_base_url="{llm_base_url%/}/v1" ;;
     esac
 
     PYTHON_CMD="python3"
-    if [[ -f "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/lib/python-cmd.sh" ]]; then
-        . "$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/lib/python-cmd.sh"
-        PYTHON_CMD="$(ods_detect_python_cmd)"
+    if [[ -f "(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/lib/python-cmd.sh" ]]; then
+        . "(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/lib/python-cmd.sh"
+        PYTHON_CMD="(ods_detect_python_cmd)"
     elif command -v python >/dev/null 2>&1; then
         PYTHON_CMD="python"
     fi
@@ -853,11 +853,11 @@ configure_perplexica() {
     # Current Perplexica images start with only the Transformers provider. Use
     # the provider API to create or update the managed OpenAI-compatible route,
     # then verify the exact persisted endpoint, key, model, and preferences.
-    PERPLEXICA_URL="$perplexica_url" \
-    PERPLEXICA_MODEL="$llm_model" \
-    PERPLEXICA_LLM_BASE_URL="$llm_base_url" \
-    PERPLEXICA_API_KEY="$api_key" \
-        "$PYTHON_CMD" - <<'PERPLEXICA_CONFIG_PY' >/dev/null 2>&1
+    PERPLEXICA_URL="perplexica_url" \
+    PERPLEXICA_MODEL="llm_model" \
+    PERPLEXICA_LLM_BASE_URL="llm_base_url" \
+    PERPLEXICA_API_KEY="api_key" \
+        "PYTHON_CMD" - <<'PERPLEXICA_CONFIG_PY' >/dev/null 2>&1
 import json
 import os
 import urllib.request

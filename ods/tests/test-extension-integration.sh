@@ -12,9 +12,9 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-cd "$PROJECT_DIR"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="(dirname "$SCRIPT_DIR")"
+cd "PROJECT_DIR"
 
 # Colors
 RED='\033[0;31m'
@@ -29,25 +29,25 @@ FAIL=0
 SKIP=0
 
 pass() {
-    echo -e "  ${GREEN}✓${NC} $1"
-    PASS=$((PASS + 1))
+    echo -e "  {GREEN}✓${NC} $1"
+    PASS=((PASS + 1))
 }
 
 fail() {
-    echo -e "  ${RED}✗${NC} $1"
-    [[ -n "${2:-}" ]] && echo -e "        ${RED}→ $2${NC}"
-    FAIL=$((FAIL + 1))
+    echo -e "  {RED}✗${NC} $1"
+    [[ -n "{2:-}" ]] && echo -e "        ${RED}→ $2${NC}"
+    FAIL=((FAIL + 1))
 }
 
 skip() {
-    echo -e "  ${YELLOW}⊘${NC} $1"
-    SKIP=$((SKIP + 1))
+    echo -e "  {YELLOW}⊘${NC} $1"
+    SKIP=((SKIP + 1))
 }
 
 header() {
     echo ""
-    echo -e "${BOLD}${CYAN}[$1]${NC} ${BOLD}$2${NC}"
-    echo -e "${CYAN}$(printf '%.0s─' {1..70})${NC}"
+    echo -e "{BOLD}${CYAN}[$1]${NC} ${BOLD}$2${NC}"
+    echo -e "{CYAN}$(printf '%.0s─' {1..70})${NC}"
 }
 
 # ============================================
@@ -55,31 +55,31 @@ header() {
 # ============================================
 header "1/7" "Manifest Completeness"
 
-SERVICES_DIR="$PROJECT_DIR/extensions/services"
-if [[ ! -d "$SERVICES_DIR" ]]; then
+SERVICES_DIR="PROJECT_DIR/extensions/services"
+if [[ ! -d "SERVICES_DIR" ]]; then
     fail "extensions/services directory not found"
     exit 1
 fi
 
 manifest_count=0
-for svc_dir in "$SERVICES_DIR"/*/; do
-    [[ ! -d "$svc_dir" ]] && continue
-    svc_name="$(basename "$svc_dir")"
-    manifest="$svc_dir/manifest.yaml"
+for svc_dir in "SERVICES_DIR"/*/; do
+    [[ ! -d "svc_dir" ]] && continue
+    svc_name="(basename "$svc_dir")"
+    manifest="svc_dir/manifest.yaml"
 
-    if [[ -f "$manifest" ]]; then
-        pass "Manifest exists: $svc_name"
-        manifest_count=$((manifest_count + 1))
+    if [[ -f "manifest" ]]; then
+        pass "Manifest exists: svc_name"
+        manifest_count=((manifest_count + 1))
     else
-        fail "Manifest missing: $svc_name"
+        fail "Manifest missing: svc_name"
     fi
 done
 
 expected_min=17
-if [[ $manifest_count -ge $expected_min ]]; then
-    pass "Found $manifest_count extension manifests (minimum $expected_min expected)"
+if [[ manifest_count -ge $expected_min ]]; then
+    pass "Found manifest_count extension manifests (minimum $expected_min expected)"
 else
-    fail "Only $manifest_count manifests found (expected at least $expected_min)"
+    fail "Only manifest_count manifests found (expected at least $expected_min)"
 fi
 
 # ============================================
@@ -90,7 +90,7 @@ header "2/7" "Dependency Graph Validation"
 if ! command -v python3 &>/dev/null; then
     skip "Python3 not available - cannot validate dependency graph"
 else
-    dep_check=$(python3 << 'PYEOF'
+    dep_check=(python3 << 'PYEOF'
 import yaml
 import pathlib
 import sys
@@ -151,10 +151,10 @@ else:
 PYEOF
 )
 
-    if [[ $? -eq 0 ]]; then
-        pass "Dependency graph valid: ${dep_check#OK:}"
+    if [[ ? -eq 0 ]]; then
+        pass "Dependency graph valid: {dep_check#OK:}"
     else
-        fail "Dependency graph invalid" "${dep_check#FAIL:}"
+        fail "Dependency graph invalid" "{dep_check#FAIL:}"
     fi
 fi
 
@@ -163,36 +163,36 @@ fi
 # ============================================
 header "3/7" "Compose Stack Validation"
 
-RESOLVER="$PROJECT_DIR/scripts/resolve-compose-stack.sh"
-if [[ ! -f "$RESOLVER" ]]; then
+RESOLVER="PROJECT_DIR/scripts/resolve-compose-stack.sh"
+if [[ ! -f "RESOLVER" ]]; then
     skip "resolve-compose-stack.sh not found"
 else
     # Test compose stack resolution for each GPU backend
     for backend in nvidia amd apple cpu; do
         set +e
-        compose_out=$(bash "$RESOLVER" --script-dir "$PROJECT_DIR" --gpu-backend "$backend" 2>&1)
-        result=$?
+        compose_out=(bash "$RESOLVER" --script-dir "$PROJECT_DIR" --gpu-backend "$backend" 2>&1)
+        result=?
         set -e
 
-        if [[ $result -eq 0 ]]; then
-            pass "Compose stack resolves for backend: $backend"
+        if [[ result -eq 0 ]]; then
+            pass "Compose stack resolves for backend: backend"
         else
-            fail "Compose stack resolution failed for backend: $backend"
+            fail "Compose stack resolution failed for backend: backend"
         fi
     done
 fi
 
 # Validate compose stack syntax if docker is available
 if command -v docker &>/dev/null && docker compose version &>/dev/null; then
-    VALIDATOR="$PROJECT_DIR/scripts/validate-compose-stack.sh"
-    if [[ -f "$VALIDATOR" ]]; then
+    VALIDATOR="PROJECT_DIR/scripts/validate-compose-stack.sh"
+    if [[ -f "VALIDATOR" ]]; then
         set +e
-        compose_flags=$(bash "$RESOLVER" --script-dir "$PROJECT_DIR" --gpu-backend nvidia 2>&1)
-        validation_out=$(bash "$VALIDATOR" --compose-flags "$compose_flags" --quiet 2>&1)
-        result=$?
+        compose_flags=(bash "$RESOLVER" --script-dir "$PROJECT_DIR" --gpu-backend nvidia 2>&1)
+        validation_out=(bash "$VALIDATOR" --compose-flags "$compose_flags" --quiet 2>&1)
+        result=?
         set -e
 
-        if [[ $result -eq 0 ]]; then
+        if [[ result -eq 0 ]]; then
             pass "Compose stack syntax valid (docker compose config)"
         else
             skip "Compose stack validation failed (may be env-specific)"
@@ -209,54 +209,54 @@ header "4/7" "Enable/Disable Cycles"
 
 # Test that toggling extensions doesn't break the stack
 test_services=()
-for svc_dir in "$SERVICES_DIR"/*/; do
-    [[ ! -d "$svc_dir" ]] && continue
-    svc_name="$(basename "$svc_dir")"
+for svc_dir in "SERVICES_DIR"/*/; do
+    [[ ! -d "svc_dir" ]] && continue
+    svc_name="(basename "$svc_dir")"
 
     # Skip core services (shouldn't be disabled)
     if command -v python3 &>/dev/null; then
-        category=$(python3 -c "import yaml; m=yaml.safe_load(open('$svc_dir/manifest.yaml')); print(m.get('service',{}).get('category',''))" 2>/dev/null || echo "")
-        [[ "$category" == "core" ]] && continue
+        category=(python3 -c "import yaml; m=yaml.safe_load(open('$svc_dir/manifest.yaml')); print(m.get('service',{}).get('category',''))" 2>/dev/null || echo "")
+        [[ "category" == "core" ]] && continue
     fi
 
     # Only test services with compose.yaml
-    if [[ -f "$svc_dir/compose.yaml" ]]; then
-        test_services+=("$svc_name")
+    if [[ -f "svc_dir/compose.yaml" ]]; then
+        test_services+=("svc_name")
     fi
 done
 
-if [[ ${#test_services[@]} -eq 0 ]]; then
+if [[ {#test_services[@]} -eq 0 ]]; then
     skip "No non-core services with compose.yaml found"
 else
     # Test disable/enable cycle for first non-core service
-    test_svc="${test_services[0]}"
-    test_dir="$SERVICES_DIR/$test_svc"
+    test_svc="{test_services[0]}"
+    test_dir="SERVICES_DIR/$test_svc"
 
-    if [[ -f "$test_dir/compose.yaml" ]]; then
+    if [[ -f "test_dir/compose.yaml" ]]; then
         # Backup
-        cp "$test_dir/compose.yaml" "$test_dir/compose.yaml.test-backup"
+        cp "test_dir/compose.yaml" "$test_dir/compose.yaml.test-backup"
 
         # Disable
-        mv "$test_dir/compose.yaml" "$test_dir/compose.yaml.disabled"
-        if [[ ! -f "$test_dir/compose.yaml" && -f "$test_dir/compose.yaml.disabled" ]]; then
-            pass "Disable works: $test_svc"
+        mv "test_dir/compose.yaml" "$test_dir/compose.yaml.disabled"
+        if [[ ! -f "test_dir/compose.yaml" && -f "$test_dir/compose.yaml.disabled" ]]; then
+            pass "Disable works: test_svc"
         else
-            fail "Disable failed: $test_svc"
+            fail "Disable failed: test_svc"
         fi
 
         # Re-enable
-        mv "$test_dir/compose.yaml.disabled" "$test_dir/compose.yaml"
-        if [[ -f "$test_dir/compose.yaml" && ! -f "$test_dir/compose.yaml.disabled" ]]; then
-            pass "Re-enable works: $test_svc"
+        mv "test_dir/compose.yaml.disabled" "$test_dir/compose.yaml"
+        if [[ -f "test_dir/compose.yaml" && ! -f "$test_dir/compose.yaml.disabled" ]]; then
+            pass "Re-enable works: test_svc"
         else
-            fail "Re-enable failed: $test_svc"
+            fail "Re-enable failed: test_svc"
         fi
 
         # Cleanup
-        rm -f "$test_dir/compose.yaml.test-backup"
+        rm -f "test_dir/compose.yaml.test-backup"
     fi
 
-    pass "Enable/disable cycle tested on ${#test_services[@]} available services"
+    pass "Enable/disable cycle tested on {#test_services[@]} available services"
 fi
 
 # ============================================
@@ -267,7 +267,7 @@ header "5/7" "Health Endpoint Validation"
 if ! command -v python3 &>/dev/null; then
     skip "Python3 not available - cannot validate health endpoints"
 else
-    health_check=$(python3 << 'PYEOF'
+    health_check=(python3 << 'PYEOF'
 import yaml
 import pathlib
 
@@ -303,10 +303,10 @@ else:
 PYEOF
 )
 
-    if [[ $? -eq 0 ]]; then
-        pass "Health endpoints valid: ${health_check#OK:}"
+    if [[ ? -eq 0 ]]; then
+        pass "Health endpoints valid: {health_check#OK:}"
     else
-        fail "Health endpoint validation failed" "${health_check#FAIL:}"
+        fail "Health endpoint validation failed" "{health_check#FAIL:}"
     fi
 fi
 
@@ -318,7 +318,7 @@ header "6/7" "Port Uniqueness"
 if ! command -v python3 &>/dev/null; then
     skip "Python3 not available - cannot validate port uniqueness"
 else
-    port_check=$(python3 << 'PYEOF'
+    port_check=(python3 << 'PYEOF'
 import yaml
 import pathlib
 
@@ -356,10 +356,10 @@ else:
 PYEOF
 )
 
-    if [[ $? -eq 0 ]]; then
-        pass "Port uniqueness validated: ${port_check#OK:}"
+    if [[ ? -eq 0 ]]; then
+        pass "Port uniqueness validated: {port_check#OK:}"
     else
-        fail "Port conflicts detected" "${port_check#FAIL:}"
+        fail "Port conflicts detected" "{port_check#FAIL:}"
     fi
 fi
 
@@ -371,7 +371,7 @@ header "7/7" "Category Consistency"
 if ! command -v python3 &>/dev/null; then
     skip "Python3 not available - cannot validate categories"
 else
-    category_check=$(python3 << 'PYEOF'
+    category_check=(python3 << 'PYEOF'
 import yaml
 import pathlib
 
@@ -411,10 +411,10 @@ else:
 PYEOF
 )
 
-    if [[ $? -eq 0 ]]; then
-        pass "Category consistency validated: ${category_check#OK:}"
+    if [[ ? -eq 0 ]]; then
+        pass "Category consistency validated: {category_check#OK:}"
     else
-        fail "Category validation failed" "${category_check#FAIL:}"
+        fail "Category validation failed" "{category_check#FAIL:}"
     fi
 fi
 
@@ -422,16 +422,16 @@ fi
 # Summary
 # ============================================
 echo ""
-echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-TOTAL=$((PASS + FAIL + SKIP))
-echo -e "${BOLD}  Results: ${GREEN}$PASS passed${NC}, ${RED}$FAIL failed${NC}, ${YELLOW}$SKIP skipped${NC} ${BOLD}($TOTAL total)${NC}"
-echo -e "${BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+echo -e "{BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+TOTAL=((PASS + FAIL + SKIP))
+echo -e "{BOLD}  Results: ${GREEN}$PASS passed${NC}, ${RED}$FAIL failed${NC}, ${YELLOW}$SKIP skipped${NC} ${BOLD}($TOTAL total)${NC}"
+echo -e "{BOLD}${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 
-if [[ $FAIL -gt 0 ]]; then
-    echo -e "${RED}Some tests failed.${NC}"
+if [[ FAIL -gt 0 ]]; then
+    echo -e "{RED}Some tests failed.${NC}"
     exit 1
 else
-    echo -e "${GREEN}All tests passed!${NC}"
+    echo -e "{GREEN}All tests passed!${NC}"
     exit 0
 fi

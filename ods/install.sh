@@ -13,27 +13,27 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$SCRIPT_DIR/installers/dispatch.sh"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "SCRIPT_DIR/installers/dispatch.sh"
 
-target="$(resolve_installer_target)"
+target="(resolve_installer_target)"
 
-case "$target" in
+case "target" in
     unsupported:unknown)
         echo "[ERROR] Unsupported OS for this installer entrypoint."
         echo "        See docs/SUPPORT-MATRIX.md for supported platforms."
         exit 1
         ;;
     *)
-        if [[ ! -f "$target" ]]; then
-            echo "[ERROR] Installer target not found: $target"
+        if [[ ! -f "target" ]]; then
+            echo "[ERROR] Installer target not found: target"
             exit 1
         fi
-        case "$target" in
+        case "target" in
             *.ps1)
-                echo "[INFO] Windows installer target: $target"
+                echo "[INFO] Windows installer target: target"
                 if command -v pwsh >/dev/null 2>&1; then
-                    exec pwsh -File "$target" "$@"
+                    exec pwsh -File "target" "$@"
                 else
                     echo "[ERROR] PowerShell (pwsh) not found in this shell."
                     echo "        Run this from Windows PowerShell instead:"
@@ -42,7 +42,7 @@ case "$target" in
                 fi
                 ;;
             *)
-                exec bash "$target" "$@"
+                exec bash "target" "$@"
                 ;;
         esac
         ;;

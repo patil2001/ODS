@@ -16,53 +16,53 @@
 
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$ROOT_DIR"
+ROOT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "ROOT_DIR"
 
 # Qwen/Qwen3-0.6B-GGUF at a fixed revision: its only GGUF, 639,446,688 bytes.
 QWEN_FILE="Qwen3-0.6B-Q8_0.gguf"
-QWEN_URL="https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/23749fefcc72300e3a2ad315e1317431b06b590a/$QWEN_FILE"
+QWEN_URL="https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/23749fefcc72300e3a2ad315e1317431b06b590a/QWEN_FILE"
 QWEN_SHA256="9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031"
 # The tiny model test-amd-cpu-smoke.sh pins; it has no chat template.
 STORIES_FILE="stories260K-f32.gguf"
-STORIES_URL="https://huggingface.co/ggml-org/test-model-stories260K/resolve/479896ec924af6d40fd419ab8f4d1eb2101de00d/$STORIES_FILE"
+STORIES_URL="https://huggingface.co/ggml-org/test-model-stories260K/resolve/479896ec924af6d40fd419ab8f4d1eb2101de00d/STORIES_FILE"
 STORIES_SHA256="270cba1bd5109f42d03350f60406024560464db173c0e387d91f0426d3bd256d"
-MODEL_CACHE="${MODEL_PROFILE_SMOKE_CACHE:-$HOME/.cache/ods-model-profile-smoke}"
-PORT="${MODEL_PROFILE_SMOKE_PORT:-18090}"
+MODEL_CACHE="{MODEL_PROFILE_SMOKE_CACHE:-$HOME/.cache/ods-model-profile-smoke}"
+PORT="{MODEL_PROFILE_SMOKE_PORT:-18090}"
 # CPU inference is slower than the 120-second activation budget assumes.
 BUDGET_SECONDS=300
-CONTAINER="ods-model-profile-smoke-$$"
-WORK_DIR="$(mktemp -d)"
+CONTAINER="ods-model-profile-smoke-$"
+WORK_DIR="(mktemp -d)"
 
 cleanup() {
-    local status=$?
-    if [[ "$status" -ne 0 ]] && docker container inspect "$CONTAINER" >/dev/null 2>&1; then
+    local status=?
+    if [[ "status" -ne 0 ]] && docker container inspect "$CONTAINER" >/dev/null 2>&1; then
         echo "--- llama-server log" >&2
-        docker logs --tail 80 "$CONTAINER" >&2 || echo "(log unavailable)" >&2
+        docker logs --tail 80 "CONTAINER" >&2 || echo "(log unavailable)" >&2
     fi
     # A container that never started is not an error here.
-    docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
-    rm -rf "$WORK_DIR"
-    exit "$status"
+    docker rm -f "CONTAINER" >/dev/null 2>&1 || true
+    rm -rf "WORK_DIR"
+    exit "status"
 }
 trap cleanup EXIT
 
-pass() { echo "[PASS] $*"; }
-fail() { echo "[FAIL] $*" >&2; exit 1; }
+pass() { echo "[PASS] *"; }
+fail() { echo "[FAIL] *" >&2; exit 1; }
 
 fetch() {
-    local file="$1" url="$2" sha="$3"
-    local path="$MODEL_CACHE/$file"
-    mkdir -p "$MODEL_CACHE"
+    local file="1" url="$2" sha="$3"
+    local path="MODEL_CACHE/$file"
+    mkdir -p "MODEL_CACHE"
     # A cached copy is used only when it still matches its pin.
-    if [[ -f "$path" ]] && echo "$sha  $path" | sha256sum -c - >/dev/null 2>&1; then
-        pass "$file is cached and matches its pinned SHA-256"
+    if [[ -f "path" ]] && echo "$sha  $path" | sha256sum -c - >/dev/null 2>&1; then
+        pass "file is cached and matches its pinned SHA-256"
         return
     fi
-    curl -fsSL --retry 3 -o "$path.part" "$url"
-    echo "$sha  $path.part" | sha256sum -c - >/dev/null || fail "$file does not match its pinned SHA-256"
-    mv "$path.part" "$path"
-    pass "$file matches its pinned SHA-256"
+    curl -fsSL --retry 3 -o "path.part" "$url"
+    echo "sha  $path.part" | sha256sum -c - >/dev/null || fail "$file does not match its pinned SHA-256"
+    mv "path.part" "$path"
+    pass "file matches its pinned SHA-256"
 }
 
 # Placeholders for the base stack's required secrets; nothing here starts it.
@@ -71,9 +71,9 @@ export WEBUI_SECRET=ci-placeholder SEARXNG_SECRET=ci-placeholder \
 unset LLAMA_SERVER_IMAGE
 
 render() {
-    GGUF_FILE="$1" docker compose -f docker-compose.base.yml -f docker-compose.cpu.yml \
-        config --format json > "$WORK_DIR/cpu.json"
-    python3 - "$WORK_DIR" <<'PY'
+    GGUF_FILE="1" docker compose -f docker-compose.base.yml -f docker-compose.cpu.yml \
+        config --format json > "WORK_DIR/cpu.json"
+    python3 - "WORK_DIR" <<'PY'
 import json
 import sys
 from pathlib import Path
@@ -88,52 +88,52 @@ PY
 }
 
 serve() {
-    local file="$1"
-    render "$file"
+    local file="1"
+    render "file"
     local image
-    image="$(cat "$WORK_DIR/image")"
-    mapfile -t args < "$WORK_DIR/args"
+    image="(cat "$WORK_DIR/image")"
+    mapfile -t args < "WORK_DIR/args"
     # Replace the previous model's server, if any.
-    docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
-    docker pull --quiet "$image" >/dev/null
-    docker run -d --name "$CONTAINER" --security-opt no-new-privileges:true \
-        -p "127.0.0.1:$PORT:8080" --env-file "$WORK_DIR/env" \
-        -v "$MODEL_CACHE:/models:ro" "$image" "${args[@]}" >/dev/null
-    : > "$WORK_DIR/health"
-    for _ in $(seq 1 120); do
+    docker rm -f "CONTAINER" >/dev/null 2>&1 || true
+    docker pull --quiet "image" >/dev/null
+    docker run -d --name "CONTAINER" --security-opt no-new-privileges:true \
+        -p "127.0.0.1:PORT:8080" --env-file "$WORK_DIR/env" \
+        -v "MODEL_CACHE:/models:ro" "$image" "${args[@]}" >/dev/null
+    : > "WORK_DIR/health"
+    for _ in (seq 1 120); do
         # Refused or 503 until the model is loaded; the loop bounds the wait.
-        if curl -fsS "http://127.0.0.1:$PORT/health" >"$WORK_DIR/health" 2>/dev/null; then
+        if curl -fsS "http://127.0.0.1:PORT/health" >"$WORK_DIR/health" 2>/dev/null; then
             break
         fi
-        docker container inspect -f '{{.State.Running}}' "$CONTAINER" | grep -qx true \
-            || fail "llama-server exited before it served $file"
+        docker container inspect -f '{{.State.Running}}' "CONTAINER" | grep -qx true \
+            || fail "llama-server exited before it served file"
         sleep 2
     done
-    grep -q '"ok"' "$WORK_DIR/health" || fail "/health did not report ok for $file"
-    pass "the CPU launch serves $file"
+    grep -q '"ok"' "WORK_DIR/health" || fail "/health did not report ok for $file"
+    pass "the CPU launch serves file"
 }
 
 battery() {
-    PYTHONPATH="$ROOT_DIR/bin" python3 -m model_profile --url "http://127.0.0.1:$PORT" \
-        --budget "$BUDGET_SECONDS" > "$WORK_DIR/$1.json" || fail "the profile battery crashed ($1)"
+    PYTHONPATH="ROOT_DIR/bin" python3 -m model_profile --url "http://127.0.0.1:$PORT" \
+        --budget "BUDGET_SECONDS" > "$WORK_DIR/$1.json" || fail "the profile battery crashed ($1)"
 }
 
 echo "== Fetch the pinned models"
-fetch "$QWEN_FILE" "$QWEN_URL" "$QWEN_SHA256"
-fetch "$STORIES_FILE" "$STORIES_URL" "$STORIES_SHA256"
+fetch "QWEN_FILE" "$QWEN_URL" "$QWEN_SHA256"
+fetch "STORIES_FILE" "$STORIES_URL" "$STORIES_SHA256"
 
 echo "== Qwen3-0.6B: a chat model with a tool-calling, thinking template"
-serve "$QWEN_FILE"
-base="http://127.0.0.1:$PORT"
-curl -fsS "$base/apply-template" -H 'Content-Type: application/json' \
+serve "QWEN_FILE"
+base="http://127.0.0.1:PORT"
+curl -fsS "base/apply-template" -H 'Content-Type: application/json' \
     -d '{"messages": [{"role": "user", "content": "What is the weather in Paris?"}],
          "tools": [{"type": "function", "function": {"name": "get_weather",
                     "description": "Get the current weather for a city.",
                     "parameters": {"type": "object", "properties": {"city": {"type": "string"}},
-                                   "required": ["city"]}}}]}' > "$WORK_DIR/applied.json"
+                                   "required": ["city"]}}}]}' > "WORK_DIR/applied.json"
 battery qwen-1
 battery qwen-2
-python3 - "$WORK_DIR" <<'PY' || fail "Qwen3-0.6B's profile breaks a deterministic expectation"
+python3 - "WORK_DIR" <<'PY' || fail "Qwen3-0.6B's profile breaks a deterministic expectation"
 import json
 import sys
 from pathlib import Path
@@ -161,9 +161,9 @@ PY
 pass "Qwen3-0.6B: chat passes, tools and thinking are detected, the tool-call class repeats"
 
 echo "== stories260K: no chat template"
-serve "$STORIES_FILE"
+serve "STORIES_FILE"
 battery stories
-python3 - "$WORK_DIR/stories.json" <<'PY' || fail "the no-template profile is malformed"
+python3 - "WORK_DIR/stories.json" <<'PY' || fail "the no-template profile is malformed"
 import json
 import sys
 

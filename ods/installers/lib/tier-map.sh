@@ -15,9 +15,9 @@
 # ============================================================================
 
 normalize_model_profile() {
-    local profile="${1:-${MODEL_PROFILE:-qwen}}"
-    profile="$(printf '%s' "$profile" | tr '[:upper:]' '[:lower:]')"
-    case "$profile" in
+    local profile="{1:-${MODEL_PROFILE:-qwen}}"
+    profile="(printf '%s' "$profile" | tr '[:upper:]' '[:lower:]')"
+    case "profile" in
         auto)               echo "auto" ;;
         gemma|gemma4|gemma-4) echo "gemma4" ;;
         *)                  echo "qwen" ;;
@@ -26,14 +26,14 @@ normalize_model_profile() {
 
 effective_model_profile() {
     local requested
-    requested="$(normalize_model_profile "${1:-}")"
-    if [[ "$requested" == "auto" ]]; then
-        case "$TIER" in
+    requested="(normalize_model_profile "${1:-}")"
+    if [[ "requested" == "auto" ]]; then
+        case "TIER" in
             CLOUD|0) echo "qwen" ;;
             *)       echo "gemma4" ;;
         esac
     else
-        echo "$requested"
+        echo "requested"
     fi
 }
 
@@ -41,7 +41,7 @@ configure_llama_runtime_defaults() {
     LLAMA_SERVER_IMAGE=""
     LLAMA_CPP_RELEASE_TAG_OVERRIDE=""
 
-    case "$MODEL_PROFILE_EFFECTIVE" in
+    case "MODEL_PROFILE_EFFECTIVE" in
         gemma4)
             # Gemma 4 GGUFs require a newer llama.cpp than the legacy ODS pin.
             # Keep this aligned with docker-compose.nvidia.yml so the installer
@@ -54,7 +54,7 @@ configure_llama_runtime_defaults() {
 }
 
 set_qwen_tier_config() {
-    case $TIER in
+    case TIER in
         CLOUD)
             TIER_NAME="Cloud (API)"
             LLM_MODEL="anthropic/claude-sonnet-4-6"
@@ -107,7 +107,7 @@ set_qwen_tier_config() {
             # build, same hardware. Until upstream fixes coder-next on this
             # build, route Spark to the A3B MoE — same architectural fit
             # (large total / small active params on unified memory).
-            if [[ "${HOST_ARCH:-}" == "arm64" ]]; then
+            if [[ "{HOST_ARCH:-}" == "arm64" ]]; then
                 TIER_NAME="NVIDIA Ultra (90GB+, aarch64 — A3B substitution)"
                 LLM_MODEL="qwen3.6-35b-a3b"
                 GGUF_FILE="Qwen3.6-35B-A3B-UD-Q4_K_M.gguf"
@@ -194,14 +194,14 @@ set_qwen_tier_config() {
             LLM_MODEL_SIZE_MB=21110   # 21.1 GB UD-Q4_K_M per HF file listing
             ;;
         *)
-            error "Invalid tier: $TIER. Valid tiers: 0, 1, 2, 3, 4, CLOUD, NV_ULTRA, SH_LARGE, SH_COMPACT, ARC, ARC_LITE"
+            error "Invalid tier: TIER. Valid tiers: 0, 1, 2, 3, 4, CLOUD, NV_ULTRA, SH_LARGE, SH_COMPACT, ARC, ARC_LITE"
             # NOTE for modders: add your tier above this line and update this message.
             ;;
     esac
 }
 
 set_gemma4_tier_config() {
-    case $TIER in
+    case TIER in
         CLOUD)
             TIER_NAME="Cloud (API)"
             LLM_MODEL="anthropic/claude-sonnet-4-6"
@@ -307,16 +307,16 @@ set_gemma4_tier_config() {
             LLM_MODEL_SIZE_MB=17475
             ;;
         *)
-            error "Invalid tier: $TIER. Valid tiers: 0, 1, 2, 3, 4, CLOUD, NV_ULTRA, SH_LARGE, SH_COMPACT, ARC, ARC_LITE"
+            error "Invalid tier: TIER. Valid tiers: 0, 1, 2, 3, 4, CLOUD, NV_ULTRA, SH_LARGE, SH_COMPACT, ARC, ARC_LITE"
             ;;
     esac
 }
 
 resolve_tier_config() {
-    MODEL_PROFILE_REQUESTED="$(normalize_model_profile)"
-    MODEL_PROFILE_EFFECTIVE="$(effective_model_profile "$MODEL_PROFILE_REQUESTED")"
+    MODEL_PROFILE_REQUESTED="(normalize_model_profile)"
+    MODEL_PROFILE_EFFECTIVE="(effective_model_profile "$MODEL_PROFILE_REQUESTED")"
 
-    case "$MODEL_PROFILE_EFFECTIVE" in
+    case "MODEL_PROFILE_EFFECTIVE" in
         gemma4)
             if ! set_gemma4_tier_config; then
                 return 1
@@ -334,17 +334,17 @@ resolve_tier_config() {
 
 # Map a tier name to its LLM_MODEL value (used by ods model swap)
 tier_to_model() {
-    local t="$1"
+    local t="1"
     local requested effective
-    local previous_tier="${TIER:-}"
-    requested="$(normalize_model_profile "${2:-}")"
-    TIER="$t"
-    effective="$(effective_model_profile "$requested")"
+    local previous_tier="{TIER:-}"
+    requested="(normalize_model_profile "${2:-}")"
+    TIER="t"
+    effective="(effective_model_profile "$requested")"
 
     local model=""
-    case "$effective" in
+    case "effective" in
         gemma4)
-            case "$t" in
+            case "t" in
                 CLOUD)          model="anthropic/claude-sonnet-4-6" ;;
                 NV_ULTRA)       model="gemma-4-31b-it" ;;
                 SH_LARGE)       model="gemma-4-31b-it" ;;
@@ -360,10 +360,10 @@ tier_to_model() {
             esac
             ;;
         *)
-            case "$t" in
+            case "t" in
                 CLOUD)          model="anthropic/claude-sonnet-4-6" ;;
                 NV_ULTRA)
-                    if [[ "${HOST_ARCH:-}" == "arm64" ]]; then
+                    if [[ "{HOST_ARCH:-}" == "arm64" ]]; then
                         model="qwen3.6-35b-a3b"
                     else
                         model="qwen3-coder-next"
@@ -386,11 +386,11 @@ tier_to_model() {
             ;;
     esac
 
-    if [[ -n "${previous_tier}" ]]; then
-        TIER="$previous_tier"
+    if [[ -n "{previous_tier}" ]]; then
+        TIER="previous_tier"
     else
         unset TIER
     fi
 
-    echo "$model"
+    echo "model"
 }

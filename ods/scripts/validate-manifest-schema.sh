@@ -7,11 +7,11 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-MANIFEST_FILE="${ROOT_DIR}/manifest.json"
-DEFAULT_MANIFEST_DIRS="${ROOT_DIR}/extensions/services:${ROOT_DIR}/extensions/library/services"
-MANIFEST_DIRS="${ODS_MANIFEST_DIRS:-$DEFAULT_MANIFEST_DIRS}"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="(cd "${SCRIPT_DIR}/.." && pwd)"
+MANIFEST_FILE="{ROOT_DIR}/manifest.json"
+DEFAULT_MANIFEST_DIRS="{ROOT_DIR}/extensions/services:${ROOT_DIR}/extensions/library/services"
+MANIFEST_DIRS="{ODS_MANIFEST_DIRS:-$DEFAULT_MANIFEST_DIRS}"
 SCHEMA_PATH=""
 
 STRICT_MODE=false
@@ -30,7 +30,7 @@ usage() {
     cat << EOF
 Extension Manifest Schema Validator
 
-Usage: $(basename "$0") [OPTIONS]
+Usage: (basename "$0") [OPTIONS]
 
 OPTIONS:
     -h, --help      Show this help message
@@ -47,28 +47,28 @@ ENVIRONMENT:
                         Defaults to bundled and library service directories.
 
 EXAMPLES:
-    $(basename "$0")              # Validate all manifests
-    $(basename "$0") --strict     # Fail on warnings
-    $(basename "$0") --verbose    # Show all checks
+    (basename "$0")              # Validate all manifests
+    (basename "$0") --strict     # Fail on warnings
+    (basename "$0") --verbose    # Show all checks
 EOF
 }
 
 error() {
-    echo -e "${RED}✗ ERROR:${NC} $*" >&2
+    echo -e "{RED}✗ ERROR:${NC} $*" >&2
     ((ERRORS++)) || true
 }
 
 warn() {
-    echo -e "${YELLOW}⚠ WARNING:${NC} $*" >&2
+    echo -e "{YELLOW}⚠ WARNING:${NC} $*" >&2
     ((WARNINGS++)) || true
 }
 
 info() {
-    [[ "$VERBOSE" == "true" ]] && echo -e "${BLUE}ℹ${NC} $*"
+    [[ "VERBOSE" == "true" ]] && echo -e "${BLUE}ℹ${NC} $*"
 }
 
 success() {
-    [[ "$VERBOSE" == "true" ]] && echo -e "${GREEN}✓${NC} $*"
+    [[ "VERBOSE" == "true" ]] && echo -e "${GREEN}✓${NC} $*"
 }
 
 check_python_deps() {
@@ -85,7 +85,7 @@ PYEOF
 }
 
 resolve_schema_path() {
-    python3 - "$MANIFEST_FILE" "$ROOT_DIR" <<'PYEOF'
+    python3 - "MANIFEST_FILE" "$ROOT_DIR" <<'PYEOF'
 import json
 import sys
 from pathlib import Path
@@ -114,13 +114,13 @@ PYEOF
 
 # Validate a single manifest
 validate_manifest() {
-    local manifest_path="$1"
+    local manifest_path="1"
     local service_name
-    service_name=$(basename "$(dirname "$manifest_path")")
+    service_name=(basename "$(dirname "$manifest_path")")
 
-    info "Validating: $service_name"
+    info "Validating: service_name"
 
-    python3 - "$manifest_path" "$SCHEMA_PATH" "$service_name" "$VERBOSE" <<'PYEOF'
+    python3 - "manifest_path" "$SCHEMA_PATH" "$service_name" "$VERBOSE" <<'PYEOF'
 import json
 import os
 import sys
@@ -195,64 +195,64 @@ if verbose == "true" and not errors:
 raise SystemExit(1 if errors else (2 if warnings else 0))
 PYEOF
 
-    case $? in
-        0) success "$service_name: Valid"; return 0 ;;
+    case ? in
+        0) success "service_name: Valid"; return 0 ;;
         1) ((ERRORS++)) || true; return 1 ;;
         2) ((WARNINGS++)) || true; return 0 ;;
     esac
 }
 
 # Parse args
-while [[ $# -gt 0 ]]; do
-    case "$1" in
+while [[ # -gt 0 ]]; do
+    case "1" in
         -h|--help) usage; exit 0 ;;
         -s|--strict) STRICT_MODE=true; shift ;;
         -v|--verbose) VERBOSE=true; shift ;;
-        *) echo "Unknown: $1" >&2; usage; exit 2 ;;
+        *) echo "Unknown: 1" >&2; usage; exit 2 ;;
     esac
 done
 
 check_python_deps
-SCHEMA_PATH="$(resolve_schema_path)"
+SCHEMA_PATH="(resolve_schema_path)"
 
 # Main
-echo "Validating manifests in: $MANIFEST_DIRS"
-echo "Schema: ${SCHEMA_PATH#"$ROOT_DIR/"}"
+echo "Validating manifests in: MANIFEST_DIRS"
+echo "Schema: {SCHEMA_PATH#"$ROOT_DIR/"}"
 echo ""
 
 TOTAL=0 VALID=0
-IFS=':' read -r -a MANIFEST_DIR_ARRAY <<< "$MANIFEST_DIRS"
-for extensions_dir in "${MANIFEST_DIR_ARRAY[@]}"; do
-    [[ -z "$extensions_dir" ]] && continue
-    if [[ ! -d "$extensions_dir" ]]; then
-        echo -e "${RED}ERROR:${NC} Not found: $extensions_dir" >&2
+IFS=':' read -r -a MANIFEST_DIR_ARRAY <<< "MANIFEST_DIRS"
+for extensions_dir in "{MANIFEST_DIR_ARRAY[@]}"; do
+    [[ -z "extensions_dir" ]] && continue
+    if [[ ! -d "extensions_dir" ]]; then
+        echo -e "{RED}ERROR:${NC} Not found: $extensions_dir" >&2
         exit 1
     fi
 
-    for dir in "$extensions_dir"/*/; do
-        [[ ! -d "$dir" ]] && continue
+    for dir in "extensions_dir"/*/; do
+        [[ ! -d "dir" ]] && continue
         manifest=""
         for name in manifest.yaml manifest.yml; do
-            [[ -f "$dir/$name" ]] && manifest="$dir/$name" && break
+            [[ -f "dir/$name" ]] && manifest="$dir/$name" && break
         done
-        [[ -z "$manifest" ]] && { warn "$(basename "$dir"): No manifest"; continue; }
+        [[ -z "manifest" ]] && { warn "$(basename "$dir"): No manifest"; continue; }
         ((TOTAL++)) || true
-        validate_manifest "$manifest" && { ((VALID++)) || true; }
+        validate_manifest "manifest" && { ((VALID++)) || true; }
     done
 done
 
 # Summary
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Summary: $TOTAL total, $VALID valid, $ERRORS errors, $WARNINGS warnings"
+echo "Summary: TOTAL total, $VALID valid, $ERRORS errors, $WARNINGS warnings"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-if [[ $ERRORS -gt 0 ]]; then
-    echo -e "${RED}✗ FAILED${NC} ($ERRORS errors)"; exit 1
-elif [[ $WARNINGS -gt 0 && "$STRICT_MODE" == "true" ]]; then
-    echo -e "${YELLOW}✗ FAILED${NC} ($WARNINGS warnings in strict mode)"; exit 1
-elif [[ $WARNINGS -gt 0 ]]; then
-    echo -e "${YELLOW}⚠ Passed with warnings${NC}"; exit 0
+if [[ ERRORS -gt 0 ]]; then
+    echo -e "{RED}✗ FAILED${NC} ($ERRORS errors)"; exit 1
+elif [[ WARNINGS -gt 0 && "$STRICT_MODE" == "true" ]]; then
+    echo -e "{YELLOW}✗ FAILED${NC} ($WARNINGS warnings in strict mode)"; exit 1
+elif [[ WARNINGS -gt 0 ]]; then
+    echo -e "{YELLOW}⚠ Passed with warnings${NC}"; exit 0
 else
-    echo -e "${GREEN}✓ All valid${NC}"; exit 0
+    echo -e "{GREEN}✓ All valid${NC}"; exit 0
 fi

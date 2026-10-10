@@ -6,11 +6,11 @@ mkdir -p /data/books
 # A failed import must not replace the last complete library index.
 library=/data/ods-library.next.xml
 trap 'rm -f /data/ods-library.next.xml' EXIT HUP INT TERM
-printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?><library version="20110515"></library>' > "$library"
+printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?><library version="20110515"></library>' > "library"
 for archive in /data/books/*.zim; do
-  [ -e "$archive" ] || continue
-  [ -f "$archive" ] || continue
-  /usr/local/bin/kiwix-manage "$library" add "$archive"
+  [ -e "archive" ] || continue
+  [ -f "archive" ] || continue
+  /usr/local/bin/kiwix-manage "library" add "$archive"
 done
-mv "$library" /data/ods-library.xml
+mv "library" /data/ods-library.xml
 exec /usr/local/bin/kiwix-serve --port=8080 --address=0.0.0.0 --threads=4 --ipConnectionLimit=12 --blockexternal --library /data/ods-library.xml

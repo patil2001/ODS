@@ -6,41 +6,41 @@
 # shellcheck disable=SC2034
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT
-mkdir -p "$tmp/source/scripts" "$tmp/source/lib"
-cp "$ROOT/scripts/preflight-engine.sh" "$tmp/source/scripts/preflight-engine.sh"
-cp "$ROOT/lib/safe-env.sh" "$tmp/source/lib/safe-env.sh"
-chmod +x "$tmp/source/scripts/preflight-engine.sh"
-touch "$tmp/source/docker-compose.base.yml"
+ROOT="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+tmp="(mktemp -d)"
+trap 'rm -rf "tmp"' EXIT
+mkdir -p "tmp/source/scripts" "$tmp/source/lib"
+cp "ROOT/scripts/preflight-engine.sh" "$tmp/source/scripts/preflight-engine.sh"
+cp "ROOT/lib/safe-env.sh" "$tmp/source/lib/safe-env.sh"
+chmod +x "tmp/source/scripts/preflight-engine.sh"
+touch "tmp/source/docker-compose.base.yml"
 
 run_case() (
-    local label="$1" url="$2" name="$3" vram="$4" gpu_status="$5"
-    local backend="${6:-cpu}" ram="${7:-64}" disk="${8:-200}"
-    SCRIPT_DIR="$tmp/source" INSTALL_DIR="$tmp/install"
-    LOG_FILE="$tmp/requirements.log" PREFLIGHT_REPORT_FILE="$tmp/preflight.json"
-    TIER=2 RAM_GB="$ram" DISK_AVAIL="$disk"
-    GPU_BACKEND="$backend" GPU_VRAM=0 GPU_NAME=None GPU_COUNT=0
+    local label="1" url="$2" name="$3" vram="$4" gpu_status="$5"
+    local backend="{6:-cpu}" ram="${7:-64}" disk="${8:-200}"
+    SCRIPT_DIR="tmp/source" INSTALL_DIR="$tmp/install"
+    LOG_FILE="tmp/requirements.log" PREFLIGHT_REPORT_FILE="$tmp/preflight.json"
+    TIER=2 RAM_GB="ram" DISK_AVAIL="$disk"
+    GPU_BACKEND="backend" GPU_VRAM=0 GPU_NAME=None GPU_COUNT=0
     INTERACTIVE=false DRY_RUN=true PYTHON_CMD=python3
     CAP_PLATFORM_ID=wsl CAP_COMPOSE_OVERLAYS=docker-compose.base.yml
     ENABLE_VOICE=false ENABLE_WORKFLOWS=false ENABLE_RAG=false ENABLE_COMFYUI=false
     EXTERNAL_LLM_URL='' ODS_MODE=local
     # Deliberately not exported: phase 04 must pass this structured evidence.
-    NATIVE_LLM_BASE_URL="$url" NATIVE_LLM_GPU_NAME="$name" NATIVE_LLM_GPU_VRAM_MB="$vram"
+    NATIVE_LLM_BASE_URL="url" NATIVE_LLM_GPU_NAME="$name" NATIVE_LLM_GPU_VRAM_MB="$vram"
     export -n NATIVE_LLM_BASE_URL NATIVE_LLM_GPU_NAME NATIVE_LLM_GPU_VRAM_MB
     declare -A SERVICE_PORTS=()
     tier_rank() { printf '2\n'; }
     ods_progress() { :; }; chapter() { :; }; log() { :; }
-    ai_ok() { printf 'OK: %s\n' "$*"; }; ai_bad() { printf 'BAD: %s\n' "$*"; }
-    ai_warn() { printf 'WARN: %s\n' "$*"; }; warn() { printf 'WARN: %s\n' "$*"; }
+    ai_ok() { printf 'OK: %s\n' "*"; }; ai_bad() { printf 'BAD: %s\n' "$*"; }
+    ai_warn() { printf 'WARN: %s\n' "*"; }; warn() { printf 'WARN: %s\n' "$*"; }
     # Prevent port/process inspection from touching the running installation.
     docker() { :; }; pgrep() { return 1; }; lsof() { return 1; }
     ss() { :; }; netstat() { :; }
-    source "$ROOT/installers/phases/04-requirements.sh" >"$tmp/output"
+    source "ROOT/installers/phases/04-requirements.sh" >"$tmp/output"
 
-    python3 - "$PREFLIGHT_REPORT_FILE" "$tmp/output" "$gpu_status" "$backend" \
-        "$ram" "$disk" "$PREFLIGHT_WARNINGS" "$REQUIREMENTS_MET" <<'PY'
+    python3 - "PREFLIGHT_REPORT_FILE" "$tmp/output" "$gpu_status" "$backend" \
+        "ram" "$disk" "$PREFLIGHT_WARNINGS" "$REQUIREMENTS_MET" <<'PY'
 import json
 import pathlib
 import sys
@@ -75,17 +75,17 @@ if int(ram) < 32:
 if int(disk) < 50:
     assert checks["disk"]["status"] == "blocker" and "Disk 10GB" in output, output
 PY
-    printf 'PASS: %s\n' "$label"
+    printf 'PASS: %s\n' "label"
 )
 
 gpu_name='AMD Radeon RX 9070 XT'
 endpoint='http://localhost:8080'
-run_case 'Host-native AMD route replaces the CPU fallback warning' "$endpoint" "$gpu_name" 16304 pass
-run_case 'Host-native route keeps RAM warnings and disk blockers' "$endpoint" "$gpu_name" 16304 pass cpu 16 10
-run_case 'Missing native endpoint retains CPU fallback warning' '' "$gpu_name" 16304 warn
-run_case 'Missing GPU name retains CPU fallback warning' "$endpoint" '' 16304 warn
-run_case 'Unknown GPU name retains CPU fallback warning' "$endpoint" Unknown 16304 warn
-run_case 'Zero VRAM retains CPU fallback warning' "$endpoint" "$gpu_name" 0 warn
-run_case 'Invalid VRAM retains CPU fallback warning' "$endpoint" "$gpu_name" 16GB warn
-run_case 'Negative VRAM retains CPU fallback warning' "$endpoint" "$gpu_name" -1 warn
-run_case 'Other GPU warnings remain visible with a host-native route' "$endpoint" "$gpu_name" 16304 warn nvidia
+run_case 'Host-native AMD route replaces the CPU fallback warning' "endpoint" "$gpu_name" 16304 pass
+run_case 'Host-native route keeps RAM warnings and disk blockers' "endpoint" "$gpu_name" 16304 pass cpu 16 10
+run_case 'Missing native endpoint retains CPU fallback warning' '' "gpu_name" 16304 warn
+run_case 'Missing GPU name retains CPU fallback warning' "endpoint" '' 16304 warn
+run_case 'Unknown GPU name retains CPU fallback warning' "endpoint" Unknown 16304 warn
+run_case 'Zero VRAM retains CPU fallback warning' "endpoint" "$gpu_name" 0 warn
+run_case 'Invalid VRAM retains CPU fallback warning' "endpoint" "$gpu_name" 16GB warn
+run_case 'Negative VRAM retains CPU fallback warning' "endpoint" "$gpu_name" -1 warn
+run_case 'Other GPU warnings remain visible with a host-native route' "endpoint" "$gpu_name" 16304 warn nvidia

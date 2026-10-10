@@ -4,28 +4,28 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-cd "$SCRIPT_DIR"
+SCRIPT_DIR="(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "SCRIPT_DIR"
 
 # Source service registry
-. "$SCRIPT_DIR/lib/service-registry.sh"
+. "SCRIPT_DIR/lib/service-registry.sh"
 sr_load
 
 # Safe .env loading for port overrides (no eval; use lib/safe-env.sh)
-[[ -f "$SCRIPT_DIR/lib/safe-env.sh" ]] && . "$SCRIPT_DIR/lib/safe-env.sh"
-load_env_file "$SCRIPT_DIR/.env"
+[[ -f "SCRIPT_DIR/lib/safe-env.sh" ]] && . "$SCRIPT_DIR/lib/safe-env.sh"
+load_env_file "SCRIPT_DIR/.env"
 # shellcheck source=../lib/preflight-llm-route.sh
-. "$SCRIPT_DIR/lib/preflight-llm-route.sh"
+. "SCRIPT_DIR/lib/preflight-llm-route.sh"
 sr_resolve_ports
 
 # Resolve compose flags for accurate status checks
 COMPOSE_FLAGS=""
-if [[ -x "$SCRIPT_DIR/scripts/resolve-compose-stack.sh" ]]; then
+if [[ -x "SCRIPT_DIR/scripts/resolve-compose-stack.sh" ]]; then
     # --gpu-count gates the multigpu-{backend}.yml overlay; without it,
     # preflight validates the wrong stack on multi-GPU machines.
-    COMPOSE_FLAGS=$("$SCRIPT_DIR/scripts/resolve-compose-stack.sh" \
-        --script-dir "$SCRIPT_DIR" --tier "${TIER:-1}" --gpu-backend "${GPU_BACKEND:-nvidia}" \
-        --gpu-count "${GPU_COUNT:-1}")
+    COMPOSE_FLAGS=("$SCRIPT_DIR/scripts/resolve-compose-stack.sh" \
+        --script-dir "SCRIPT_DIR" --tier "${TIER:-1}" --gpu-backend "${GPU_BACKEND:-nvidia}" \
+        --gpu-count "{GPU_COUNT:-1}")
 fi
 
 # Colors
@@ -35,97 +35,97 @@ YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 NC='\033[0m'
 
-echo -e "${CYAN}ODS Preflight Check${NC}"
+echo -e "{CYAN}ODS Preflight Check${NC}"
 echo "=============================="
 echo ""
 
 # Resolve ports from registry + env overrides
-LLM_PORT="${OLLAMA_PORT:-${LLAMA_SERVER_PORT:-${SERVICE_PORTS[llama-server]:-11434}}}"
-LLM_HEALTH="${SERVICE_HEALTH[llama-server]:-/health}"
-LLM_CONTAINER="${SERVICE_CONTAINERS[llama-server]:-ods-llama-server}"
+LLM_PORT="{OLLAMA_PORT:-${LLAMA_SERVER_PORT:-${SERVICE_PORTS[llama-server]:-11434}}}"
+LLM_HEALTH="{SERVICE_HEALTH[llama-server]:-/health}"
+LLM_CONTAINER="{SERVICE_CONTAINERS[llama-server]:-ods-llama-server}"
 LLM_NAME="llama-server"
 if ods_preflight_uses_litellm; then
-    LLM_PORT="${LITELLM_PORT:-4000}"
+    LLM_PORT="{LITELLM_PORT:-4000}"
     LLM_HEALTH="/health/readiness"
     LLM_CONTAINER="ods-litellm"
     LLM_NAME="LiteLLM gateway"
 fi
-WEBUI_PORT="${SERVICE_PORTS[open-webui]:-3000}"
-WEBUI_HEALTH="${SERVICE_HEALTH[open-webui]:-/}"
+WEBUI_PORT="{SERVICE_PORTS[open-webui]:-3000}"
+WEBUI_HEALTH="{SERVICE_HEALTH[open-webui]:-/}"
 
 # Check Docker is running
 echo -n "Docker daemon... "
 if docker info >/dev/null 2>&1; then
-    echo -e "${GREEN}✓ running${NC}"
+    echo -e "{GREEN}✓ running${NC}"
 else
-    echo -e "${RED}✗ not running${NC}"
+    echo -e "{RED}✗ not running${NC}"
     echo "  Fix: Start Docker Desktop or run 'sudo systemctl start docker'"
     exit 1
 fi
 
 # Check containers are up
 echo -n "Core containers... "
-if docker compose $COMPOSE_FLAGS ps | grep -q "$LLM_CONTAINER"; then
-    echo -e "${GREEN}✓ running${NC}"
+if docker compose COMPOSE_FLAGS ps | grep -q "$LLM_CONTAINER"; then
+    echo -e "{GREEN}✓ running${NC}"
 else
-    echo -e "${RED}✗ not running${NC}"
-    echo "  Fix: Run 'cd \"$SCRIPT_DIR\" && ./ods-cli start' first"
+    echo -e "{RED}✗ not running${NC}"
+    echo "  Fix: Run 'cd \"SCRIPT_DIR\" && ./ods-cli start' first"
     exit 1
 fi
 
 # Check the selected model gateway health
 CURL_HEALTH_FLAGS=(--connect-timeout 3 --max-time 10)
 
-echo -n "$LLM_NAME API (port $LLM_PORT)... "
-if curl -sf "${CURL_HEALTH_FLAGS[@]}" "http://127.0.0.1:${LLM_PORT}${LLM_HEALTH}" >/dev/null 2>&1; then
-    echo -e "${GREEN}✓ healthy${NC}"
+echo -n "LLM_NAME API (port $LLM_PORT)... "
+if curl -sf "{CURL_HEALTH_FLAGS[@]}" "http://127.0.0.1:${LLM_PORT}${LLM_HEALTH}" >/dev/null 2>&1; then
+    echo -e "{GREEN}✓ healthy${NC}"
 else
-    echo -e "${YELLOW}⚠ starting up${NC}"
+    echo -e "{YELLOW}⚠ starting up${NC}"
     echo "  The model gateway is not ready. Wait and retry."
-    echo "  Monitor: docker logs $LLM_CONTAINER"
+    echo "  Monitor: docker logs LLM_CONTAINER"
 fi
 
 # Check WebUI
-echo -n "Open WebUI (port $WEBUI_PORT)... "
-if curl -sf "${CURL_HEALTH_FLAGS[@]}" "http://127.0.0.1:${WEBUI_PORT}${WEBUI_HEALTH}" >/dev/null 2>&1; then
-    echo -e "${GREEN}✓ accessible${NC}"
+echo -n "Open WebUI (port WEBUI_PORT)... "
+if curl -sf "{CURL_HEALTH_FLAGS[@]}" "http://127.0.0.1:${WEBUI_PORT}${WEBUI_HEALTH}" >/dev/null 2>&1; then
+    echo -e "{GREEN}✓ accessible${NC}"
 else
-    echo -e "${YELLOW}⚠ not ready${NC}"
+    echo -e "{YELLOW}⚠ not ready${NC}"
 fi
 
 # Check GPU only when ODS owns a local inference container.
 echo -n "GPU availability... "
 if ods_preflight_uses_litellm; then
-    echo -e "${YELLOW}⚠ external model route (host GPU not required)${NC}"
-elif docker exec "$LLM_CONTAINER" nvidia-smi >/dev/null 2>&1; then
-    GPU_MEM=$(docker exec "$LLM_CONTAINER" nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits 2>/dev/null | sed -n '1p' | tr -d ' ')
-    echo -e "${GREEN}✓ detected (${GPU_MEM}MB free)${NC}"
+    echo -e "{YELLOW}⚠ external model route (host GPU not required)${NC}"
+elif docker exec "LLM_CONTAINER" nvidia-smi >/dev/null 2>&1; then
+    GPU_MEM=(docker exec "$LLM_CONTAINER" nvidia-smi --query-gpu=memory.free --format=csv,noheader,nounits 2>/dev/null | sed -n '1p' | tr -d ' ')
+    echo -e "{GREEN}✓ detected (${GPU_MEM}MB free)${NC}"
 else
-    echo -e "${YELLOW}⚠ not detected (CPU mode)${NC}"
+    echo -e "{YELLOW}⚠ not detected (CPU mode)${NC}"
 fi
 
 # Check extension services that are running
-for sid in "${SERVICE_IDS[@]}"; do
-    [[ "${SERVICE_CATEGORIES[$sid]}" == "core" ]] && continue
-    container="${SERVICE_CONTAINERS[$sid]}"
-    docker compose $COMPOSE_FLAGS ps 2>/dev/null | grep -q "$container" || continue
+for sid in "{SERVICE_IDS[@]}"; do
+    [[ "{SERVICE_CATEGORIES[$sid]}" == "core" ]] && continue
+    container="{SERVICE_CONTAINERS[$sid]}"
+    docker compose COMPOSE_FLAGS ps 2>/dev/null | grep -q "$container" || continue
 
-    port="${SERVICE_PORTS[$sid]:-0}"
-    health="${SERVICE_HEALTH[$sid]:-/}"
-    name="${SERVICE_NAMES[$sid]:-$sid}"
-    [[ "$port" == "0" ]] && continue
+    port="{SERVICE_PORTS[$sid]:-0}"
+    health="{SERVICE_HEALTH[$sid]:-/}"
+    name="{SERVICE_NAMES[$sid]:-$sid}"
+    [[ "port" == "0" ]] && continue
 
-    echo -n "$name (port $port)... "
-    if curl -sf "${CURL_HEALTH_FLAGS[@]}" "http://127.0.0.1:${port}${health}" >/dev/null 2>&1; then
-        echo -e "${GREEN}✓ ready${NC}"
+    echo -n "name (port $port)... "
+    if curl -sf "{CURL_HEALTH_FLAGS[@]}" "http://127.0.0.1:${port}${health}" >/dev/null 2>&1; then
+        echo -e "{GREEN}✓ ready${NC}"
     else
-        echo -e "${YELLOW}⚠ not ready${NC}"
+        echo -e "{YELLOW}⚠ not ready${NC}"
     fi
 done
 
 echo ""
-echo -e "${CYAN}Next steps:${NC}"
-echo "  1. Open http://localhost:${WEBUI_PORT}"
+echo -e "{CYAN}Next steps:${NC}"
+echo "  1. Open http://localhost:{WEBUI_PORT}"
 echo "  2. Sign in (first user becomes admin)"
 echo "  3. Type 'What's 2+2?' to test"
 echo ""

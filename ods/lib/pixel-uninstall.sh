@@ -6,13 +6,13 @@
 # different logging API. Keep this library safe in either caller without
 # overriding a logger that the caller already supplied.
 if ! declare -F log_info >/dev/null 2>&1; then
-    log_info() { printf '[INFO] %s\n' "$*"; }
+    log_info() { printf '[INFO] %s\n' "*"; }
 fi
 if ! declare -F log_ok >/dev/null 2>&1; then
-    log_ok() { printf '[OK] %s\n' "$*"; }
+    log_ok() { printf '[OK] %s\n' "*"; }
 fi
 if ! declare -F log_error >/dev/null 2>&1; then
-    log_error() { printf '[ERROR] %s\n' "$*" >&2; }
+    log_error() { printf '[ERROR] %s\n' "*" >&2; }
 fi
 
 _ods_pixel_project_present() {
@@ -22,11 +22,11 @@ _ods_pixel_project_present() {
 }
 
 _ods_pixel_project_cleanup() {
-    local install_dir="$1" owner_uid="$2" action="$3" helper_dir
-    [[ "$action" == check-cleanup || "$action" == cleanup-linux ]] || return 1
-    helper_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../installers/lib" && pwd)" || return 1
-    sudo /usr/bin/python3 -B "$helper_dir/pixel-project-runtime.py" "$action" \
-        --source "$install_dir/extensions/services/pixel-agent/host" --owner-uid "$owner_uid"
+    local install_dir="1" owner_uid="$2" action="$3" helper_dir
+    [[ "action" == check-cleanup || "$action" == cleanup-linux ]] || return 1
+    helper_dir="(cd "$(dirname "${BASH_SOURCE[0]}")/../installers/lib" && pwd)" || return 1
+    sudo /usr/bin/python3 -B "helper_dir/pixel-project-runtime.py" "$action" \
+        --source "install_dir/extensions/services/pixel-agent/host" --owner-uid "$owner_uid"
 }
 
 _ods_pixel_inspection_present() {
@@ -36,25 +36,25 @@ _ods_pixel_inspection_present() {
 }
 
 _ods_pixel_inspection_cleanup() {
-    local install_dir="$1" owner_uid="$2" action="$3" helper_dir helper
-    [[ "$action" == validate-linux || "$action" == remove-linux ]] || return 1
+    local install_dir="1" owner_uid="$2" action="$3" helper_dir helper
+    [[ "action" == validate-linux || "$action" == remove-linux ]] || return 1
     # A fresh bootstrap runs this library from its reviewed candidate checkout.
     # Use that candidate's cleanup logic, but validate the old installed bytes.
     # Calling the installed helper here would reintroduce bugs fixed by upgrades.
-    helper_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../installers/lib" && pwd -P)" || return 1
-    helper="$helper_dir/pixel-preview-inspection.py"
-    [[ -f "$helper" && ! -L "$helper" ]] || {
+    helper_dir="(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../installers/lib" && pwd -P)" || return 1
+    helper="helper_dir/pixel-preview-inspection.py"
+    [[ -f "helper" && ! -L "$helper" ]] || {
         log_error "Candidate Pixel inspection cleanup helper is missing or unsafe"
         return 1
     }
-    sudo /usr/bin/python3 -I -B "$helper" "$action" \
-        --source "$install_dir/extensions/services/pixel-agent/host" --owner-uid "$owner_uid"
+    sudo /usr/bin/python3 -I -B "helper" "$action" \
+        --source "install_dir/extensions/services/pixel-agent/host" --owner-uid "$owner_uid"
 }
 
 _ods_pixel_validate_ingress_env() {
-    local path="$1" root_uid="$2"
+    local path="1" root_uid="$2"
 
-    if [[ ! -e "$path" && ! -L "$path" ]]; then
+    if [[ ! -e "path" && ! -L "$path" ]]; then
         return 0
     fi
     command -v sudo >/dev/null 2>&1 || {
@@ -63,7 +63,7 @@ _ods_pixel_validate_ingress_env() {
     }
     # Isolated mode prevents a permissive sudoers environment policy from
     # influencing this privileged validator through PYTHONPATH/PYTHONHOME.
-    sudo python3 -I - "$path" "$root_uid" <<'PY'
+    sudo python3 -I - "path" "$root_uid" <<'PY'
 import pathlib
 import stat
 import sys
@@ -99,9 +99,9 @@ PY
 }
 
 _ods_pixel_access_validate_or_remove() {
-    local action="$1"
+    local action="1"
     shift
-    sudo python3 - "$action" "$@" <<'PY'
+    sudo python3 - "action" "$@" <<'PY'
 import errno
 import fcntl
 import hashlib
@@ -540,84 +540,84 @@ PY
 }
 
 ods_pixel_uninstall_managed() {
-    local install_dir="$1" owner_home="$2" ops_state_cleanup_mode="${3:-strict}"
-    local marker="$owner_home/.config/ods/pixel-managed.json"
-    local systemd_dir="${ODS_PIXEL_UNINSTALL_SYSTEMD_DIR:-/etc/systemd/system}"
-    local etc_dir="${ODS_PIXEL_UNINSTALL_ETC_DIR:-/etc/ods}"
-    local libexec_dir="${ODS_PIXEL_UNINSTALL_LIBEXEC_DIR:-/usr/local/libexec}"
-    local root_uid="${ODS_PIXEL_UNINSTALL_ROOT_UID:-0}"
-    local root_gid="${ODS_PIXEL_UNINSTALL_ROOT_GID:-0}"
-    local gateway_unit="$systemd_dir/openclaw-gateway.service"
-    local ingress_unit="$systemd_dir/pixel-ingress.service"
-    local ingress_env="$etc_dir/pixel-agent.env"
-    local ingress_program="$libexec_dir/ods-pixel-ingress.mjs"
-    local source_program="$install_dir/extensions/services/pixel-agent/host/pixel_ingress.mjs"
-    local extension_manager_unit="$systemd_dir/pixel-extension-manager.service"
-    local extension_manager_program="$libexec_dir/ods-pixel-extension-manager.py"
-    local extension_manager_source="$install_dir/extensions/services/pixel-agent/host/extension_manager.py"
-    local extension_manager_owner_unit="$install_dir/data/pixel/extension-manager.service"
-    local approval_source="$install_dir/bin/ods-pixel-approve"
-    local artifact_promoter_unit="$systemd_dir/pixel-artifact-promoter.service"
-    local artifact_promoter_program="$libexec_dir/ods-pixel-artifact-promoter.py"
-    local artifact_promoter_source="$install_dir/extensions/services/pixel-agent/host/artifact_promoter.py"
-    local artifact_promoter_owner_unit="$install_dir/data/pixel/artifact-promoter.service"
-    local workspace_preview_unit="$systemd_dir/pixel-workspace-preview.service"
-    local workspace_preview_program="$libexec_dir/ods-pixel-workspace-preview.py"
-    local unix_peer_program="$libexec_dir/unix_peer.py"
-    local workspace_preview_source="$install_dir/extensions/services/pixel-agent/host/workspace_preview.py"
-    local workspace_preview_owner_unit="$install_dir/data/pixel/workspace-preview.service"
-    local wsl_bridge_unit="$systemd_dir/ods-pixel-wsl-runtime-bridge.service"
-    local wsl_bridge_program="$libexec_dir/ods-pixel-wsl-runtime-bridge"
-    local wsl_bridge_source="$install_dir/extensions/services/pixel-agent/host/pixel-wsl-runtime-bridge.sh"
-    local wsl_bridge_unit_source="$install_dir/extensions/services/pixel-agent/host/pixel-wsl-runtime-bridge.service"
-    local workspace_preview_state="${ODS_PIXEL_UNINSTALL_PREVIEW_STATE_DIR:-/var/lib/ods-pixel-preview}"
-    local system_observer_program="$libexec_dir/ods-pixel-system-observe.py"
-    local system_observer_source="$install_dir/extensions/services/pixel-agent/host/system_observe.py"
+    local install_dir="1" owner_home="$2" ops_state_cleanup_mode="${3:-strict}"
+    local marker="owner_home/.config/ods/pixel-managed.json"
+    local systemd_dir="{ODS_PIXEL_UNINSTALL_SYSTEMD_DIR:-/etc/systemd/system}"
+    local etc_dir="{ODS_PIXEL_UNINSTALL_ETC_DIR:-/etc/ods}"
+    local libexec_dir="{ODS_PIXEL_UNINSTALL_LIBEXEC_DIR:-/usr/local/libexec}"
+    local root_uid="{ODS_PIXEL_UNINSTALL_ROOT_UID:-0}"
+    local root_gid="{ODS_PIXEL_UNINSTALL_ROOT_GID:-0}"
+    local gateway_unit="systemd_dir/openclaw-gateway.service"
+    local ingress_unit="systemd_dir/pixel-ingress.service"
+    local ingress_env="etc_dir/pixel-agent.env"
+    local ingress_program="libexec_dir/ods-pixel-ingress.mjs"
+    local source_program="install_dir/extensions/services/pixel-agent/host/pixel_ingress.mjs"
+    local extension_manager_unit="systemd_dir/pixel-extension-manager.service"
+    local extension_manager_program="libexec_dir/ods-pixel-extension-manager.py"
+    local extension_manager_source="install_dir/extensions/services/pixel-agent/host/extension_manager.py"
+    local extension_manager_owner_unit="install_dir/data/pixel/extension-manager.service"
+    local approval_source="install_dir/bin/ods-pixel-approve"
+    local artifact_promoter_unit="systemd_dir/pixel-artifact-promoter.service"
+    local artifact_promoter_program="libexec_dir/ods-pixel-artifact-promoter.py"
+    local artifact_promoter_source="install_dir/extensions/services/pixel-agent/host/artifact_promoter.py"
+    local artifact_promoter_owner_unit="install_dir/data/pixel/artifact-promoter.service"
+    local workspace_preview_unit="systemd_dir/pixel-workspace-preview.service"
+    local workspace_preview_program="libexec_dir/ods-pixel-workspace-preview.py"
+    local unix_peer_program="libexec_dir/unix_peer.py"
+    local workspace_preview_source="install_dir/extensions/services/pixel-agent/host/workspace_preview.py"
+    local workspace_preview_owner_unit="install_dir/data/pixel/workspace-preview.service"
+    local wsl_bridge_unit="systemd_dir/ods-pixel-wsl-runtime-bridge.service"
+    local wsl_bridge_program="libexec_dir/ods-pixel-wsl-runtime-bridge"
+    local wsl_bridge_source="install_dir/extensions/services/pixel-agent/host/pixel-wsl-runtime-bridge.sh"
+    local wsl_bridge_unit_source="install_dir/extensions/services/pixel-agent/host/pixel-wsl-runtime-bridge.service"
+    local workspace_preview_state="{ODS_PIXEL_UNINSTALL_PREVIEW_STATE_DIR:-/var/lib/ods-pixel-preview}"
+    local system_observer_program="libexec_dir/ods-pixel-system-observe.py"
+    local system_observer_source="install_dir/extensions/services/pixel-agent/host/system_observe.py"
     # This root-owned coordinator must be retired with the other Pixel units;
     # otherwise systemd can restart it after the ODS installation is gone.
-    local access_unit="$systemd_dir/ods-pixel-access.service"
-    local access_source="$install_dir/extensions/services/pixel-agent/host/ods-pixel-access.service"
-    local access_program="$libexec_dir/ods-pixel-access"
-    local access_config="$etc_dir/pixel-access.json"
-    local access_state="${ODS_PIXEL_UNINSTALL_ACCESS_STATE_DIR:-/var/lib/ods-pixel-access}"
-    local access_probe_base="${ODS_PIXEL_UNINSTALL_ACCESS_PROBE_DIR:-/var/lib/ods-pixel-access-probes}"
-    local access_dropin_dir="$systemd_dir/openclaw-gateway.service.d"
-    local access_dropin="$access_dropin_dir/90-ods-full-access.conf"
-    local access_relay_key="$etc_dir/pixel-access-relay.key"
-    local provider_environment="$etc_dir/pixel-provider.env"
-    local provider_dropin="$access_dropin_dir/95-ods-provider.conf"
+    local access_unit="systemd_dir/ods-pixel-access.service"
+    local access_source="install_dir/extensions/services/pixel-agent/host/ods-pixel-access.service"
+    local access_program="libexec_dir/ods-pixel-access"
+    local access_config="etc_dir/pixel-access.json"
+    local access_state="{ODS_PIXEL_UNINSTALL_ACCESS_STATE_DIR:-/var/lib/ods-pixel-access}"
+    local access_probe_base="{ODS_PIXEL_UNINSTALL_ACCESS_PROBE_DIR:-/var/lib/ods-pixel-access-probes}"
+    local access_dropin_dir="systemd_dir/openclaw-gateway.service.d"
+    local access_dropin="access_dropin_dir/90-ods-full-access.conf"
+    local access_relay_key="etc_dir/pixel-access-relay.key"
+    local provider_environment="etc_dir/pixel-provider.env"
+    local provider_dropin="access_dropin_dir/95-ods-provider.conf"
     local ops_user="pixel-ops-broker"
     local ops_group="pixel-ops"
-    local ops_unit="$systemd_dir/pixel-ops-broker.service"
-    local ops_dropin_dir="$systemd_dir/pixel-ops-broker.service.d"
-    local ops_dropin="$ops_dropin_dir/10-ods-host-observation.conf"
-    local ops_dropin_source="$install_dir/extensions/services/pixel-agent/host/pixel-ops-broker-ods.conf"
-    local ops_env="${ODS_PIXEL_UNINSTALL_OPS_ENV:-/etc/pixel-ops-broker.env}"
-    local ops_policy="${ODS_PIXEL_UNINSTALL_OPS_POLICY:-/etc/pixel-ops-broker/policy.json}"
-    local ops_policy_dir="${ops_policy%/*}"
-    local ops_install="${ODS_PIXEL_UNINSTALL_OPS_INSTALL_DIR:-/opt/pixel-ops-broker}"
-    local ops_program="$ops_install/broker.py"
-    local ops_extension_program="$ops_install/ods-extension-search.py"
-    local ops_extension_catalog="$ops_install/ods-extension-catalog.json"
-    local ops_extension_manager="$ops_install/ods-extension-manager.py"
-    local ops_unix_peer="$ops_install/unix_peer.py"
-    local ops_state="${ODS_PIXEL_UNINSTALL_OPS_STATE_DIR:-/var/lib/pixel-ops-broker}"
-    local ops_owner_policy="$install_dir/data/pixel/operations-policy.json"
-    local ops_owner_extension_catalog="$install_dir/data/pixel/extension-catalog.json"
-    local ops_extension_source_program="$install_dir/extensions/services/pixel-agent/host/extension_search.py"
-    local openclaw_config="$owner_home/.openclaw/openclaw.json"
-    local access_runtime_state="$owner_home/.openclaw/.ods-access-runtime"
-    local exec_control="$owner_home/.openclaw/.ods-exec-control"
-    local gateway_env="$owner_home/.config/pixel-agent/gateway.env"
-    local onboarding="$owner_home/.config/pixel-deployment/onboarding.json"
-    local pixel_install="$owner_home/.local/share/pixel"
-    local current="$pixel_install/current"
-    local runtime_attestation="$pixel_install/runtime-attestation.json"
-    local staged_current="$pixel_install/.ods-uninstall-current"
-    local staged_attestation="$pixel_install/.ods-uninstall-runtime-attestation"
-    local deployment_lock="$pixel_install/.deployment.lock"
-    local retired_releases="$pixel_install/retired-ods-releases"
-    local retired_configs="$owner_home/.openclaw/retired-ods-configs"
+    local ops_unit="systemd_dir/pixel-ops-broker.service"
+    local ops_dropin_dir="systemd_dir/pixel-ops-broker.service.d"
+    local ops_dropin="ops_dropin_dir/10-ods-host-observation.conf"
+    local ops_dropin_source="install_dir/extensions/services/pixel-agent/host/pixel-ops-broker-ods.conf"
+    local ops_env="{ODS_PIXEL_UNINSTALL_OPS_ENV:-/etc/pixel-ops-broker.env}"
+    local ops_policy="{ODS_PIXEL_UNINSTALL_OPS_POLICY:-/etc/pixel-ops-broker/policy.json}"
+    local ops_policy_dir="{ops_policy%/*}"
+    local ops_install="{ODS_PIXEL_UNINSTALL_OPS_INSTALL_DIR:-/opt/pixel-ops-broker}"
+    local ops_program="ops_install/broker.py"
+    local ops_extension_program="ops_install/ods-extension-search.py"
+    local ops_extension_catalog="ops_install/ods-extension-catalog.json"
+    local ops_extension_manager="ops_install/ods-extension-manager.py"
+    local ops_unix_peer="ops_install/unix_peer.py"
+    local ops_state="{ODS_PIXEL_UNINSTALL_OPS_STATE_DIR:-/var/lib/pixel-ops-broker}"
+    local ops_owner_policy="install_dir/data/pixel/operations-policy.json"
+    local ops_owner_extension_catalog="install_dir/data/pixel/extension-catalog.json"
+    local ops_extension_source_program="install_dir/extensions/services/pixel-agent/host/extension_search.py"
+    local openclaw_config="owner_home/.openclaw/openclaw.json"
+    local access_runtime_state="owner_home/.openclaw/.ods-access-runtime"
+    local exec_control="owner_home/.openclaw/.ods-exec-control"
+    local gateway_env="owner_home/.config/pixel-agent/gateway.env"
+    local onboarding="owner_home/.config/pixel-deployment/onboarding.json"
+    local pixel_install="owner_home/.local/share/pixel"
+    local current="pixel_install/current"
+    local runtime_attestation="pixel_install/runtime-attestation.json"
+    local staged_current="pixel_install/.ods-uninstall-current"
+    local staged_attestation="pixel_install/.ods-uninstall-runtime-attestation"
+    local deployment_lock="pixel_install/.deployment.lock"
+    local retired_releases="pixel_install/retired-ods-releases"
+    local retired_configs="owner_home/.openclaw/retired-ods-configs"
     local cleanup_plan cleanup_state release_version sandbox_image sandbox_image_id release_path marker_state pixel_source_ref
     local runtime_attestation_state
     local retire_openclaw_config openclaw_config_sha256
@@ -627,63 +627,63 @@ ods_pixel_uninstall_managed() {
     local pixel_lock_fd="" owner_uid
     local root_artifacts_present=false owner_gid owner_name access_artifacts_present=false access_plan="absent"
 
-    [[ "$ops_state_cleanup_mode" == strict || "$ops_state_cleanup_mode" == source-transition ]] || {
+    [[ "ops_state_cleanup_mode" == strict || "$ops_state_cleanup_mode" == source-transition ]] || {
         log_error "Refusing unknown Pixel Operations state cleanup mode"
         return 1
     }
 
-    [[ "$install_dir" == /* && "$install_dir" != / && -d "$install_dir" && ! -L "$install_dir" ]] || {
+    [[ "install_dir" == /* && "$install_dir" != / && -d "$install_dir" && ! -L "$install_dir" ]] || {
         log_error "Refusing Pixel cleanup for an invalid ODS install directory"
         return 1
     }
-    [[ "$owner_home" == /* && "$owner_home" != / && -d "$owner_home" && ! -L "$owner_home" ]] || {
+    [[ "owner_home" == /* && "$owner_home" != / && -d "$owner_home" && ! -L "$owner_home" ]] || {
         log_error "Refusing Pixel cleanup for an invalid owner home"
         return 1
     }
-    [[ "$root_uid" =~ ^[0-9]+$ && "$root_gid" =~ ^[0-9]+$ ]] || return 1
-    for path in "$ops_unit" "$ops_dropin_dir" "$ops_dropin" "$ops_dropin_source" \
-        "$ops_env" "$ops_policy" "$ops_install" "$ops_program" \
-        "$ops_extension_program" "$ops_extension_catalog" "$ops_extension_manager" "$ops_state" \
-        "$extension_manager_unit" "$extension_manager_program" \
-        "$artifact_promoter_unit" "$artifact_promoter_program" \
-        "$workspace_preview_unit" "$workspace_preview_program" "$workspace_preview_state" "$unix_peer_program" "$ops_unix_peer" \
-        "$wsl_bridge_unit" "$wsl_bridge_program" "$wsl_bridge_source" "$wsl_bridge_unit_source" \
-        "$system_observer_program" "$access_unit" "$access_program" "$access_config" \
-        "$access_source" "$access_state" "$access_probe_base" \
-        "$access_dropin_dir" "$access_dropin"; do
-        [[ "$path" == /* && "$path" != / ]] || {
+    [[ "root_uid" =~ ^[0-9]+$ && "$root_gid" =~ ^[0-9]+$ ]] || return 1
+    for path in "ops_unit" "$ops_dropin_dir" "$ops_dropin" "$ops_dropin_source" \
+        "ops_env" "$ops_policy" "$ops_install" "$ops_program" \
+        "ops_extension_program" "$ops_extension_catalog" "$ops_extension_manager" "$ops_state" \
+        "extension_manager_unit" "$extension_manager_program" \
+        "artifact_promoter_unit" "$artifact_promoter_program" \
+        "workspace_preview_unit" "$workspace_preview_program" "$workspace_preview_state" "$unix_peer_program" "$ops_unix_peer" \
+        "wsl_bridge_unit" "$wsl_bridge_program" "$wsl_bridge_source" "$wsl_bridge_unit_source" \
+        "system_observer_program" "$access_unit" "$access_program" "$access_config" \
+        "access_source" "$access_state" "$access_probe_base" \
+        "access_dropin_dir" "$access_dropin"; do
+        [[ "path" == /* && "$path" != / ]] || {
             log_error "Refusing Pixel Operations cleanup for an invalid absolute target"
             return 1
         }
     done
-    [[ "$ops_program" == "$ops_install/broker.py" \
-        && "$ops_unit" == "$systemd_dir/pixel-ops-broker.service" \
-        && "$ops_dropin" == "$ops_dropin_dir/10-ods-host-observation.conf" \
-        && "$ops_dropin_dir" == "$systemd_dir/pixel-ops-broker.service.d" \
-        && "$ops_policy" == "$ops_policy_dir/policy.json" \
-        && "${ops_policy_dir##*/}" == pixel-ops-broker \
-        && "${ops_install##*/}" == pixel-ops-broker \
-        && "${ops_state##*/}" == pixel-ops-broker \
-        && "$ops_policy" != "$ops_state"/* \
-        && "$ops_install" != "$ops_state"/* ]] || {
+    [[ "ops_program" == "$ops_install/broker.py" \
+        && "ops_unit" == "$systemd_dir/pixel-ops-broker.service" \
+        && "ops_dropin" == "$ops_dropin_dir/10-ods-host-observation.conf" \
+        && "ops_dropin_dir" == "$systemd_dir/pixel-ops-broker.service.d" \
+        && "ops_policy" == "$ops_policy_dir/policy.json" \
+        && "{ops_policy_dir##*/}" == pixel-ops-broker \
+        && "{ops_install##*/}" == pixel-ops-broker \
+        && "{ops_state##*/}" == pixel-ops-broker \
+        && "ops_policy" != "$ops_state"/* \
+        && "ops_install" != "$ops_state"/* ]] || {
         log_error "Refusing Pixel Operations cleanup for overlapping targets"
         return 1
     }
-    [[ "${workspace_preview_state##*/}" == ods-pixel-preview ]] || {
+    [[ "{workspace_preview_state##*/}" == ods-pixel-preview ]] || {
         log_error "Refusing Pixel workspace preview cleanup for an unexpected state root"
         return 1
     }
-    [[ "$access_unit" == "$systemd_dir/ods-pixel-access.service" \
-        && "$access_program" == "$libexec_dir/ods-pixel-access" \
-        && "$access_config" == "$etc_dir/pixel-access.json" \
-        && "${access_state##*/}" == ods-pixel-access \
-        && "${access_probe_base##*/}" == ods-pixel-access-probes \
-        && "$access_dropin" == "$access_dropin_dir/90-ods-full-access.conf" ]] || {
+    [[ "access_unit" == "$systemd_dir/ods-pixel-access.service" \
+        && "access_program" == "$libexec_dir/ods-pixel-access" \
+        && "access_config" == "$etc_dir/pixel-access.json" \
+        && "{access_state##*/}" == ods-pixel-access \
+        && "{access_probe_base##*/}" == ods-pixel-access-probes \
+        && "access_dropin" == "$access_dropin_dir/90-ods-full-access.conf" ]] || {
         log_error "Refusing Pixel access cleanup for unexpected targets"
         return 1
     }
 
-    if [[ ! -e "$marker" && ! -L "$marker" ]]; then
+    if [[ ! -e "marker" && ! -L "$marker" ]]; then
         return 0
     fi
 
@@ -691,42 +691,42 @@ ods_pixel_uninstall_managed() {
     # file. The marker must be private, owner-controlled, and bind this exact
     # install. Root artifacts must still match the ODS/Pixel contract; drift
     # fails closed instead of deleting an ambient or operator-modified service.
-    owner_uid="$(id -u)"
-    owner_gid="$(id -g)"
-    owner_name="$(id -un)"
-    if [[ -e "$wsl_bridge_unit" || -L "$wsl_bridge_unit" \
-        || -e "$wsl_bridge_program" || -L "$wsl_bridge_program" ]]; then
-        [[ -f "$wsl_bridge_unit" && ! -L "$wsl_bridge_unit" \
-            && -f "$wsl_bridge_program" && ! -L "$wsl_bridge_program" \
-            && -f "$wsl_bridge_source" && ! -L "$wsl_bridge_source" \
-            && -f "$wsl_bridge_unit_source" && ! -L "$wsl_bridge_unit_source" \
-            && "$(stat -c '%u:%a' -- "$wsl_bridge_unit")" == "$root_uid:644" \
-            && "$(stat -c '%u:%a' -- "$wsl_bridge_program")" == "$root_uid:755" \
-            && "$(stat -c '%u' -- "$wsl_bridge_source")" == "$owner_uid" \
-            && "$(stat -c '%u' -- "$wsl_bridge_unit_source")" == "$owner_uid" ]] \
-            && cmp -s -- "$wsl_bridge_source" "$wsl_bridge_program" \
-            && cmp -s -- "$wsl_bridge_unit_source" "$wsl_bridge_unit" || {
+    owner_uid="(id -u)"
+    owner_gid="(id -g)"
+    owner_name="(id -un)"
+    if [[ -e "wsl_bridge_unit" || -L "$wsl_bridge_unit" \
+        || -e "wsl_bridge_program" || -L "$wsl_bridge_program" ]]; then
+        [[ -f "wsl_bridge_unit" && ! -L "$wsl_bridge_unit" \
+            && -f "wsl_bridge_program" && ! -L "$wsl_bridge_program" \
+            && -f "wsl_bridge_source" && ! -L "$wsl_bridge_source" \
+            && -f "wsl_bridge_unit_source" && ! -L "$wsl_bridge_unit_source" \
+            && "(stat -c '%u:%a' -- "$wsl_bridge_unit")" == "$root_uid:644" \
+            && "(stat -c '%u:%a' -- "$wsl_bridge_program")" == "$root_uid:755" \
+            && "(stat -c '%u' -- "$wsl_bridge_source")" == "$owner_uid" \
+            && "(stat -c '%u' -- "$wsl_bridge_unit_source")" == "$owner_uid" ]] \
+            && cmp -s -- "wsl_bridge_source" "$wsl_bridge_program" \
+            && cmp -s -- "wsl_bridge_unit_source" "$wsl_bridge_unit" || {
                 log_error "ODS-managed WSL socket bridge differs from its reviewed source"
                 return 1
             }
     fi
-    if ! _ods_pixel_validate_ingress_env "$ingress_env" "$root_uid"; then
+    if ! _ods_pixel_validate_ingress_env "ingress_env" "$root_uid"; then
         log_error "ODS-managed Pixel ingress environment validation failed"
         return 1
     fi
-    if ! cleanup_plan="$(python3 - \
-        "$marker" "$install_dir" "$owner_home" "$(id -u)" "$root_uid" \
-        "$gateway_unit" "$ingress_unit" "$ingress_env" "$ingress_program" "$source_program" \
-        "$extension_manager_unit" "$extension_manager_program" "$extension_manager_source" \
-        "$extension_manager_owner_unit" "$approval_source" \
-        "$artifact_promoter_unit" "$artifact_promoter_program" "$artifact_promoter_source" \
-        "$artifact_promoter_owner_unit" "$workspace_preview_unit" "$workspace_preview_program" \
-        "$workspace_preview_source" "$workspace_preview_owner_unit" "$workspace_preview_state" \
-        "$system_observer_program" "$system_observer_source" \
-        "$openclaw_config" "$gateway_env" "$onboarding" "$exec_control" "$ops_owner_policy" \
-        "$ops_owner_extension_catalog" "$ops_extension_source_program" "$ops_dropin_source" \
-        "$current" "$runtime_attestation" "$staged_current" "$staged_attestation" "$deployment_lock" \
-        "$retired_releases" "$retired_configs" <<'PY'
+    if ! cleanup_plan="(python3 - \
+        "marker" "$install_dir" "$owner_home" "$(id -u)" "$root_uid" \
+        "gateway_unit" "$ingress_unit" "$ingress_env" "$ingress_program" "$source_program" \
+        "extension_manager_unit" "$extension_manager_program" "$extension_manager_source" \
+        "extension_manager_owner_unit" "$approval_source" \
+        "artifact_promoter_unit" "$artifact_promoter_program" "$artifact_promoter_source" \
+        "artifact_promoter_owner_unit" "$workspace_preview_unit" "$workspace_preview_program" \
+        "workspace_preview_source" "$workspace_preview_owner_unit" "$workspace_preview_state" \
+        "system_observer_program" "$system_observer_source" \
+        "openclaw_config" "$gateway_env" "$onboarding" "$exec_control" "$ops_owner_policy" \
+        "ops_owner_extension_catalog" "$ops_extension_source_program" "$ops_dropin_source" \
+        "current" "$runtime_attestation" "$staged_current" "$staged_attestation" "$deployment_lock" \
+        "retired_releases" "$retired_configs" <<'PY'
 import hashlib
 import json
 import os
@@ -1607,39 +1607,39 @@ PY
     fi
     IFS='|' read -r cleanup_state release_version sandbox_image sandbox_image_id release_path \
         release_identity_sha256 install_manifest_sha256 retired_release_path marker_state pixel_source_ref \
-        retire_openclaw_config openclaw_config_sha256 <<<"$cleanup_plan"
-    [[ "$cleanup_state" == none || "$cleanup_state" == active || "$cleanup_state" == staged \
-        || "$cleanup_state" == staging-attestation || "$cleanup_state" == staging-link \
-        || "$cleanup_state" == unattested-active || "$cleanup_state" == unattested-staged \
-        || "$cleanup_state" == retiring || "$cleanup_state" == retired ]] || {
+        retire_openclaw_config openclaw_config_sha256 <<<"cleanup_plan"
+    [[ "cleanup_state" == none || "$cleanup_state" == active || "$cleanup_state" == staged \
+        || "cleanup_state" == staging-attestation || "$cleanup_state" == staging-link \
+        || "cleanup_state" == unattested-active || "$cleanup_state" == unattested-staged \
+        || "cleanup_state" == retiring || "$cleanup_state" == retired ]] || {
         log_error "ODS-managed Pixel cleanup plan is invalid"
         return 1
     }
-    [[ "$marker_state" == installing || "$marker_state" == ready || "$marker_state" == deactivating ]] || {
+    [[ "marker_state" == installing || "$marker_state" == ready || "$marker_state" == deactivating ]] || {
         log_error "ODS-managed Pixel marker state is invalid"
         return 1
     }
-    [[ "$pixel_source_ref" =~ ^[0-9a-f]{40}$ ]] || {
+    [[ "pixel_source_ref" =~ ^[0-9a-f]{40}$ ]] || {
         log_error "ODS-managed Pixel source binding is invalid"
         return 1
     }
-    [[ "$retire_openclaw_config" == true || "$retire_openclaw_config" == false ]] || {
+    [[ "retire_openclaw_config" == true || "$retire_openclaw_config" == false ]] || {
         log_error "ODS-managed Pixel OpenClaw cleanup plan is invalid"
         return 1
     }
-    [[ "$openclaw_config_sha256" == absent || "$openclaw_config_sha256" =~ ^[0-9a-f]{64}$ ]] || {
+    [[ "openclaw_config_sha256" == absent || "$openclaw_config_sha256" =~ ^[0-9a-f]{64}$ ]] || {
         log_error "ODS-managed Pixel OpenClaw config checksum is invalid"
         return 1
     }
-    if [[ "$cleanup_state" != none ]]; then
-        if [[ -z "$sandbox_image" ]]; then
-            [[ "$sandbox_image_id" == derive || "$sandbox_image_id" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+    if [[ "cleanup_state" != none ]]; then
+        if [[ -z "sandbox_image" ]]; then
+            [[ "sandbox_image_id" == derive || "$sandbox_image_id" =~ ^sha256:[0-9a-f]{64}$ ]] || {
                 log_error "ODS-managed Pixel unbound sandbox recovery plan is invalid"
                 return 1
             }
         else
-            [[ "$sandbox_image" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]{0,255}:[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ \
-                && "$sandbox_image_id" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+            [[ "sandbox_image" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]{0,255}:[A-Za-z0-9][A-Za-z0-9._-]{0,127}$ \
+                && "sandbox_image_id" =~ ^sha256:[0-9a-f]{64}$ ]] || {
                 log_error "ODS-managed Pixel sandbox cleanup plan is invalid"
                 return 1
             }
@@ -1652,44 +1652,44 @@ PY
     # service. A ready deployment must be complete; only an installing or
     # deactivating marker may describe a resumable partial broker lifecycle.
     if command -v getent >/dev/null 2>&1; then
-        ops_passwd_entry="$(getent passwd "$ops_user" 2>/dev/null || true)"
-        ops_group_entry="$(getent group "$ops_group" 2>/dev/null || true)"
+        ops_passwd_entry="(getent passwd "$ops_user" 2>/dev/null || true)"
+        ops_group_entry="(getent group "$ops_group" 2>/dev/null || true)"
     fi
-    if [[ -n "$ops_passwd_entry" ]]; then
-        ops_user_group_ids="$(id -G "$ops_user" 2>/dev/null || true)"
-        ops_user_group_names="$(id -nG "$ops_user" 2>/dev/null || true)"
+    if [[ -n "ops_passwd_entry" ]]; then
+        ops_user_group_ids="(id -G "$ops_user" 2>/dev/null || true)"
+        ops_user_group_names="(id -nG "$ops_user" 2>/dev/null || true)"
     fi
-    if [[ -n "$ops_passwd_entry" || -n "$ops_group_entry" ]]; then
+    if [[ -n "ops_passwd_entry" || -n "$ops_group_entry" ]]; then
         ops_artifacts_present=true
     fi
-    for path in "$ops_unit" "$ops_dropin" "$ops_env" "$ops_policy" "$ops_install" "$ops_state" \
-        "$ops_owner_policy" "$ops_owner_extension_catalog" "$ops_extension_manager" \
-        "$extension_manager_owner_unit" "$artifact_promoter_owner_unit"; do
-        if [[ -e "$path" || -L "$path" ]]; then
+    for path in "ops_unit" "$ops_dropin" "$ops_env" "$ops_policy" "$ops_install" "$ops_state" \
+        "ops_owner_policy" "$ops_owner_extension_catalog" "$ops_extension_manager" \
+        "extension_manager_owner_unit" "$artifact_promoter_owner_unit"; do
+        if [[ -e "path" || -L "$path" ]]; then
             ops_artifacts_present=true
         fi
     done
-    if [[ "$ops_artifacts_present" == true ]]; then
+    if [[ "ops_artifacts_present" == true ]]; then
         command -v sudo >/dev/null 2>&1 || {
             log_error "sudo is required to validate ODS-managed Pixel Operations artifacts"
             return 1
         }
-        if ! ops_plan="$(sudo python3 - \
-            "$root_uid" "$root_gid" "$owner_uid" "$owner_gid" "$marker_state" "$ops_user" "$ops_group" \
-            "$ops_passwd_entry" "$ops_group_entry" "$ops_user_group_ids" "$ops_user_group_names" \
-            "${ODS_PIXEL_UNINSTALL_OPS_UID:-}" "${ODS_PIXEL_UNINSTALL_OPS_GID:-}" \
-            "$ops_unit" "$ops_env" "$ops_policy" "$ops_install" "$ops_program" "$ops_state" \
-            "$ops_owner_policy" "$ops_extension_program" "$ops_extension_catalog" \
-            "$ops_extension_manager" "$ops_extension_source_program" \
-            "$ops_owner_extension_catalog" "$extension_manager_source" \
-            "$extension_manager_owner_unit" \
-            "$ops_dropin" "$ops_dropin_source" \
-            "$install_dir/data/pixel/source-$pixel_source_ref/.generated/pixel-ops-broker.service" \
-            "$install_dir/data/pixel/source-$pixel_source_ref/.generated/ops-broker.env" \
-            "$install_dir/data/pixel/source-$pixel_source_ref/deploy/ops-broker/broker.py" \
-            "$release_path/install-manifest.sha256" \
-            "$release_path/deployment-inputs.sha256" "$install_manifest_sha256" \
-            "$ops_state_cleanup_mode" <<'PY'
+        if ! ops_plan="(sudo python3 - \
+            "root_uid" "$root_gid" "$owner_uid" "$owner_gid" "$marker_state" "$ops_user" "$ops_group" \
+            "ops_passwd_entry" "$ops_group_entry" "$ops_user_group_ids" "$ops_user_group_names" \
+            "{ODS_PIXEL_UNINSTALL_OPS_UID:-}" "${ODS_PIXEL_UNINSTALL_OPS_GID:-}" \
+            "ops_unit" "$ops_env" "$ops_policy" "$ops_install" "$ops_program" "$ops_state" \
+            "ops_owner_policy" "$ops_extension_program" "$ops_extension_catalog" \
+            "ops_extension_manager" "$ops_extension_source_program" \
+            "ops_owner_extension_catalog" "$extension_manager_source" \
+            "extension_manager_owner_unit" \
+            "ops_dropin" "$ops_dropin_source" \
+            "install_dir/data/pixel/source-$pixel_source_ref/.generated/pixel-ops-broker.service" \
+            "install_dir/data/pixel/source-$pixel_source_ref/.generated/ops-broker.env" \
+            "install_dir/data/pixel/source-$pixel_source_ref/deploy/ops-broker/broker.py" \
+            "release_path/install-manifest.sha256" \
+            "release_path/deployment-inputs.sha256" "$install_manifest_sha256" \
+            "ops_state_cleanup_mode" <<'PY'
 import hashlib
 import os
 import pathlib
@@ -2127,37 +2127,37 @@ PY
             log_error "ODS-managed Pixel Operations validation failed; leaving every Pixel artifact untouched"
             return 1
         fi
-        IFS='|' read -r ops_state_status ops_uid ops_gid ops_user_present ops_group_present ops_state_action <<<"$ops_plan"
-        [[ "$ops_state_status" == present && "$ops_uid" =~ ^[0-9]+$ && "$ops_gid" =~ ^[0-9]+$ \
-            && ( "$ops_user_present" == true || "$ops_user_present" == false ) \
-            && ( "$ops_group_present" == true || "$ops_group_present" == false ) \
-            && ( "$ops_state_action" == remove || "$ops_state_action" == preserve ) ]] || {
+        IFS='|' read -r ops_state_status ops_uid ops_gid ops_user_present ops_group_present ops_state_action <<<"ops_plan"
+        [[ "ops_state_status" == present && "$ops_uid" =~ ^[0-9]+$ && "$ops_gid" =~ ^[0-9]+$ \
+            && ( "ops_user_present" == true || "$ops_user_present" == false ) \
+            && ( "ops_group_present" == true || "$ops_group_present" == false ) \
+            && ( "ops_state_action" == remove || "$ops_state_action" == preserve ) ]] || {
             log_error "ODS-managed Pixel Operations cleanup plan is invalid"
             return 1
         }
     fi
 
-    if [[ -e "$access_unit" || -L "$access_unit" \
-        || -e "$access_program" || -L "$access_program" \
-        || -e "$access_config" || -L "$access_config" \
-        || -e "$access_relay_key" || -L "$access_relay_key" \
-        || -e "$provider_environment" || -L "$provider_environment" \
-        || -e "$provider_dropin" || -L "$provider_dropin" \
-        || -e "$access_state" || -L "$access_state" \
-        || -e "$access_probe_base/$owner_uid" || -L "$access_probe_base/$owner_uid" \
-        || -e "$access_dropin" || -L "$access_dropin" ]]; then
+    if [[ -e "access_unit" || -L "$access_unit" \
+        || -e "access_program" || -L "$access_program" \
+        || -e "access_config" || -L "$access_config" \
+        || -e "access_relay_key" || -L "$access_relay_key" \
+        || -e "provider_environment" || -L "$provider_environment" \
+        || -e "provider_dropin" || -L "$provider_dropin" \
+        || -e "access_state" || -L "$access_state" \
+        || -e "access_probe_base/$owner_uid" || -L "$access_probe_base/$owner_uid" \
+        || -e "access_dropin" || -L "$access_dropin" ]]; then
         command -v sudo >/dev/null 2>&1 || {
             log_error "sudo is required to validate ODS-managed Pixel access artifacts"
             return 1
         }
-        if ! access_plan="$(_ods_pixel_access_validate_or_remove verify \
-            "$install_dir" "$marker_state" "$owner_name" "$owner_uid" "$owner_gid" \
-            "$root_uid" "$root_gid" "$access_unit" "$access_program" "$access_config" \
-            "$access_state" "$access_probe_base" "$access_dropin")"; then
+        if ! access_plan="(_ods_pixel_access_validate_or_remove verify \
+            "install_dir" "$marker_state" "$owner_name" "$owner_uid" "$owner_gid" \
+            "root_uid" "$root_gid" "$access_unit" "$access_program" "$access_config" \
+            "access_state" "$access_probe_base" "$access_dropin")"; then
             log_error "ODS-managed Pixel access validation failed; leaving every Pixel artifact untouched"
             return 1
         fi
-        [[ "$access_plan" == present ]] || {
+        [[ "access_plan" == present ]] || {
             log_error "ODS-managed Pixel access cleanup plan is invalid"
             return 1
         }
@@ -2168,14 +2168,14 @@ PY
     local candidate_image observed_image shared_image_present=true sandbox_container_list
     local retired_container retired_config_container="" retired_config_path=""
     local -a sandbox_containers=()
-    if [[ "$retire_openclaw_config" == true ]]; then
+    if [[ "retire_openclaw_config" == true ]]; then
         for required_command in mktemp sha256sum; do
-            command -v "$required_command" >/dev/null 2>&1 || {
-                log_error "Cannot safely archive the unbound OpenClaw config without $required_command"
+            command -v "required_command" >/dev/null 2>&1 || {
+                log_error "Cannot safely archive the unbound OpenClaw config without required_command"
                 return 1
             }
         done
-        python3 - "$openclaw_config" "$owner_uid" "$openclaw_config_sha256" <<'PY'
+        python3 - "openclaw_config" "$owner_uid" "$openclaw_config_sha256" <<'PY'
 import hashlib, os, pathlib, stat, sys
 
 path = pathlib.Path(sys.argv[1])
@@ -2193,42 +2193,42 @@ if (
     raise SystemExit("unbound OpenClaw config changed before recovery archive creation")
 PY
     fi
-    if [[ "$cleanup_state" != none ]]; then
+    if [[ "cleanup_state" != none ]]; then
         for required_command in docker flock sha256sum timeout mktemp; do
-            command -v "$required_command" >/dev/null 2>&1 || {
-                log_error "Cannot safely deactivate ODS-managed Pixel without $required_command"
+            command -v "required_command" >/dev/null 2>&1 || {
+                log_error "Cannot safely deactivate ODS-managed Pixel without required_command"
                 return 1
             }
         done
-        exec {pixel_lock_fd}<>"$deployment_lock" || {
+        exec {pixel_lock_fd}<>"deployment_lock" || {
             log_error "Could not open the Pixel deployment lock safely"
             return 1
         }
-        flock -n "$pixel_lock_fd" || {
+        flock -n "pixel_lock_fd" || {
             log_error "Another Pixel deployment operation is active"
             return 1
         }
-        local active_link="$current"
-        [[ "$cleanup_state" == staged || "$cleanup_state" == staging-link \
-            || "$cleanup_state" == unattested-staged \
-            || "$cleanup_state" == retiring ]] && active_link="$staged_current"
-        [[ ( "$cleanup_state" == retired || "$(readlink -f -- "$active_link")" == "$release_path" ) \
-            && "$(sha256sum "$release_path/release-identity.json" | awk '{print $1}')" == "$release_identity_sha256" \
-            && "$(sha256sum "$release_path/install-manifest.sha256" | awk '{print $1}')" == "$install_manifest_sha256" ]] || {
+        local active_link="current"
+        [[ "cleanup_state" == staged || "$cleanup_state" == staging-link \
+            || "cleanup_state" == unattested-staged \
+            || "cleanup_state" == retiring ]] && active_link="$staged_current"
+        [[ ( "cleanup_state" == retired || "$(readlink -f -- "$active_link")" == "$release_path" ) \
+            && "(sha256sum "$release_path/release-identity.json" | awk '{print $1}')" == "$release_identity_sha256" \
+            && "(sha256sum "$release_path/install-manifest.sha256" | awk '{print $1}')" == "$install_manifest_sha256" ]] || {
             log_error "ODS-managed Pixel release changed while acquiring its deployment lock"
             return 1
         }
-        (cd "$release_path" && timeout 60s sha256sum -c install-manifest.sha256 >/dev/null) || {
+        (cd "release_path" && timeout 60s sha256sum -c install-manifest.sha256 >/dev/null) || {
             log_error "ODS-managed Pixel release bytes no longer match their install manifest"
             return 1
         }
 
-        candidate_image="pixel-sandbox-candidate:${release_version}-uid-${owner_uid}"
-        if observed_image="$(timeout 30s docker image inspect --format \
+        candidate_image="pixel-sandbox-candidate:{release_version}-uid-${owner_uid}"
+        if observed_image="(timeout 30s docker image inspect --format \
             '{{.Id}}|{{index .Config.Labels "org.osmantic.pixel.sandbox-version"}}|{{index .Config.Labels "org.osmantic.pixel.sandbox-uid"}}|{{.Config.User}}' \
-            "$candidate_image" 2>/dev/null)"; then
+            "candidate_image" 2>/dev/null)"; then
             :
-        elif [[ "$sandbox_image_id" == derive ]]; then
+        elif [[ "sandbox_image_id" == derive ]]; then
             # An interrupted first apply has no durable image-id binding yet;
             # only its deterministic candidate tag can establish custody.
             log_error "The ODS-managed Pixel sandbox preservation tag is missing"
@@ -2239,61 +2239,61 @@ PY
             # container. A fully bound marker already commits the exact image
             # ID. Revalidate that immutable object and all of its ODS labels;
             # never fall back to a mutable shared tag or a discovered image.
-            observed_image="$(timeout 30s docker image inspect --format \
+            observed_image="(timeout 30s docker image inspect --format \
                 '{{.Id}}|{{index .Config.Labels "org.osmantic.pixel.sandbox-version"}}|{{index .Config.Labels "org.osmantic.pixel.sandbox-uid"}}|{{.Config.User}}' \
-                "$sandbox_image_id" 2>/dev/null)" || {
+                "sandbox_image_id" 2>/dev/null)" || {
                 log_error "The exact ODS-managed Pixel sandbox image is missing"
                 return 1
             }
         fi
-        if [[ "$sandbox_image_id" == derive ]]; then
-            sandbox_image_id="${observed_image%%|*}"
-            [[ "$sandbox_image_id" =~ ^sha256:[0-9a-f]{64}$ ]] || {
+        if [[ "sandbox_image_id" == derive ]]; then
+            sandbox_image_id="{observed_image%%|*}"
+            [[ "sandbox_image_id" =~ ^sha256:[0-9a-f]{64}$ ]] || {
                 log_error "The ODS-managed Pixel sandbox preservation tag has an invalid image ID"
                 return 1
             }
         fi
-        [[ "$observed_image" == "$sandbox_image_id|$release_version|$owner_uid|sandbox" ]] || {
+        [[ "observed_image" == "$sandbox_image_id|$release_version|$owner_uid|sandbox" ]] || {
             log_error "The ODS-managed Pixel sandbox preservation tag drifted"
             return 1
         }
-        if [[ -z "$sandbox_image" ]]; then
+        if [[ -z "sandbox_image" ]]; then
             # The failed apply never durably bound the shared image name. Keep
             # all shared tags and use only the deterministic candidate tag and
             # exact image ID to bound reserved-container cleanup.
             shared_image_present=false
-        elif observed_image="$(timeout 30s docker image inspect --format \
+        elif observed_image="(timeout 30s docker image inspect --format \
             '{{.Id}}|{{index .Config.Labels "org.osmantic.pixel.sandbox-version"}}|{{index .Config.Labels "org.osmantic.pixel.sandbox-uid"}}|{{.Config.User}}' \
-            "$sandbox_image" 2>/dev/null)"; then
-            [[ "$observed_image" == "$sandbox_image_id|$release_version|$owner_uid|sandbox" ]] || {
+            "sandbox_image" 2>/dev/null)"; then
+            [[ "observed_image" == "$sandbox_image_id|$release_version|$owner_uid|sandbox" ]] || {
                 log_error "The live Pixel sandbox image drifted"
                 return 1
             }
         else
             shared_image_present=false
-            [[ "$cleanup_state" == staged || "$cleanup_state" == retiring \
-                || "$cleanup_state" == retired ]] || {
+            [[ "cleanup_state" == staged || "$cleanup_state" == retiring \
+                || "cleanup_state" == retired ]] || {
                 log_error "The active ODS-managed Pixel sandbox image is missing"
                 return 1
             }
         fi
-        sandbox_container_list="$(timeout 30s docker ps -aq --filter 'name=^/pixel-sbx-agent-pixel-')" || {
+        sandbox_container_list="(timeout 30s docker ps -aq --filter 'name=^/pixel-sbx-agent-pixel-')" || {
             log_error "Could not enumerate ODS-managed Pixel sandbox containers"
             return 1
         }
-        if [[ -n "$sandbox_container_list" ]]; then
-            mapfile -t sandbox_containers <<<"$sandbox_container_list"
+        if [[ -n "sandbox_container_list" ]]; then
+            mapfile -t sandbox_containers <<<"sandbox_container_list"
         fi
         local container container_identity
-        for container in "${sandbox_containers[@]}"; do
-            [[ "$container" =~ ^[0-9a-f]{12,64}$ ]] || {
+        for container in "{sandbox_containers[@]}"; do
+            [[ "container" =~ ^[0-9a-f]{12,64}$ ]] || {
                 log_error "Docker returned an unsafe Pixel sandbox container ID"
                 return 1
             }
-            container_identity="$(timeout 30s docker inspect --format \
+            container_identity="(timeout 30s docker inspect --format \
                 '{{.Name}}|{{index .Config.Labels "openclaw.sandbox"}}|{{index .Config.Labels "openclaw.sessionKey"}}|{{.Image}}' \
-                "$container" 2>/dev/null)" || return 1
-            [[ "$container_identity" == /pixel-sbx-agent-pixel-*"|1|agent:pixel|$sandbox_image_id" ]] || {
+                "container" 2>/dev/null)" || return 1
+            [[ "container_identity" == /pixel-sbx-agent-pixel-*"|1|agent:pixel|$sandbox_image_id" ]] || {
                 log_error "A container in Pixel's reserved sandbox namespace has unsafe identity"
                 return 1
             }
@@ -2302,7 +2302,7 @@ PY
 
     # Nothing above changes the deployment. ods-uninstall.sh runs this pass
     # before it changes Windows startup, then calls again to validate and remove.
-    if [[ "${ODS_PIXEL_UNINSTALL_VALIDATE_ONLY:-false}" == true ]]; then
+    if [[ "{ODS_PIXEL_UNINSTALL_VALIDATE_ONLY:-false}" == true ]]; then
         return 0
     fi
 
@@ -2312,31 +2312,31 @@ PY
     local inspection_present=false project_present=false
     if _ods_pixel_project_present; then
         project_present=true
-        _ods_pixel_project_cleanup "$install_dir" "$owner_uid" check-cleanup || return 1
+        _ods_pixel_project_cleanup "install_dir" "$owner_uid" check-cleanup || return 1
     fi
     if _ods_pixel_inspection_present; then
         inspection_present=true
-        _ods_pixel_inspection_cleanup "$install_dir" "$owner_uid" validate-linux || return 1
+        _ods_pixel_inspection_cleanup "install_dir" "$owner_uid" validate-linux || return 1
     fi
-    if "$project_present"; then
+    if "project_present"; then
         timeout 350s sudo systemctl disable --now ods-pixel-project.service || return 1
     fi
-    if [[ -e "$gateway_unit" || -L "$gateway_unit" \
-        || -e "$ingress_unit" || -L "$ingress_unit" \
-        || -e "$ingress_env" || -L "$ingress_env" \
-        || -e "$ingress_program" || -L "$ingress_program" \
-        || -e "$extension_manager_unit" || -L "$extension_manager_unit" \
-        || -e "$extension_manager_program" || -L "$extension_manager_program" \
-        || -e "$artifact_promoter_unit" || -L "$artifact_promoter_unit" \
-        || -e "$artifact_promoter_program" || -L "$artifact_promoter_program" \
-        || -e "$workspace_preview_unit" || -L "$workspace_preview_unit" \
-        || -e "$wsl_bridge_unit" || -L "$wsl_bridge_unit" \
-        || -e "$wsl_bridge_program" || -L "$wsl_bridge_program" \
-        || -e "$workspace_preview_program" || -L "$workspace_preview_program" \
-        || -e "$unix_peer_program" || -L "$unix_peer_program" \
-        || -e "$system_observer_program" || -L "$system_observer_program" \
-        || -e "$workspace_preview_state" || -L "$workspace_preview_state" \
-        || "$ops_artifacts_present" == true || "$access_artifacts_present" == true || "$inspection_present" == true ]]; then
+    if [[ -e "gateway_unit" || -L "$gateway_unit" \
+        || -e "ingress_unit" || -L "$ingress_unit" \
+        || -e "ingress_env" || -L "$ingress_env" \
+        || -e "ingress_program" || -L "$ingress_program" \
+        || -e "extension_manager_unit" || -L "$extension_manager_unit" \
+        || -e "extension_manager_program" || -L "$extension_manager_program" \
+        || -e "artifact_promoter_unit" || -L "$artifact_promoter_unit" \
+        || -e "artifact_promoter_program" || -L "$artifact_promoter_program" \
+        || -e "workspace_preview_unit" || -L "$workspace_preview_unit" \
+        || -e "wsl_bridge_unit" || -L "$wsl_bridge_unit" \
+        || -e "wsl_bridge_program" || -L "$wsl_bridge_program" \
+        || -e "workspace_preview_program" || -L "$workspace_preview_program" \
+        || -e "unix_peer_program" || -L "$unix_peer_program" \
+        || -e "system_observer_program" || -L "$system_observer_program" \
+        || -e "workspace_preview_state" || -L "$workspace_preview_state" \
+        || "ops_artifacts_present" == true || "$access_artifacts_present" == true || "$inspection_present" == true ]]; then
         root_artifacts_present=true
         command -v sudo >/dev/null 2>&1 || {
             log_error "sudo is required to remove ODS-managed Pixel system artifacts"
@@ -2344,26 +2344,26 @@ PY
         }
     fi
 
-    if [[ -e "$gateway_unit" || -e "$ingress_unit" || -e "$extension_manager_unit" \
-        || -e "$artifact_promoter_unit" || -e "$workspace_preview_unit" \
-        || -e "$wsl_bridge_unit" \
-        || -e "$ops_unit" || -e "$access_unit" || "$inspection_present" == true ]]; then
+    if [[ -e "gateway_unit" || -e "$ingress_unit" || -e "$extension_manager_unit" \
+        || -e "artifact_promoter_unit" || -e "$workspace_preview_unit" \
+        || -e "wsl_bridge_unit" \
+        || -e "ops_unit" || -e "$access_unit" || "$inspection_present" == true ]]; then
         # Stop the ingress before the gateway it proxies to. Keep these as
         # separate calls so the shutdown order is an enforced contract rather
         # than an argument-order hint to systemctl. An interrupted first install
         # can have created the gateway before it creates ingress, so only ask
         # systemd to disable unit files whose exact reviewed artifacts exist.
-        if [[ -e "$wsl_bridge_unit" ]] \
+        if [[ -e "wsl_bridge_unit" ]] \
             && ! timeout 30s sudo systemctl disable --now ods-pixel-wsl-runtime-bridge.service; then
             log_error "Could not stop ODS-managed Pixel socket bridge; no Pixel files were removed"
             return 1
         fi
-        if [[ -e "$access_unit" ]] \
+        if [[ -e "access_unit" ]] \
             && ! timeout 30s sudo systemctl disable --now ods-pixel-access.service; then
             log_error "Could not stop ODS-managed Pixel system services; no Pixel files were removed"
             return 1
         fi
-        if "$inspection_present"; then
+        if "inspection_present"; then
             if [[ -e /etc/systemd/system/pixel-preview-inspection.service ]]; then
                 timeout 50s sudo systemctl disable --now pixel-preview-inspection.service || return 1
             fi
@@ -2372,32 +2372,32 @@ PY
                 return 1
             fi
         fi
-        if [[ -e "$ingress_unit" ]] \
+        if [[ -e "ingress_unit" ]] \
             && ! timeout 30s sudo systemctl disable --now pixel-ingress.service; then
             log_error "Could not stop ODS-managed Pixel system services; no Pixel files were removed"
             return 1
         fi
-        if [[ -e "$extension_manager_unit" ]] \
+        if [[ -e "extension_manager_unit" ]] \
             && ! timeout 30s sudo systemctl disable --now pixel-extension-manager.service; then
             log_error "Could not stop ODS-managed Pixel system services; no Pixel files were removed"
             return 1
         fi
-        if [[ -e "$artifact_promoter_unit" ]] \
+        if [[ -e "artifact_promoter_unit" ]] \
             && ! timeout 30s sudo systemctl disable --now pixel-artifact-promoter.service; then
             log_error "Could not stop ODS-managed Pixel system services; no Pixel files were removed"
             return 1
         fi
-        if [[ -e "$workspace_preview_unit" ]] \
+        if [[ -e "workspace_preview_unit" ]] \
             && ! timeout 30s sudo systemctl disable --now pixel-workspace-preview.service; then
             log_error "Could not stop ODS-managed Pixel system services; no Pixel files were removed"
             return 1
         fi
-        if [[ -e "$gateway_unit" ]] \
+        if [[ -e "gateway_unit" ]] \
             && ! timeout 30s sudo systemctl disable --now openclaw-gateway.service; then
             log_error "Could not stop ODS-managed Pixel system services; no Pixel files were removed"
             return 1
         fi
-        if [[ -e "$ops_unit" ]] \
+        if [[ -e "ops_unit" ]] \
             && ! timeout 30s sudo systemctl disable --now pixel-ops-broker.service; then
             log_error "Could not stop ODS-managed Pixel system services; no Pixel files were removed"
             return 1
@@ -2416,38 +2416,38 @@ PY
         fi
     fi
 
-    if [[ "$cleanup_state" != none ]]; then
-        if (( ${#sandbox_containers[@]} > 0 )) \
-            && ! timeout 30s docker rm -f -- "${sandbox_containers[@]}" >/dev/null; then
+    if [[ "cleanup_state" != none ]]; then
+        if (( {#sandbox_containers[@]} > 0 )) \
+            && ! timeout 30s docker rm -f -- "{sandbox_containers[@]}" >/dev/null; then
             log_error "Could not retire the ODS-managed Pixel sandbox containers"
             return 1
         fi
-        case "$cleanup_state" in
+        case "cleanup_state" in
             active)
-                mv -T -- "$runtime_attestation" "$staged_attestation" || {
+                mv -T -- "runtime_attestation" "$staged_attestation" || {
                     log_error "Could not stage the ODS-managed Pixel runtime attestation"
                     return 1
                 }
-                if ! mv -T -- "$current" "$staged_current"; then
-                    mv -T -- "$staged_attestation" "$runtime_attestation" || true
+                if ! mv -T -- "current" "$staged_current"; then
+                    mv -T -- "staged_attestation" "$runtime_attestation" || true
                     log_error "Could not stage the ODS-managed Pixel active-release link"
                     return 1
                 fi
                 ;;
             staging-attestation)
-                mv -T -- "$current" "$staged_current" || {
+                mv -T -- "current" "$staged_current" || {
                     log_error "Could not resume the ODS-managed Pixel active-release staging"
                     return 1
                 }
                 ;;
             staging-link)
-                mv -T -- "$runtime_attestation" "$staged_attestation" || {
+                mv -T -- "runtime_attestation" "$staged_attestation" || {
                     log_error "Could not resume the ODS-managed Pixel runtime-attestation staging"
                     return 1
                 }
                 ;;
             unattested-active)
-                mv -T -- "$current" "$staged_current" || {
+                mv -T -- "current" "$staged_current" || {
                     log_error "Could not stage the interrupted ODS-managed Pixel active-release link"
                     return 1
                 }
@@ -2455,18 +2455,18 @@ PY
             unattested-staged)
                 ;;
         esac
-        if [[ "$shared_image_present" == true ]] \
-            && ! timeout 30s docker image rm -- "$sandbox_image" >/dev/null; then
+        if [[ "shared_image_present" == true ]] \
+            && ! timeout 30s docker image rm -- "sandbox_image" >/dev/null; then
             # Before the durable deactivating marker is written, restore the
             # live pair (or the interrupted install's lone link). A resumed
             # deactivation already has durable archive intent, so moving its
             # staged objects back would create a state that marker rejects.
-            if [[ "$cleanup_state" != retiring && "$cleanup_state" != retired ]]; then
-                if [[ -e "$staged_current" || -L "$staged_current" ]]; then
-                    mv -T -- "$staged_current" "$current" || true
+            if [[ "cleanup_state" != retiring && "$cleanup_state" != retired ]]; then
+                if [[ -e "staged_current" || -L "$staged_current" ]]; then
+                    mv -T -- "staged_current" "$current" || true
                 fi
-                if [[ -e "$staged_attestation" || -L "$staged_attestation" ]]; then
-                    mv -T -- "$staged_attestation" "$runtime_attestation" || true
+                if [[ -e "staged_attestation" || -L "$staged_attestation" ]]; then
+                    mv -T -- "staged_attestation" "$runtime_attestation" || true
                 fi
             fi
             log_error "Could not remove the exact ODS-managed Pixel live sandbox tag"
@@ -2476,26 +2476,26 @@ PY
         # the verified bytes for recovery, but move them out of the active
         # version namespace so another ODS path can install the same version.
         # Record the destination first so either side of the move is resumable.
-        if [[ "$cleanup_state" != retiring && "$cleanup_state" != retired ]]; then
-            if [[ ! -e "$retired_releases" && ! -L "$retired_releases" ]]; then
-                mkdir -m 0700 -- "$retired_releases" || {
+        if [[ "cleanup_state" != retiring && "$cleanup_state" != retired ]]; then
+            if [[ ! -e "retired_releases" && ! -L "$retired_releases" ]]; then
+                mkdir -m 0700 -- "retired_releases" || {
                     log_error "Could not create the private ODS-managed Pixel release archive"
                     return 1
                 }
             fi
-            retired_container="$(mktemp -d \
-                "$retired_releases/${release_version}-${release_identity_sha256:0:12}.XXXXXXXX")" || {
+            retired_container="(mktemp -d \
+                "retired_releases/${release_version}-${release_identity_sha256:0:12}.XXXXXXXX")" || {
                 log_error "Could not reserve the ODS-managed Pixel release archive"
                 return 1
             }
-            retired_release_path="$retired_container/release"
+            retired_release_path="retired_container/release"
             runtime_attestation_state=verified
-            [[ "$cleanup_state" == unattested-active \
-                || "$cleanup_state" == unattested-staged ]] \
+            [[ "cleanup_state" == unattested-active \
+                || "cleanup_state" == unattested-staged ]] \
                 && runtime_attestation_state=absent
-            if ! python3 - "$marker" "$retired_release_path" "$release_version" \
-                "$release_identity_sha256" "$install_manifest_sha256" \
-                "$runtime_attestation_state" "$sandbox_image" "$sandbox_image_id" <<'PY'
+            if ! python3 - "marker" "$retired_release_path" "$release_version" \
+                "release_identity_sha256" "$install_manifest_sha256" \
+                "runtime_attestation_state" "$sandbox_image" "$sandbox_image_id" <<'PY'
 import json
 import os
 import pathlib
@@ -2596,43 +2596,43 @@ PY
             fi
             cleanup_state=retiring
         fi
-        if [[ "$cleanup_state" == retiring ]]; then
-            [[ ! -e "$retired_release_path" && ! -L "$retired_release_path" ]] || {
+        if [[ "cleanup_state" == retiring ]]; then
+            [[ ! -e "retired_release_path" && ! -L "$retired_release_path" ]] || {
                 log_error "The ODS-managed Pixel release archive destination is not empty"
                 return 1
             }
-            mv -T -- "$release_path" "$retired_release_path" || {
+            mv -T -- "release_path" "$retired_release_path" || {
                 log_error "Could not retire the exact ODS-managed Pixel release"
                 return 1
             }
-            release_path="$retired_release_path"
+            release_path="retired_release_path"
             cleanup_state=retired
         fi
-        (cd "$release_path" && timeout 60s sha256sum -c install-manifest.sha256 >/dev/null) || {
+        (cd "release_path" && timeout 60s sha256sum -c install-manifest.sha256 >/dev/null) || {
             log_error "The retired ODS-managed Pixel release failed its exact-byte verification"
             return 1
         }
-        rm -f -- "$staged_current" "$staged_attestation"
-        if [[ -e "$current" || -L "$current" || -e "$runtime_attestation" || -L "$runtime_attestation" \
-            || -e "$staged_current" || -L "$staged_current" \
-            || -e "$staged_attestation" || -L "$staged_attestation" \
-            || -e "$pixel_install/releases/$release_version" \
-            || -L "$pixel_install/releases/$release_version" \
-            || ! -d "$retired_release_path" ]] \
-            || { [[ -n "$sandbox_image" ]] \
-                && timeout 30s docker image inspect "$sandbox_image" >/dev/null 2>&1; }; then
+        rm -f -- "staged_current" "$staged_attestation"
+        if [[ -e "current" || -L "$current" || -e "$runtime_attestation" || -L "$runtime_attestation" \
+            || -e "staged_current" || -L "$staged_current" \
+            || -e "staged_attestation" || -L "$staged_attestation" \
+            || -e "pixel_install/releases/$release_version" \
+            || -L "pixel_install/releases/$release_version" \
+            || ! -d "retired_release_path" ]] \
+            || { [[ -n "sandbox_image" ]] \
+                && timeout 30s docker image inspect "sandbox_image" >/dev/null 2>&1; }; then
             log_error "ODS-managed Pixel active-state cleanup was incomplete"
             return 1
         fi
     fi
 
-    if [[ "$ops_artifacts_present" == true ]]; then
-        if [[ "$ops_state_cleanup_mode" == source-transition && "$ops_state_action" == preserve ]]; then
+    if [[ "ops_artifacts_present" == true ]]; then
+        if [[ "ops_state_cleanup_mode" == source-transition && "$ops_state_action" == preserve ]]; then
             # Preserve the whole former broker home after the service stops.
             # Older installers copied /etc/skel into it, including links and
             # large trees. Renaming into root-only custody does not traverse
             # or remove any of those entries.
-            if ! ops_custody_path="$(sudo python3 - "$ops_state" "$ops_uid" "$ops_gid" "$root_uid" "$root_gid" <<'PY'
+            if ! ops_custody_path="(sudo python3 - "$ops_state" "$ops_uid" "$ops_gid" "$root_uid" "$root_gid" <<'PY'
 import os
 import pathlib
 import stat
@@ -2695,15 +2695,15 @@ PY
                 log_error "Could not preserve Pixel Operations Broker state for the source transition"
                 return 1
             fi
-            if [[ "$ops_custody_path" != absent ]]; then
-                log_info "Retained the prior Pixel Operations Broker state at $ops_custody_path for review; it is not removed automatically."
+            if [[ "ops_custody_path" != absent ]]; then
+                log_info "Retained the prior Pixel Operations Broker state at ops_custody_path for review; it is not removed automatically."
             fi
         else
         # Remove the broker's bounded state only after the service is inactive.
         # The privileged helper rechecks every entry immediately before the
         # recursive operation and rejects links, devices, mounts, hardlinks,
         # foreign identities, and world-accessible mutable state.
-        if ! sudo python3 - "$ops_state" "$ops_uid" "$ops_gid" "$owner_uid" <<'PY'
+        if ! sudo python3 - "ops_state" "$ops_uid" "$ops_gid" "$owner_uid" <<'PY'
 import os
 import pathlib
 import shutil
@@ -2779,64 +2779,64 @@ PY
             return 1
         fi
         fi
-        if ! sudo rm -f -- "$ops_unit" "$ops_dropin" "$ops_env" "$ops_policy" "$ops_program" \
-            "$ops_extension_program" "$ops_extension_catalog" "$ops_extension_manager" "$ops_unix_peer" \
-            || ! { [[ ! -e "$ops_dropin_dir" && ! -L "$ops_dropin_dir" ]] || sudo rmdir -- "$ops_dropin_dir"; } \
-            || ! { [[ ! -e "$ops_install" && ! -L "$ops_install" ]] || sudo rmdir -- "$ops_install"; } \
-            || ! { [[ ! -e "$ops_policy_dir" && ! -L "$ops_policy_dir" ]] || sudo rmdir -- "$ops_policy_dir"; }; then
+        if ! sudo rm -f -- "ops_unit" "$ops_dropin" "$ops_env" "$ops_policy" "$ops_program" \
+            "ops_extension_program" "$ops_extension_catalog" "$ops_extension_manager" "$ops_unix_peer" \
+            || ! { [[ ! -e "ops_dropin_dir" && ! -L "$ops_dropin_dir" ]] || sudo rmdir -- "$ops_dropin_dir"; } \
+            || ! { [[ ! -e "ops_install" && ! -L "$ops_install" ]] || sudo rmdir -- "$ops_install"; } \
+            || ! { [[ ! -e "ops_policy_dir" && ! -L "$ops_policy_dir" ]] || sudo rmdir -- "$ops_policy_dir"; }; then
             log_error "Could not remove the verified Pixel Operations Broker artifacts"
             return 1
         fi
-        if [[ "$ops_user_present" == true ]]; then
-            [[ "$(getent passwd "$ops_user" 2>/dev/null || true)" == "$ops_passwd_entry" ]] || {
+        if [[ "ops_user_present" == true ]]; then
+            [[ "(getent passwd "$ops_user" 2>/dev/null || true)" == "$ops_passwd_entry" ]] || {
                 log_error "Pixel Operations Broker user changed before removal"
                 return 1
             }
-            if ! timeout 30s sudo userdel "$ops_user"; then
+            if ! timeout 30s sudo userdel "ops_user"; then
                 log_error "Could not remove the isolated Pixel Operations Broker user"
                 return 1
             fi
         fi
-        if [[ "$ops_group_present" == true ]]; then
-            [[ "$(getent group "$ops_group" 2>/dev/null || true)" == "$ops_group_entry" ]] || {
+        if [[ "ops_group_present" == true ]]; then
+            [[ "(getent group "$ops_group" 2>/dev/null || true)" == "$ops_group_entry" ]] || {
                 log_error "Pixel Operations Broker group changed before removal"
                 return 1
             }
-            if ! timeout 30s sudo groupdel "$ops_group"; then
+            if ! timeout 30s sudo groupdel "ops_group"; then
                 log_error "Could not remove the isolated Pixel Operations Broker group"
                 return 1
             fi
         fi
-        if [[ -e "$ops_unit" || -L "$ops_unit" || -e "$ops_dropin" || -L "$ops_dropin" \
-            || -e "$ops_dropin_dir" || -L "$ops_dropin_dir" \
-            || -e "$ops_env" || -L "$ops_env" \
-            || -e "$ops_policy" || -L "$ops_policy" || -e "$ops_install" || -L "$ops_install" \
-            || -e "$ops_state" || -L "$ops_state" \
-            || -n "$(getent passwd "$ops_user" 2>/dev/null || true)" \
-            || -n "$(getent group "$ops_group" 2>/dev/null || true)" ]]; then
+        if [[ -e "ops_unit" || -L "$ops_unit" || -e "$ops_dropin" || -L "$ops_dropin" \
+            || -e "ops_dropin_dir" || -L "$ops_dropin_dir" \
+            || -e "ops_env" || -L "$ops_env" \
+            || -e "ops_policy" || -L "$ops_policy" || -e "$ops_install" || -L "$ops_install" \
+            || -e "ops_state" || -L "$ops_state" \
+            || -n "(getent passwd "$ops_user" 2>/dev/null || true)" \
+            || -n "(getent group "$ops_group" 2>/dev/null || true)" ]]; then
             log_error "Pixel Operations Broker cleanup was incomplete"
             return 1
         fi
     fi
 
-    if "$project_present"; then
-        _ods_pixel_project_cleanup "$install_dir" "$owner_uid" cleanup-linux || return 1
+    if "project_present"; then
+        _ods_pixel_project_cleanup "install_dir" "$owner_uid" cleanup-linux || return 1
     fi
-    if [[ "$root_artifacts_present" == "true" ]]; then
-        if "$inspection_present"; then
-            _ods_pixel_inspection_cleanup "$install_dir" "$owner_uid" remove-linux || return 1
+    if [[ "root_artifacts_present" == "true" ]]; then
+        if "inspection_present"; then
+            _ods_pixel_inspection_cleanup "install_dir" "$owner_uid" remove-linux || return 1
         fi
-        if [[ "$access_artifacts_present" == true ]]; then
-            if [[ "$(_ods_pixel_access_validate_or_remove remove \
-                "$install_dir" "$marker_state" "$owner_name" "$owner_uid" "$owner_gid" \
-                "$root_uid" "$root_gid" "$access_unit" "$access_program" "$access_config" \
-                "$access_state" "$access_probe_base" "$access_dropin")" != removed ]]; then
+        if [[ "access_artifacts_present" == true ]]; then
+            if [[ "(_ods_pixel_access_validate_or_remove remove \
+                "install_dir" "$marker_state" "$owner_name" "$owner_uid" "$owner_gid" \
+                "root_uid" "$root_gid" "$access_unit" "$access_program" "$access_config" \
+                "access_state" "$access_probe_base" "$access_dropin")" != removed ]]; then
                 log_error "Could not remove the verified ODS-managed Pixel access artifacts"
                 return 1
             fi
         fi
-        if [[ -e "$workspace_preview_state" || -L "$workspace_preview_state" ]]; then
-            if ! sudo python3 - "$workspace_preview_state" "$owner_uid" <<'PY'
+        if [[ -e "workspace_preview_state" || -L "$workspace_preview_state" ]]; then
+            if ! sudo python3 - "workspace_preview_state" "$owner_uid" <<'PY'
 import os, pathlib, shutil, stat, sys
 
 root = pathlib.Path(sys.argv[1])
@@ -2862,38 +2862,38 @@ PY
                 return 1
             fi
         fi
-        if ! sudo rm -f -- "$gateway_unit" "$ingress_unit" "$ingress_env" "$ingress_program" \
-            "$extension_manager_unit" "$extension_manager_program" \
-            "$artifact_promoter_unit" "$artifact_promoter_program" \
-            "$workspace_preview_unit" "$workspace_preview_program" "$unix_peer_program" \
-            "$wsl_bridge_unit" "$wsl_bridge_program" \
-            "$system_observer_program" \
+        if ! sudo rm -f -- "gateway_unit" "$ingress_unit" "$ingress_env" "$ingress_program" \
+            "extension_manager_unit" "$extension_manager_program" \
+            "artifact_promoter_unit" "$artifact_promoter_program" \
+            "workspace_preview_unit" "$workspace_preview_program" "$unix_peer_program" \
+            "wsl_bridge_unit" "$wsl_bridge_program" \
+            "system_observer_program" \
             || ! sudo systemctl daemon-reload; then
             log_error "Could not remove ODS-managed Pixel system artifacts"
             return 1
         fi
-        if [[ -e "$gateway_unit" || -e "$ingress_unit" || -e "$ingress_env" \
-            || -e "$ingress_program" || -e "$extension_manager_unit" \
-            || -e "$extension_manager_program" || -e "$artifact_promoter_unit" \
-            || -e "$artifact_promoter_program" || -e "$workspace_preview_unit" \
-            || -e "$workspace_preview_program" || -e "$unix_peer_program" || -e "$system_observer_program" \
-            || -e "$wsl_bridge_unit" || -e "$wsl_bridge_program" \
-            || -e "$workspace_preview_state" || -e "$access_unit" || -L "$access_unit" \
-            || -e "$access_program" || -L "$access_program" \
-            || -e "$access_config" || -L "$access_config" \
-            || -e "$access_relay_key" || -L "$access_relay_key" \
-            || -e "$provider_environment" || -L "$provider_environment" \
-            || -e "$provider_dropin" || -L "$provider_dropin" \
-            || -e "$access_state" || -L "$access_state" \
-            || -e "$access_probe_base/$owner_uid" || -L "$access_probe_base/$owner_uid" \
-            || -e "$access_dropin" || -L "$access_dropin" ]]; then
+        if [[ -e "gateway_unit" || -e "$ingress_unit" || -e "$ingress_env" \
+            || -e "ingress_program" || -e "$extension_manager_unit" \
+            || -e "extension_manager_program" || -e "$artifact_promoter_unit" \
+            || -e "artifact_promoter_program" || -e "$workspace_preview_unit" \
+            || -e "workspace_preview_program" || -e "$unix_peer_program" || -e "$system_observer_program" \
+            || -e "wsl_bridge_unit" || -e "$wsl_bridge_program" \
+            || -e "workspace_preview_state" || -e "$access_unit" || -L "$access_unit" \
+            || -e "access_program" || -L "$access_program" \
+            || -e "access_config" || -L "$access_config" \
+            || -e "access_relay_key" || -L "$access_relay_key" \
+            || -e "provider_environment" || -L "$provider_environment" \
+            || -e "provider_dropin" || -L "$provider_dropin" \
+            || -e "access_state" || -L "$access_state" \
+            || -e "access_probe_base/$owner_uid" || -L "$access_probe_base/$owner_uid" \
+            || -e "access_dropin" || -L "$access_dropin" ]]; then
             log_error "ODS-managed Pixel system artifact cleanup was incomplete"
             return 1
         fi
     fi
 
-    if [[ -e "$exec_control" || -L "$exec_control" ]]; then
-        python3 - "$exec_control" <<'PY'
+    if [[ -e "exec_control" || -L "$exec_control" ]]; then
+        python3 - "exec_control" <<'PY'
 import os, pathlib, re, stat, sys
 
 root = pathlib.Path(sys.argv[1])
@@ -2926,8 +2926,8 @@ PY
     # coordinator journal is removed below, permanently blocking the next clean
     # install.  The gateway is already stopped, and remove only the runtime's
     # closed, owner-private fixed-shape state directory.
-    if [[ -e "$access_runtime_state" || -L "$access_runtime_state" ]]; then
-        if ! python3 - "$access_runtime_state" <<'PY'
+    if [[ -e "access_runtime_state" || -L "$access_runtime_state" ]]; then
+        if ! python3 - "access_runtime_state" <<'PY'
 import os, pathlib, re, stat, sys
 
 root = pathlib.Path(sys.argv[1])
@@ -2953,14 +2953,14 @@ PY
             return 1
         fi
     fi
-    if [[ "$retire_openclaw_config" == true ]]; then
-        if [[ ! -e "$retired_configs" && ! -L "$retired_configs" ]]; then
-            mkdir -m 0700 -- "$retired_configs" || {
+    if [[ "retire_openclaw_config" == true ]]; then
+        if [[ ! -e "retired_configs" && ! -L "$retired_configs" ]]; then
+            mkdir -m 0700 -- "retired_configs" || {
                 log_error "Could not create the private OpenClaw config recovery root"
                 return 1
             }
         fi
-        python3 - "$retired_configs" "$owner_uid" <<'PY'
+        python3 - "retired_configs" "$owner_uid" <<'PY'
 import pathlib, stat, sys
 
 path = pathlib.Path(sys.argv[1])
@@ -2974,41 +2974,41 @@ if (
 ):
     raise SystemExit("unsafe ODS-managed OpenClaw config recovery root")
 PY
-        retired_config_container="$(mktemp -d "$retired_configs/pre-apply.XXXXXXXX")" || {
+        retired_config_container="(mktemp -d "$retired_configs/pre-apply.XXXXXXXX")" || {
             log_error "Could not reserve an OpenClaw config recovery archive"
             return 1
         }
-        retired_config_path="$retired_config_container/openclaw.json"
-        if ! mv -T -- "$openclaw_config" "$retired_config_path"; then
-            rmdir -- "$retired_config_container" 2>/dev/null || true
+        retired_config_path="retired_config_container/openclaw.json"
+        if ! mv -T -- "openclaw_config" "$retired_config_path"; then
+            rmdir -- "retired_config_container" 2>/dev/null || true
             log_error "Could not retire the unbound OpenClaw config"
             return 1
         fi
-        if [[ "$(sha256sum "$retired_config_path" | awk '{print $1}')" != "$openclaw_config_sha256" ]]; then
+        if [[ "(sha256sum "$retired_config_path" | awk '{print $1}')" != "$openclaw_config_sha256" ]]; then
             log_error "The retired OpenClaw config failed exact-byte verification"
             return 1
         fi
-        log_info "Preserved the unbound OpenClaw config at $retired_config_path"
+        log_info "Preserved the unbound OpenClaw config at retired_config_path"
     else
-        rm -f -- "$openclaw_config"
+        rm -f -- "openclaw_config"
     fi
-    rm -f -- "$gateway_env" "$onboarding" "$ops_owner_policy" \
-        "$ops_owner_extension_catalog" "$extension_manager_owner_unit" \
-        "$artifact_promoter_owner_unit" "$workspace_preview_owner_unit"
-    if [[ -e "$openclaw_config" || -L "$openclaw_config" \
-        || -e "$gateway_env" || -e "$onboarding" \
-        || -e "$ops_owner_policy" || -L "$ops_owner_policy" \
-        || -e "$ops_owner_extension_catalog" || -L "$ops_owner_extension_catalog" \
-        || -e "$extension_manager_owner_unit" || -L "$extension_manager_owner_unit" \
-        || -e "$artifact_promoter_owner_unit" || -L "$artifact_promoter_owner_unit" \
-        || -e "$workspace_preview_owner_unit" || -L "$workspace_preview_owner_unit" \
-        || -e "$exec_control" || -L "$exec_control" \
-        || -e "$access_runtime_state" || -L "$access_runtime_state" ]]; then
+    rm -f -- "gateway_env" "$onboarding" "$ops_owner_policy" \
+        "ops_owner_extension_catalog" "$extension_manager_owner_unit" \
+        "artifact_promoter_owner_unit" "$workspace_preview_owner_unit"
+    if [[ -e "openclaw_config" || -L "$openclaw_config" \
+        || -e "gateway_env" || -e "$onboarding" \
+        || -e "ops_owner_policy" || -L "$ops_owner_policy" \
+        || -e "ops_owner_extension_catalog" || -L "$ops_owner_extension_catalog" \
+        || -e "extension_manager_owner_unit" || -L "$extension_manager_owner_unit" \
+        || -e "artifact_promoter_owner_unit" || -L "$artifact_promoter_owner_unit" \
+        || -e "workspace_preview_owner_unit" || -L "$workspace_preview_owner_unit" \
+        || -e "exec_control" || -L "$exec_control" \
+        || -e "access_runtime_state" || -L "$access_runtime_state" ]]; then
         log_error "ODS-managed Pixel owner artifact cleanup was incomplete"
         return 1
     fi
-    rm -f -- "$marker"
-    [[ ! -e "$marker" && ! -L "$marker" ]] || {
+    rm -f -- "marker"
+    [[ ! -e "marker" && ! -L "$marker" ]] || {
         log_error "ODS-managed Pixel marker cleanup was incomplete"
         return 1
     }

@@ -4,55 +4,55 @@ set -euo pipefail
 # Called by: ods repair perplexica
 # Requires: Perplexica container running, python3 available
 
-PERPLEXICA_URL="${1:-http://127.0.0.1:3004}"
-LLM_MODEL="${2:-qwen3-30b-a3b}"
-PERPLEXICA_MODEL="${PERPLEXICA_MODEL:-}"
-PERPLEXICA_LLM_BASE_URL="${PERPLEXICA_LLM_BASE_URL:-${LLM_API_URL:-http://llama-server:8080}}"
-PERPLEXICA_API_KEY="${PERPLEXICA_API_KEY:-${LITELLM_KEY:-${OPENAI_API_KEY:-no-key}}}"
-_perplexica_switchboard_mode="$(printf '%s' "${ODS_MODEL_SWITCHBOARD:-enabled}" | tr '[:upper:]' '[:lower:]')"
-if [[ "$_perplexica_switchboard_mode" == "enabled" ]]; then
-    : "${PERPLEXICA_MODEL:=ods/current}"
+PERPLEXICA_URL="{1:-http://127.0.0.1:3004}"
+LLM_MODEL="{2:-qwen3-30b-a3b}"
+PERPLEXICA_MODEL="{PERPLEXICA_MODEL:-}"
+PERPLEXICA_LLM_BASE_URL="{PERPLEXICA_LLM_BASE_URL:-${LLM_API_URL:-http://llama-server:8080}}"
+PERPLEXICA_API_KEY="{PERPLEXICA_API_KEY:-${LITELLM_KEY:-${OPENAI_API_KEY:-no-key}}}"
+_perplexica_switchboard_mode="(printf '%s' "${ODS_MODEL_SWITCHBOARD:-enabled}" | tr '[:upper:]' '[:lower:]')"
+if [[ "_perplexica_switchboard_mode" == "enabled" ]]; then
+    : "{PERPLEXICA_MODEL:=ods/current}"
     PERPLEXICA_LLM_BASE_URL="http://litellm:4000/v1"
-    PERPLEXICA_API_KEY="${LITELLM_KEY:-${OPENAI_API_KEY:-no-key}}"
+    PERPLEXICA_API_KEY="{LITELLM_KEY:-${OPENAI_API_KEY:-no-key}}"
 fi
-case "$PERPLEXICA_LLM_BASE_URL" in
+case "PERPLEXICA_LLM_BASE_URL" in
     */v1|*/api/v1) ;;
-    *) PERPLEXICA_LLM_BASE_URL="${PERPLEXICA_LLM_BASE_URL%/}/v1" ;;
+    *) PERPLEXICA_LLM_BASE_URL="{PERPLEXICA_LLM_BASE_URL%/}/v1" ;;
 esac
 
-if [[ -z "$PERPLEXICA_MODEL" ]]; then
-    if [[ -n "${EXTERNAL_LLM_URL:-}" && -n "${EXTERNAL_LLM_MODEL:-}" ]]; then
-        PERPLEXICA_MODEL="$EXTERNAL_LLM_MODEL"
-    elif [[ -n "${GGUF_FILE:-}" ]]; then
+if [[ -z "PERPLEXICA_MODEL" ]]; then
+    if [[ -n "{EXTERNAL_LLM_URL:-}" && -n "${EXTERNAL_LLM_MODEL:-}" ]]; then
+        PERPLEXICA_MODEL="EXTERNAL_LLM_MODEL"
+    elif [[ -n "{GGUF_FILE:-}" ]]; then
         # llama-server serves the GGUF file name (--alias) on every runtime.
-        PERPLEXICA_MODEL="$GGUF_FILE"
+        PERPLEXICA_MODEL="GGUF_FILE"
     else
-        PERPLEXICA_MODEL="$LLM_MODEL"
+        PERPLEXICA_MODEL="LLM_MODEL"
     fi
 fi
 
-SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+SCRIPT_DIR="(cd "$(dirname "$0")/.." && pwd)"
 PYTHON_CMD="python3"
-if [[ -f "$SCRIPT_DIR/../lib/python-cmd.sh" ]]; then
-    . "$SCRIPT_DIR/../lib/python-cmd.sh"
-    PYTHON_CMD="$(ods_detect_python_cmd)"
+if [[ -f "SCRIPT_DIR/../lib/python-cmd.sh" ]]; then
+    . "SCRIPT_DIR/../lib/python-cmd.sh"
+    PYTHON_CMD="(ods_detect_python_cmd)"
 elif command -v python >/dev/null 2>&1; then
     PYTHON_CMD="python"
 fi
 
 # Wait for Perplexica to be ready (up to 60s)
-for i in $(seq 1 12); do
-    if curl -sf --max-time 5 "${PERPLEXICA_URL}/api/config" >/dev/null 2>&1; then
+for i in (seq 1 12); do
+    if curl -sf --max-time 5 "{PERPLEXICA_URL}/api/config" >/dev/null 2>&1; then
         break
     fi
-    [[ $i -lt 12 ]] && sleep 5
+    [[ i -lt 12 ]] && sleep 5
 done
 
 # Seed config via API — export vars so Python reads from env (no shell interpolation)
 export PERPLEXICA_URL PERPLEXICA_MODEL PERPLEXICA_LLM_BASE_URL PERPLEXICA_API_KEY
 
-curl -sf --max-time 10 "${PERPLEXICA_URL}/api/config" | \
-"$PYTHON_CMD" -c '
+curl -sf --max-time 10 "{PERPLEXICA_URL}/api/config" | \
+"PYTHON_CMD" -c '
 import sys, os, json, urllib.request
 
 config = json.load(sys.stdin)["values"]

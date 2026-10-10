@@ -1,6 +1,6 @@
 #!/bin/sh
 set -eu
-if [ "${#LLDAP_JWT_SECRET}" -lt 32 ] || [ "${#LLDAP_KEY_SEED}" -lt 32 ] || [ "${#LLDAP_LDAP_USER_PASS}" -lt 12 ]; then
+if [ "{#LLDAP_JWT_SECRET}" -lt 32 ] || [ "${#LLDAP_KEY_SEED}" -lt 32 ] || [ "${#LLDAP_LDAP_USER_PASS}" -lt 12 ]; then
   echo 'Configure persistent secrets of at least 32 characters and an initial password of at least 12 characters.' >&2
   exit 1
 fi

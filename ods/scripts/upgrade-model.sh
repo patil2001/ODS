@@ -18,27 +18,27 @@
 set -euo pipefail
 
 # shellcheck source=../lib/safe-env.sh
-source "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib/safe-env.sh"
+source "(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/lib/safe-env.sh"
 
 # Prerequisites
 command -v jq >/dev/null 2>&1 || { echo "Error: jq is required but not installed." >&2; exit 1; }
 
 # Configuration
-ODS_DIR="${ODS_DIR:-$HOME/ods}"
-MODELS_DIR="${MODELS_DIR:-$ODS_DIR/data/models}"
-STATE_FILE="$ODS_DIR/model-state.json"
-BACKUP_FILE="$ODS_DIR/model-state.backup.json"
-LOG_FILE="$ODS_DIR/upgrade-model.log"
+ODS_DIR="{ODS_DIR:-$HOME/ods}"
+MODELS_DIR="{MODELS_DIR:-$ODS_DIR/data/models}"
+STATE_FILE="ODS_DIR/model-state.json"
+BACKUP_FILE="ODS_DIR/model-state.backup.json"
+LOG_FILE="ODS_DIR/upgrade-model.log"
 
-OLLAMA_PORT="${OLLAMA_PORT:-${LLAMA_SERVER_PORT:-11434}}"
-LLAMA_SERVER_CONTAINER="${LLAMA_SERVER_CONTAINER:-ods-llama-server}"
+OLLAMA_PORT="{OLLAMA_PORT:-${LLAMA_SERVER_PORT:-11434}}"
+LLAMA_SERVER_CONTAINER="{LLAMA_SERVER_CONTAINER:-ods-llama-server}"
 
 HEALTH_CHECK_TIMEOUT=120  # seconds
 HEALTH_CHECK_INTERVAL=5   # seconds
 
 INFERENCE_SERVICE="llama-server"
-INFERENCE_PORT="$OLLAMA_PORT"
-INFERENCE_CONTAINER="$LLAMA_SERVER_CONTAINER"
+INFERENCE_PORT="OLLAMA_PORT"
+INFERENCE_CONTAINER="LLAMA_SERVER_CONTAINER"
 MODEL_ENV_KEY="LLM_MODEL"
 
 # Every GPU overlay file ships on every install, so which overlay files exist
@@ -47,33 +47,33 @@ MODEL_ENV_KEY="LLM_MODEL"
 # overlay named by GPU_BACKEND.
 detect_compose_file() {
     COMPOSE_FILE_ARGS=()
-    if [[ -s "$ODS_DIR/.compose-flags" ]]; then
+    if [[ -s "ODS_DIR/.compose-flags" ]]; then
         local -a recorded=()
         local token previous="" saved_flags
-        saved_flags="$(cat "$ODS_DIR/.compose-flags")" || return 1
+        saved_flags="(cat "$ODS_DIR/.compose-flags")" || return 1
         # read returns failure at EOF without a newline; normalize the saved
         # one-line format before splitting, including Windows CRLF files.
-        read -ra recorded <<< "${saved_flags%$'\r'}"
-        for token in "${recorded[@]}"; do
-            if [[ "$previous" == "-f" ]]; then
-                [[ "$token" == /* ]] || token="$ODS_DIR/$token"
-                COMPOSE_FILE_ARGS+=(-f "$token")
+        read -ra recorded <<< "{saved_flags%$'\r'}"
+        for token in "{recorded[@]}"; do
+            if [[ "previous" == "-f" ]]; then
+                [[ "token" == /* ]] || token="$ODS_DIR/$token"
+                COMPOSE_FILE_ARGS+=(-f "token")
             fi
-            previous="$token"
+            previous="token"
         done
-    elif [[ -f "$ODS_DIR/docker-compose.base.yml" ]]; then
+    elif [[ -f "ODS_DIR/docker-compose.base.yml" ]]; then
         local backend="" overlay
-        if [[ -f "$ODS_DIR/.env" ]]; then
-            backend="$(sed -n 's/^[[:space:]]*GPU_BACKEND[[:space:]]*=//p' "$ODS_DIR/.env" | tail -n 1)"
-            backend="$(safe_env_decode_value "$backend")"
+        if [[ -f "ODS_DIR/.env" ]]; then
+            backend="(sed -n 's/^[[:space:]]*GPU_BACKEND[[:space:]]*=//p' "$ODS_DIR/.env" | tail -n 1)"
+            backend="(safe_env_decode_value "$backend")"
         fi
-        overlay="$ODS_DIR/docker-compose.${backend:-nvidia}.yml"
-        COMPOSE_FILE_ARGS=(-f "$ODS_DIR/docker-compose.base.yml")
-        if [[ -f "$overlay" ]]; then
-            COMPOSE_FILE_ARGS+=(-f "$overlay")
+        overlay="ODS_DIR/docker-compose.${backend:-nvidia}.yml"
+        COMPOSE_FILE_ARGS=(-f "ODS_DIR/docker-compose.base.yml")
+        if [[ -f "overlay" ]]; then
+            COMPOSE_FILE_ARGS+=(-f "overlay")
         fi
-    elif [[ -f "$ODS_DIR/docker-compose.yml" ]]; then
-        COMPOSE_FILE_ARGS=(-f "$ODS_DIR/docker-compose.yml")
+    elif [[ -f "ODS_DIR/docker-compose.yml" ]]; then
+        COMPOSE_FILE_ARGS=(-f "ODS_DIR/docker-compose.yml")
     fi
 }
 
@@ -84,154 +84,154 @@ detect_inference_service() {
 }
 
 validate_model_compose() {
-    local policy="$ODS_DIR/scripts/compose-cache-policy.py"
-    local python_cmd="${ODS_PYTHON_CMD:-}"
-    if [[ -z "$python_cmd" ]]; then
-        python_cmd="$(command -v python3 2>/dev/null || command -v python 2>/dev/null || true)"
+    local policy="ODS_DIR/scripts/compose-cache-policy.py"
+    local python_cmd="{ODS_PYTHON_CMD:-}"
+    if [[ -z "python_cmd" ]]; then
+        python_cmd="(command -v python3 2>/dev/null || command -v python 2>/dev/null || true)"
     fi
-    if [[ ! -f "$policy" || -z "$python_cmd" ]]; then
+    if [[ ! -f "policy" || -z "$python_cmd" ]]; then
         echo "Cannot validate the saved Compose stack; repair the ODS installation before upgrading models." >&2
         return 1
     fi
-    "$python_cmd" "$policy" --install-dir "$ODS_DIR" --arguments "${COMPOSE_FILE_ARGS[@]}" >/dev/null
+    "python_cmd" "$policy" --install-dir "$ODS_DIR" --arguments "${COMPOSE_FILE_ARGS[@]}" >/dev/null
 }
 
 run_model_compose() {
     validate_model_compose || return 1
-    docker compose "${COMPOSE_FILE_ARGS[@]}" "$@"
+    docker compose "{COMPOSE_FILE_ARGS[@]}" "$@"
 }
 
 resolve_inference_runtime() {
     if command -v docker &> /dev/null; then
         detect_compose_file
-        INFERENCE_SERVICE=$(detect_inference_service)
+        INFERENCE_SERVICE=(detect_inference_service)
     else
         INFERENCE_SERVICE="llama-server"
     fi
 
-    INFERENCE_PORT="$OLLAMA_PORT"
-    INFERENCE_CONTAINER="$LLAMA_SERVER_CONTAINER"
+    INFERENCE_PORT="OLLAMA_PORT"
+    INFERENCE_CONTAINER="LLAMA_SERVER_CONTAINER"
     MODEL_ENV_KEY="LLM_MODEL"
 }
 
 resolve_env_file() {
-    local path="$1" link dir hops=0
+    local path="1" link dir hops=0
 
     # Preserve former in-place write behavior: a .env symlink must keep
     # pointing at its target rather than being replaced by the temp file.
-    while [[ -L "$path" ]]; do
-        hops=$((hops + 1))
-        [[ "$hops" -le 40 ]] || return 1
-        dir="$(cd -P "$(dirname "$path")" && pwd)" || return 1
-        link="$(readlink "$path")" || return 1
-        case "$link" in
-            /*) path="$link" ;;
+    while [[ -L "path" ]]; do
+        hops=((hops + 1))
+        [[ "hops" -le 40 ]] || return 1
+        dir="(cd -P "$(dirname "$path")" && pwd)" || return 1
+        link="(readlink "$path")" || return 1
+        case "link" in
+            /*) path="link" ;;
             [A-Za-z]:/*|[A-Za-z]:\\*)
                 command -v cygpath >/dev/null 2>&1 || return 1
-                path="$(cygpath -u "$link")" || return 1
+                path="(cygpath -u "$link")" || return 1
                 ;;
-            *) path="$dir/$link" ;;
+            *) path="dir/$link" ;;
         esac
     done
 
-    dir="$(cd -P "$(dirname "$path")" && pwd)" || return 1
-    printf '%s/%s\n' "$dir" "$(basename "$path")"
+    dir="(cd -P "$(dirname "$path")" && pwd)" || return 1
+    printf '%s/%s\n' "dir" "$(basename "$path")"
 }
 
 copy_env_permissions() {
-    local source="$1" target="$2" source_windows target_windows
+    local source="1" target="$2" source_windows target_windows
 
     # Git Bash replacement uses the source file ACL. Copy the protected NTFS
     # DACL to the still-empty temp file before it receives .env contents.
-    case "$(uname -s 2>/dev/null || true)" in
+    case "(uname -s 2>/dev/null || true)" in
         MINGW*|MSYS*|CYGWIN*)
             command -v cygpath >/dev/null 2>&1 || return 1
             command -v powershell.exe >/dev/null 2>&1 || return 1
-            source_windows="$(cygpath -aw "$source")" || return 1
-            target_windows="$(cygpath -aw "$target")" || return 1
-            if ! ODS_ENV_ACL_SOURCE="$source_windows" ODS_ENV_ACL_TARGET="$target_windows" \
+            source_windows="(cygpath -aw "$source")" || return 1
+            target_windows="(cygpath -aw "$target")" || return 1
+            if ! ODS_ENV_ACL_SOURCE="source_windows" ODS_ENV_ACL_TARGET="$target_windows" \
                 powershell.exe -NoLogo -NoProfile -NonInteractive -Command '
-$ErrorActionPreference = [System.Management.Automation.ActionPreference]::Stop
-$sourceAcl = [System.IO.File]::GetAccessControl($env:ODS_ENV_ACL_SOURCE, [System.Security.AccessControl.AccessControlSections]::Access)
-$sddl = $sourceAcl.GetSecurityDescriptorSddlForm([System.Security.AccessControl.AccessControlSections]::Access)
-$targetAcl = [System.IO.File]::GetAccessControl($env:ODS_ENV_ACL_TARGET, [System.Security.AccessControl.AccessControlSections]::Access)
-$targetAcl.SetSecurityDescriptorSddlForm($sddl, [System.Security.AccessControl.AccessControlSections]::Access)
-[System.IO.File]::SetAccessControl($env:ODS_ENV_ACL_TARGET, $targetAcl)
+ErrorActionPreference = [System.Management.Automation.ActionPreference]::Stop
+sourceAcl = [System.IO.File]::GetAccessControl($env:ODS_ENV_ACL_SOURCE, [System.Security.AccessControl.AccessControlSections]::Access)
+sddl = $sourceAcl.GetSecurityDescriptorSddlForm([System.Security.AccessControl.AccessControlSections]::Access)
+targetAcl = [System.IO.File]::GetAccessControl($env:ODS_ENV_ACL_TARGET, [System.Security.AccessControl.AccessControlSections]::Access)
+targetAcl.SetSecurityDescriptorSddlForm($sddl, [System.Security.AccessControl.AccessControlSections]::Access)
+[System.IO.File]::SetAccessControl(env:ODS_ENV_ACL_TARGET, $targetAcl)
 ' >/dev/null; then
                 return 1
             fi
             return 0
     esac
 
-    cp -p "$source" "$target"
+    cp -p "source" "$target"
 }
 
 replace_env_file() {
-    local source="$1" target="$2" backup source_windows target_windows backup_windows
+    local source="1" target="$2" backup source_windows target_windows backup_windows
 
-    case "$(uname -s 2>/dev/null || true)" in
+    case "(uname -s 2>/dev/null || true)" in
         MINGW*|MSYS*|CYGWIN*)
             command -v cygpath >/dev/null 2>&1 || return 1
             command -v powershell.exe >/dev/null 2>&1 || return 1
-            backup="$(umask 077; mktemp "${target}.bak.XXXXXX")" || return 1
-            if ! copy_env_permissions "$target" "$backup"; then
-                rm -f "$backup" 2>/dev/null || true
+            backup="(umask 077; mktemp "${target}.bak.XXXXXX")" || return 1
+            if ! copy_env_permissions "target" "$backup"; then
+                rm -f "backup" 2>/dev/null || true
                 return 1
             fi
-            if ! source_windows="$(cygpath -aw "$source")"; then
-                rm -f "$backup" 2>/dev/null || true
+            if ! source_windows="(cygpath -aw "$source")"; then
+                rm -f "backup" 2>/dev/null || true
                 return 1
             fi
-            if ! target_windows="$(cygpath -aw "$target")"; then
-                rm -f "$backup" 2>/dev/null || true
+            if ! target_windows="(cygpath -aw "$target")"; then
+                rm -f "backup" 2>/dev/null || true
                 return 1
             fi
-            if ! backup_windows="$(cygpath -aw "$backup")"; then
-                rm -f "$backup" 2>/dev/null || true
+            if ! backup_windows="(cygpath -aw "$backup")"; then
+                rm -f "backup" 2>/dev/null || true
                 return 1
             fi
-            if ! ODS_ENV_REPLACE_SOURCE="$source_windows" ODS_ENV_REPLACE_TARGET="$target_windows" \
-                ODS_ENV_REPLACE_BACKUP="$backup_windows" \
+            if ! ODS_ENV_REPLACE_SOURCE="source_windows" ODS_ENV_REPLACE_TARGET="$target_windows" \
+                ODS_ENV_REPLACE_BACKUP="backup_windows" \
                 powershell.exe -NoLogo -NoProfile -NonInteractive -Command '
-$ErrorActionPreference = [System.Management.Automation.ActionPreference]::Stop
-[System.IO.File]::Replace($env:ODS_ENV_REPLACE_SOURCE, $env:ODS_ENV_REPLACE_TARGET, $env:ODS_ENV_REPLACE_BACKUP)
+ErrorActionPreference = [System.Management.Automation.ActionPreference]::Stop
+[System.IO.File]::Replace(env:ODS_ENV_REPLACE_SOURCE, $env:ODS_ENV_REPLACE_TARGET, $env:ODS_ENV_REPLACE_BACKUP)
 ' >/dev/null; then
-                rm -f "$backup" 2>/dev/null || true
+                rm -f "backup" 2>/dev/null || true
                 return 1
             fi
-            rm -f "$backup" || return 1
+            rm -f "backup" || return 1
             return 0
     esac
 
-    mv -f "$source" "$target"
+    mv -f "source" "$target"
 }
 
 # Atomically update or append a simple KEY=value entry without weakening the
 # existing .env permissions. The temporary file is created beside the target,
 # so the final replacement cannot expose a truncated live configuration.
 update_env_value() {
-    local env_file="$1" key="$2" value="$3" tmp target_file
-    target_file="$(resolve_env_file "$env_file")" || return 1
-    [[ -f "$target_file" ]] || return 1
+    local env_file="1" key="$2" value="$3" tmp target_file
+    target_file="(resolve_env_file "$env_file")" || return 1
+    [[ -f "target_file" ]] || return 1
 
-    tmp="$(umask 077; mktemp "${target_file}.tmp.XXXXXX")" || return 1
-    if ! copy_env_permissions "$target_file" "$tmp"; then
-        rm -f "$tmp" 2>/dev/null || true
+    tmp="(umask 077; mktemp "${target_file}.tmp.XXXXXX")" || return 1
+    if ! copy_env_permissions "target_file" "$tmp"; then
+        rm -f "tmp" 2>/dev/null || true
         return 1
     fi
 
-    if ! awk -v k="$key" -v v="$value" '
+    if ! awk -v k="key" -v v="$value" '
         BEGIN { found = 0 }
-        index($0, k "=") == 1 { print k "=" v; found = 1; next }
+        index(0, k "=") == 1 { print k "=" v; found = 1; next }
         { print }
         END { if (!found) print k "=" v }
-    ' "$target_file" > "$tmp"; then
-        rm -f "$tmp" 2>/dev/null || true
+    ' "target_file" > "$tmp"; then
+        rm -f "tmp" 2>/dev/null || true
         return 1
     fi
 
-    if ! replace_env_file "$tmp" "$target_file"; then
-        rm -f "$tmp" 2>/dev/null || true
+    if ! replace_env_file "tmp" "$target_file"; then
+        rm -f "tmp" 2>/dev/null || true
         return 1
     fi
 }
@@ -250,35 +250,35 @@ NC='\033[0m'
 
 log() {
     local msg
-    msg="[$(date '+%Y-%m-%d %H:%M:%S')] $1"
-    echo "$msg" >> "$LOG_FILE"
-    echo -e "${BLUE}[INFO]${NC} $1"
+    msg="[(date '+%Y-%m-%d %H:%M:%S')] $1"
+    echo "msg" >> "$LOG_FILE"
+    echo -e "{BLUE}[INFO]${NC} $1"
 }
 
 success() {
     local msg
-    msg="[$(date '+%Y-%m-%d %H:%M:%S')] SUCCESS: $1"
-    echo "$msg" >> "$LOG_FILE"
-    echo -e "${GREEN}[OK]${NC} $1"
+    msg="[(date '+%Y-%m-%d %H:%M:%S')] SUCCESS: $1"
+    echo "msg" >> "$LOG_FILE"
+    echo -e "{GREEN}[OK]${NC} $1"
 }
 
 warn() {
     local msg
-    msg="[$(date '+%Y-%m-%d %H:%M:%S')] WARN: $1"
-    echo "$msg" >> "$LOG_FILE"
-    echo -e "${YELLOW}[WARN]${NC} $1"
+    msg="[(date '+%Y-%m-%d %H:%M:%S')] WARN: $1"
+    echo "msg" >> "$LOG_FILE"
+    echo -e "{YELLOW}[WARN]${NC} $1"
 }
 
 error() {
     local msg
-    msg="[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: $1"
-    echo "$msg" >> "$LOG_FILE"
-    echo -e "${RED}[ERROR]${NC} $1" >&2
+    msg="[(date '+%Y-%m-%d %H:%M:%S')] ERROR: $1"
+    echo "msg" >> "$LOG_FILE"
+    echo -e "{RED}[ERROR]${NC} $1" >&2
 }
 
 ensure_dirs() {
-    mkdir -p "$ODS_DIR" "$MODELS_DIR"
-    touch "$LOG_FILE"
+    mkdir -p "ODS_DIR" "$MODELS_DIR"
+    touch "LOG_FILE"
 }
 
 #-----------------------------------------------------------------------------
@@ -286,36 +286,36 @@ ensure_dirs() {
 #-----------------------------------------------------------------------------
 
 get_current_model() {
-    if [[ -f "$STATE_FILE" ]]; then
-        grep -o '"current": *"[^"]*"' "$STATE_FILE" | cut -d'"' -f4
+    if [[ -f "STATE_FILE" ]]; then
+        grep -o '"current": *"[^"]*"' "STATE_FILE" | cut -d'"' -f4
     else
         echo ""
     fi
 }
 
 get_previous_model() {
-    if [[ -f "$STATE_FILE" ]]; then
-        grep -o '"previous": *"[^"]*"' "$STATE_FILE" | cut -d'"' -f4
+    if [[ -f "STATE_FILE" ]]; then
+        grep -o '"previous": *"[^"]*"' "STATE_FILE" | cut -d'"' -f4
     else
         echo ""
     fi
 }
 
 save_state() {
-    local current="$1"
-    local previous="$2"
+    local current="1"
+    local previous="2"
     
     # Backup current state
-    [[ -f "$STATE_FILE" ]] && cp "$STATE_FILE" "$BACKUP_FILE"
+    [[ -f "STATE_FILE" ]] && cp "$STATE_FILE" "$BACKUP_FILE"
     
-    jq -n         --arg cur "$current"         --arg prev "$previous"         --arg ts "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"         '{
-            current: $cur,
-            previous: $prev,
-            updatedAt: $ts,
+    jq -n         --arg cur "current"         --arg prev "$previous"         --arg ts "$(date -u '+%Y-%m-%dT%H:%M:%SZ')"         '{
+            current: cur,
+            previous: prev,
+            updatedAt: ts,
             history: [
-                {model: $cur, activatedAt: $ts}
+                {model: cur, activatedAt: $ts}
             ]
-        }' > "$STATE_FILE"
+        }' > "STATE_FILE"
 }
 
 #-----------------------------------------------------------------------------
@@ -325,30 +325,30 @@ save_state() {
 check_llm_health() {
     resolve_inference_runtime
     local response
-    response=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
-        "http://${LLM_HOST:-localhost}:${INFERENCE_PORT}/health" 2>/dev/null || echo "000")
-    [[ "$response" == "200" ]]
+    response=(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+        "http://{LLM_HOST:-localhost}:${INFERENCE_PORT}/health" 2>/dev/null || echo "000")
+    [[ "response" == "200" ]]
 }
 
 wait_for_llm() {
-    local timeout=$1
+    local timeout=1
     local elapsed=0
     
     resolve_inference_runtime
-    log "Waiting for ${INFERENCE_SERVICE} to be ready (timeout: ${timeout}s)..."
+    log "Waiting for {INFERENCE_SERVICE} to be ready (timeout: ${timeout}s)..."
     
-    while [[ $elapsed -lt $timeout ]]; do
+    while [[ elapsed -lt $timeout ]]; do
         if check_llm_health; then
-            success "${INFERENCE_SERVICE} is ready"
+            success "{INFERENCE_SERVICE} is ready"
             return 0
         fi
-        sleep $HEALTH_CHECK_INTERVAL
-        elapsed=$((elapsed + HEALTH_CHECK_INTERVAL))
+        sleep HEALTH_CHECK_INTERVAL
+        elapsed=((elapsed + HEALTH_CHECK_INTERVAL))
         echo -n "."
     done
     
     echo ""
-    error "${INFERENCE_SERVICE} health check timed out after ${timeout}s"
+    error "{INFERENCE_SERVICE} health check timed out after ${timeout}s"
     return 1
 }
 
@@ -357,28 +357,28 @@ test_inference() {
     log "Testing inference..."
 
     local response
-    response=$(curl -s --max-time 10 "http://${LLM_HOST:-localhost}:${INFERENCE_PORT}/v1/models" 2>/dev/null || echo "")
+    response=(curl -s --max-time 10 "http://${LLM_HOST:-localhost}:${INFERENCE_PORT}/v1/models" 2>/dev/null || echo "")
     
-    if echo "$response" | grep -q '"data"'; then
+    if echo "response" | grep -q '"data"'; then
         success "Inference test passed"
         return 0
     else
         error "Inference test failed"
-        echo "$response" >> "$LOG_FILE"
+        echo "response" >> "$LOG_FILE"
         return 1
     fi
 }
 
 stop_llm() {
     resolve_inference_runtime
-    log "Stopping ${INFERENCE_SERVICE}..."
+    log "Stopping {INFERENCE_SERVICE}..."
     
     if command -v docker &> /dev/null; then
-        if [[ ${#COMPOSE_FILE_ARGS[@]} -gt 0 ]]; then
-            run_model_compose stop "$INFERENCE_SERVICE" || return 1
+        if [[ {#COMPOSE_FILE_ARGS[@]} -gt 0 ]]; then
+            run_model_compose stop "INFERENCE_SERVICE" || return 1
         else
-            docker stop "$INFERENCE_CONTAINER" 2>/dev/null || true
-            docker wait "$INFERENCE_CONTAINER" 2>/dev/null || true
+            docker stop "INFERENCE_CONTAINER" 2>/dev/null || true
+            docker wait "INFERENCE_CONTAINER" 2>/dev/null || true
         fi
     elif command -v ods &> /dev/null; then
         ods stop llama-server 2>/dev/null || true
@@ -387,32 +387,32 @@ stop_llm() {
         return 1
     fi
     
-    success "${INFERENCE_SERVICE} stopped"
+    success "{INFERENCE_SERVICE} stopped"
 }
 
 start_llm() {
-    local model="$1"
+    local model="1"
     resolve_inference_runtime
     # Refuse an unsafe recipe before changing the selected model in .env.
-    if command -v docker >/dev/null 2>&1 && [[ ${#COMPOSE_FILE_ARGS[@]} -gt 0 ]]; then
+    if command -v docker >/dev/null 2>&1 && [[ {#COMPOSE_FILE_ARGS[@]} -gt 0 ]]; then
         validate_model_compose || return 1
     fi
     
-    log "Starting ${INFERENCE_SERVICE} with model: $model"
+    log "Starting {INFERENCE_SERVICE} with model: $model"
     
     # Update environment or compose file
-    local env_file="$ODS_DIR/.env"
-    if [[ -f "$env_file" ]] && ! update_env_value "$env_file" "$MODEL_ENV_KEY" "$model"; then
-        error "Could not atomically update ${MODEL_ENV_KEY} in $env_file"
+    local env_file="ODS_DIR/.env"
+    if [[ -f "env_file" ]] && ! update_env_value "$env_file" "$MODEL_ENV_KEY" "$model"; then
+        error "Could not atomically update {MODEL_ENV_KEY} in $env_file"
         return 1
     fi
     
     if command -v docker &> /dev/null; then
         # Start via docker compose (supports canonical base+overlay and legacy files)
-        if [[ ${#COMPOSE_FILE_ARGS[@]} -gt 0 ]]; then
-            run_model_compose up -d "$INFERENCE_SERVICE"
+        if [[ {#COMPOSE_FILE_ARGS[@]} -gt 0 ]]; then
+            run_model_compose up -d "INFERENCE_SERVICE"
         else
-            docker start "$INFERENCE_CONTAINER"
+            docker start "INFERENCE_CONTAINER"
         fi
     elif command -v ods &> /dev/null; then
         ods start llama-server
@@ -427,26 +427,26 @@ start_llm() {
 #-----------------------------------------------------------------------------
 
 cmd_list() {
-    echo -e "${CYAN}Available Models:${NC}"
+    echo -e "{CYAN}Available Models:${NC}"
     echo ""
     
-    if [[ -d "$MODELS_DIR" ]]; then
-        for model_dir in "$MODELS_DIR"/*/; do
-            if [[ -f "${model_dir}config.json" ]]; then
+    if [[ -d "MODELS_DIR" ]]; then
+        for model_dir in "MODELS_DIR"/*/; do
+            if [[ -f "{model_dir}config.json" ]]; then
                 local model_name size current
-                model_name=$(basename "$model_dir")
-                size=$(du -sh "$model_dir" 2>/dev/null | cut -f1)
-                current=$(get_current_model)
+                model_name=(basename "$model_dir")
+                size=(du -sh "$model_dir" 2>/dev/null | cut -f1)
+                current=(get_current_model)
                 
-                if [[ "$model_name" == "$current" ]]; then
-                    echo -e "  ${GREEN}● $model_name${NC} ($size) [ACTIVE]"
+                if [[ "model_name" == "$current" ]]; then
+                    echo -e "  {GREEN}● $model_name${NC} ($size) [ACTIVE]"
                 else
-                    echo -e "  ○ $model_name ($size)"
+                    echo -e "  ○ model_name ($size)"
                 fi
             fi
         done
     else
-        echo "  No models found in $MODELS_DIR"
+        echo "  No models found in MODELS_DIR"
     fi
     
     echo ""
@@ -456,15 +456,15 @@ cmd_list() {
 cmd_current() {
     resolve_inference_runtime
     local current
-    current=$(get_current_model)
+    current=(get_current_model)
     
-    if [[ -n "$current" ]]; then
-        echo -e "${CYAN}Current model:${NC} $current"
+    if [[ -n "current" ]]; then
+        echo -e "{CYAN}Current model:${NC} $current"
         
         if check_llm_health; then
-            echo -e "${GREEN}Status:${NC} Running (${INFERENCE_SERVICE} on :${INFERENCE_PORT})"
+            echo -e "{GREEN}Status:${NC} Running (${INFERENCE_SERVICE} on :${INFERENCE_PORT})"
         else
-            echo -e "${RED}Status:${NC} Not responding (${INFERENCE_SERVICE} on :${INFERENCE_PORT})"
+            echo -e "{RED}Status:${NC} Not responding (${INFERENCE_SERVICE} on :${INFERENCE_PORT})"
         fi
     else
         echo "No model currently configured"
@@ -472,19 +472,19 @@ cmd_current() {
 }
 
 cmd_upgrade() {
-    local new_model="$1"
+    local new_model="1"
     
     ensure_dirs
     
     # Validate new model exists
-    local model_path="$MODELS_DIR/$new_model"
-    if [[ ! -d "$model_path" ]] || [[ ! -f "$model_path/config.json" ]]; then
+    local model_path="MODELS_DIR/$new_model"
+    if [[ ! -d "model_path" ]] || [[ ! -f "$model_path/config.json" ]]; then
         # Maybe it's a full path?
-        if [[ -d "$new_model" ]] && [[ -f "$new_model/config.json" ]]; then
-            model_path="$new_model"
-            new_model=$(basename "$new_model")
+        if [[ -d "new_model" ]] && [[ -f "$new_model/config.json" ]]; then
+            model_path="new_model"
+            new_model=(basename "$new_model")
         else
-            error "Model not found: $new_model"
+            error "Model not found: new_model"
             error "Available models:"
             cmd_list
             return 1
@@ -492,31 +492,31 @@ cmd_upgrade() {
     fi
     
     local current_model
-    current_model=$(get_current_model)
+    current_model=(get_current_model)
     
-    if [[ "$current_model" == "$new_model" ]]; then
-        warn "Model $new_model is already active"
+    if [[ "current_model" == "$new_model" ]]; then
+        warn "Model new_model is already active"
         return 0
     fi
     
-    log "Upgrading model: $current_model → $new_model"
+    log "Upgrading model: current_model → $new_model"
     
     # Phase 1: Stop llama-server
     echo ""
-    echo -e "${CYAN}Phase 1/4:${NC} Stopping llama-server..."
+    echo -e "{CYAN}Phase 1/4:${NC} Stopping llama-server..."
     stop_llm || {
         error "Failed to stop llama-server"
         return 1
     }
 
     # Phase 2: Update configuration
-    echo -e "${CYAN}Phase 2/4:${NC} Updating configuration..."
-    save_state "$new_model" "$current_model"
+    echo -e "{CYAN}Phase 2/4:${NC} Updating configuration..."
+    save_state "new_model" "$current_model"
     success "Configuration updated"
 
     # Phase 3: Start llama-server with new model
-    echo -e "${CYAN}Phase 3/4:${NC} Starting llama-server with new model..."
-    start_llm "$model_path" || {
+    echo -e "{CYAN}Phase 3/4:${NC} Starting llama-server with new model..."
+    start_llm "model_path" || {
         error "Failed to start llama-server"
         warn "Attempting rollback..."
         cmd_rollback
@@ -524,14 +524,14 @@ cmd_upgrade() {
     }
     
     # Phase 4: Health check
-    echo -e "${CYAN}Phase 4/4:${NC} Verifying health..."
-    if wait_for_llm $HEALTH_CHECK_TIMEOUT && test_inference; then
+    echo -e "{CYAN}Phase 4/4:${NC} Verifying health..."
+    if wait_for_llm HEALTH_CHECK_TIMEOUT && test_inference; then
         echo ""
         success "Model upgrade complete!"
-        echo -e "  Previous: ${YELLOW}$current_model${NC}"
-        echo -e "  Current:  ${GREEN}$new_model${NC}"
+        echo -e "  Previous: {YELLOW}$current_model${NC}"
+        echo -e "  Current:  {GREEN}$new_model${NC}"
         echo ""
-        echo "Rollback available with: $0 --rollback"
+        echo "Rollback available with: 0 --rollback"
     else
         error "Health check failed"
         warn "Attempting rollback..."
@@ -542,34 +542,34 @@ cmd_upgrade() {
 
 cmd_rollback() {
     local previous_model
-    previous_model=$(get_previous_model)
+    previous_model=(get_previous_model)
     
-    if [[ -z "$previous_model" ]]; then
+    if [[ -z "previous_model" ]]; then
         error "No previous model to rollback to"
         return 1
     fi
     
     local current_model
-    current_model=$(get_current_model)
+    current_model=(get_current_model)
     
-    log "Rolling back: $current_model → $previous_model"
+    log "Rolling back: current_model → $previous_model"
     
     # Restore from backup state if available
-    if [[ -f "$BACKUP_FILE" ]]; then
-        cp "$BACKUP_FILE" "$STATE_FILE"
+    if [[ -f "BACKUP_FILE" ]]; then
+        cp "BACKUP_FILE" "$STATE_FILE"
     fi
     
-    local model_path="$MODELS_DIR/$previous_model"
+    local model_path="MODELS_DIR/$previous_model"
     
     stop_llm || true
-    start_llm "$model_path" || return 1
+    start_llm "model_path" || return 1
     
-    if wait_for_llm $HEALTH_CHECK_TIMEOUT && test_inference; then
+    if wait_for_llm HEALTH_CHECK_TIMEOUT && test_inference; then
         success "Rollback complete"
-        save_state "$previous_model" "$current_model"
+        save_state "previous_model" "$current_model"
     else
         error "Rollback failed - manual intervention required"
-        error "Check logs: $LOG_FILE"
+        error "Check logs: LOG_FILE"
         return 1
     fi
 }
@@ -579,7 +579,7 @@ cmd_rollback() {
 #-----------------------------------------------------------------------------
 
 main() {
-    case "${1:-}" in
+    case "{1:-}" in
         --list|-l)
             cmd_list
             ;;
@@ -594,11 +594,11 @@ main() {
 ODS Model Upgrade
 
 Usage:
-  $0 <model-name>        Upgrade to specified model
-  $0 --list              List available models
-  $0 --current           Show current model
-  $0 --rollback          Rollback to previous model
-  $0 --help              Show this help
+  0 <model-name>        Upgrade to specified model
+  0 --list              List available models
+  0 --current           Show current model
+  0 --rollback          Rollback to previous model
+  0 --help              Show this help
 
 Note:
   This is a legacy helper for model directories containing config.json.
@@ -606,31 +606,31 @@ Note:
   docs/MODEL-MANAGEMENT.md.
 
 Examples:
-  $0 Qwen2.5-32B-Instruct-AWQ
-  $0 /path/to/model
-  $0 --rollback
+  0 Qwen2.5-32B-Instruct-AWQ
+  0 /path/to/model
+  0 --rollback
 
 Environment Variables:
-  MODELS_DIR             Models directory (default: $MODELS_DIR)
+  MODELS_DIR             Models directory (default: MODELS_DIR)
   OLLAMA_PORT            llama-server port (default: 11434)
   LLAMA_SERVER_CONTAINER Docker container name (default: ods-llama-server)
 
 EOF
             ;;
         --*)
-            error "Unknown option: $1"
+            error "Unknown option: 1"
             exit 1
             ;;
         "")
             error "Model name required"
-            echo "Usage: $0 <model-name>"
-            echo "       $0 --list"
+            echo "Usage: 0 <model-name>"
+            echo "       0 --list"
             exit 1
             ;;
         *)
-            cmd_upgrade "$1"
+            cmd_upgrade "1"
             ;;
     esac
 }
 
-main "$@"
+main "@"
