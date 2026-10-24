@@ -12,7 +12,7 @@ The service includes a custom VAD (Voice Activity Detection) patch that is appli
 
 - **OpenAI-compatible API**: Drop-in replacement for `POST /v1/audio/transcriptions`
 - **Multiple Whisper models**: Supports tiny through large-v3-turbo via HuggingFace model IDs
-- **Voice Activity Detection (VAD)**: Patched at startup with tuned parameters for conversation
+- **Voice Activity Detection (VAD)**: speaches' built-in Silero VAD trims silence before transcription
 - **Model caching**: Models are downloaded once and cached in `data/whisper/`
 - **TTL-based model eviction**: Unused models unloaded after 24 hours (`WHISPER__TTL=86400`)
 - **CPU and GPU backends**: CPU image by default; GPU overlay available for NVIDIA
@@ -46,18 +46,21 @@ curl http://localhost:9000/v1/audio/transcriptions \
   -F "model=Systran/faster-whisper-base"
 ```
 
-## VAD Patch
+## Voice Activity Detection
 
-The `docker-entrypoint.sh` script applies a VAD tuning patch to the upstream speaches STT router at container startup. The patch is idempotent — it detects an existing `ODS_PATCHED` marker and skips re-application on container restart.
+speaches runs Silero VAD on each upload before transcribing and drops the
+silent parts. ODS uses speaches' own settings (`DEFAULT_VAD_OPTIONS` in
+`speaches/routers/stt.py` for the pinned 0.9.0-rc.3 image):
 
-VAD parameters injected:
+| Parameter | Value |
+|-----------|-------|
+| `threshold` | `0.5` |
+| `min_silence_duration_ms` | `160` |
+| `max_speech_duration_s` | `30` |
 
-| Parameter | Value | Effect |
-|-----------|-------|--------|
-| `threshold` | `0.3` | Speech probability threshold |
-| `min_silence_duration_ms` | `400` | Silence gap before segment end |
-| `min_speech_duration_ms` | `50` | Minimum speech segment length |
-| `speech_pad_ms` | `200` | Padding added around speech segments |
+speaches 0.9 has no setting to change them. Earlier ODS releases patched
+speaches' source at startup to change VAD options; that patch no longer
+matched speaches 0.9 and has been removed.
 
 ## Data Persistence
 
@@ -100,7 +103,7 @@ curl http://localhost:9000/v1/models
 
 - `compose.yaml` — Service definition
 - `manifest.yaml` — Service metadata and feature requirements
-- `docker-entrypoint.sh` — VAD patch + server startup script
+- `docker-entrypoint.sh` — starts speaches
 
 ## Troubleshooting
 
@@ -113,10 +116,6 @@ docker compose logs whisper
 **Transcription errors or poor quality:**
 - Try a larger model: set `model=Systran/faster-whisper-small` or `model=deepdml/faster-whisper-large-v3-turbo-ct2` in the request
 - Check available disk space for model download
-
-**VAD patch not applying:**
-- The patch targets a specific line in the speaches source; if the upstream image changes, the patch may be skipped silently
-- Check logs for `[ods-whisper] WARNING: Target pattern not found`
 
 **Model download failed during install / STT returns 404:**
 - Speaches does not auto-download on transcription — run the recovery `curl -X POST ...` command from the **Model Downloads** section above

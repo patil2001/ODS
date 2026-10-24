@@ -202,6 +202,7 @@ tests/test-update-refreshes-compose-flags.sh
 tests/test-update-script-backup.sh
 tests/test-voice-repair-command.sh
 tests/test-webui-compose-selection.py
+tests/test-whisper-entrypoint.py
 tests/test-windows-amd-memory-detection.sh
 tests/test-windows-env-dotfile-recovery.sh
 tests/test-windows-hermes-soul.sh
@@ -264,7 +265,6 @@ tests/test_pixel_verify_lifecycle.py
 tests/test_portal_identity.py
 tests/test_preview_inspection_delayed_entrance.py
 tests/test_remote_completion_telemetry.py
-tests/test_todo_fixes.py
 tests/test_validate_compose_stack_spaces.py
 tests/test-linux-service-port-rerun.py
 tests/test-migrate-shield-key.sh
