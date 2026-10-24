@@ -1,0 +1,4 @@
+# Pipecat runs the call loop. Silero VAD and Smart Turn v3 ship as ONNX
+# models inside the wheel, so the image downloads no models at runtime.
+pipecat-ai[openai,silero,websocket]==1.14.0
+uvicorn>=0.32.0,<1.0.0

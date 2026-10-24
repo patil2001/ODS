@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-06T14:59:46Z",
+  "generated_at": "2026-10-24T05:56:18Z",
   "schema_version": "1.0.0",
   "extensions": [
     {
@@ -11017,6 +11017,87 @@
       ],
       "startup_check": true,
       "startup_timeout": 180,
+      "configuration_scope": "declared-environment-keys"
+    },
+    {
+      "id": "voice-agent",
+      "name": "Voice Agent",
+      "description": "Hands-free voice conversation with the current ODS model. Streams the reply sentence by sentence, detects the end of a turn with Smart Turn, and stops talking when you interrupt.",
+      "category": "optional",
+      "gpu_backends": [
+        "all"
+      ],
+      "compose_file": "compose.yaml",
+      "depends_on": [
+        "litellm",
+        "whisper",
+        "tts"
+      ],
+      "port": 8090,
+      "external_port_default": 11149,
+      "health_endpoint": "/health",
+      "env_vars": [
+        {
+          "key": "VOICE_AGENT_SYSTEM_PROMPT",
+          "required": false,
+          "description": "Replaces the built-in friendly, short-sentence voice persona."
+        },
+        {
+          "key": "VOICE_AGENT_TURN_STOP_TIMEOUT",
+          "required": false,
+          "default": "1.5",
+          "description": "Seconds of silence after which a turn Smart Turn calls unfinished is answered anyway. Raise it if the assistant cuts in while you think."
+        }
+      ],
+      "tags": [
+        "voice",
+        "speech",
+        "realtime",
+        "local",
+        "open-source"
+      ],
+      "features": [
+        {
+          "id": "realtime-voice",
+          "name": "Real-time Voice",
+          "description": "Talk with your AI hands-free and interrupt it any time",
+          "icon": "Mic",
+          "category": "voice",
+          "requirements": {
+            "services": [
+              "voice-agent",
+              "litellm",
+              "whisper",
+              "tts"
+            ],
+            "vram_gb": 0
+          },
+          "enabled_services_all": [
+            "voice-agent",
+            "litellm",
+            "whisper",
+            "tts"
+          ],
+          "setup_time": "~3 minutes (image build)",
+          "priority": 3,
+          "launch": {
+            "type": "service",
+            "service": "voice-agent"
+          }
+        }
+      ],
+      "llm": {
+        "consumes": true,
+        "route": "gateway",
+        "pinning": "none",
+        "probe": {
+          "kind": "chat",
+          "path": "/v1/chat/completions",
+          "auth": "env:LITELLM_KEY"
+        }
+      },
+      "startup_check": true,
+      "startup_timeout": 120,
       "configuration_scope": "declared-environment-keys"
     },
     {

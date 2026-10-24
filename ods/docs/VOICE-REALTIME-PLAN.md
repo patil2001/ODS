@@ -1,6 +1,8 @@
 # Real-time voice assistant plan (Windows first)
 
-Status: proposal. Nothing in this document ships yet.
+Status: proposal. Milestone 2 is available as the `voice-agent` library
+extension ([README](../extensions/library/services/voice-agent/README.md));
+the rest is not built yet.
 
 ## Goal
 
@@ -167,11 +169,22 @@ forwards raw user audio to an agent.
 | # | Change | Done when |
 |---|---|---|
 | 1 | This plan | Maintainers agree on the cascaded-pipeline decision. |
-| 2 | `voice-agent` service: Pipecat with Silero VAD, Smart Turn, streaming STT, LiteLLM, Kokoro; WebSocket transport; per-stage timing logs | Compose validation and contract tests pass; a scripted audio file gets a spoken reply; p50 latency is logged. |
+| 2 | `voice-agent` library extension: Pipecat with Silero VAD, Smart Turn, Whisper per utterance, LiteLLM, streaming Kokoro; WebSocket transport with a minimal call page; per-stage timing logs | **Built.** Recorded speech gets a spoken reply in end-to-end tests against fake services, and talking over it interrupts. Truly streaming STT is deferred to milestone 6. |
 | 3 | Dashboard voice page with WebRTC, browser AEC, barge-in and live captions | Interrupting mid-sentence stops playback within 300 ms on Windows Edge/Chrome. |
 | 4 | Windows enablement: service plan, readiness check, troubleshooting doc | Fresh Windows NVIDIA and AMD installs reach a working voice page. |
 | 5 | Task bridge to Hermes and n8n with async results | A spoken request starts a Hermes task, conversation continues, and the result is announced. |
 | 6 | Latency and quality pass: model choices per hardware tier, budget dashboard | p50 at or under 800 ms on the reference GPU tier, 1.5 s on CPU. |
+
+## Findings from building milestone 2
+
+- Pipecat waits 5 s by default when Smart Turn calls a turn unfinished and the
+  user stays silent. Smart Turn's verdict on the same recording differed
+  between two environments, so this path is common, not rare. The service
+  uses 1.5 s (`VOICE_AGENT_TURN_STOP_TIMEOUT`), and a test fails if a reply to
+  an unfinished sentence takes 3 s or more.
+- Pipecat's OpenAI TTS service accepts only OpenAI voice names, and its Kokoro
+  service loads a second model in-process. The service streams PCM from the
+  existing Kokoro container instead.
 
 ## Risks and open questions
 

@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ODS Voice</title>
+<style>
+  :root { color-scheme: light dark; --bg: #f6f6f4; --fg: #1d1d1b; --muted: #6b6b66; --accent: #2f6fed; --card: #ffffff; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #151514; --fg: #ecece8; --muted: #9a9a94; --accent: #6f9bff; --card: #1f1f1d; } }
+  body { margin: 0; font: 16px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--fg); }
+  main { max-width: 640px; margin: 0 auto; padding: 32px 16px; }
+  h1 { font-size: 1.4rem; margin: 0 0 4px; }
+  #status { color: var(--muted); margin: 0 0 24px; }
+  button { font: inherit; padding: 12px 28px; border-radius: 999px; border: 0; background: var(--accent); color: #fff; cursor: pointer; }
+  button.live { background: #c8392b; }
+  #log { margin-top: 24px; display: flex; flex-direction: column; gap: 8px; }
+  .msg { padding: 8px 12px; border-radius: 12px; background: var(--card); max-width: 85%; }
+  .user { align-self: flex-end; }
+  .bot { align-self: flex-start; }
+  #latency { margin-top: 24px; color: var(--muted); font: 13px/1.4 ui-monospace, monospace; white-space: pre; overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Talk to ODS</h1>
+  <p id="status">Press start, then just talk. You can interrupt any time.</p>
+  <button id="toggle" type="button">Start talking</button>
+  <div id="log" aria-live="polite"></div>
+  <div id="latency"></div>
+</main>
+<script>
+const OUTPUT_RATE = 24000;
+const toggle = document.getElementById("toggle");
+const statusLine = document.getElementById("status");
+const log = document.getElementById("log");
+const latency = document.getElementById("latency");
+
+let socket, micContext, speakerContext, micStream, nextPlayTime = 0;
+const playing = new Set();
+let botLine = null;
+
+function say(kind, text) {
+  if (kind === "bot" && botLine) {
+    botLine.textContent += " " + text;
+  } else {
+    const line = document.createElement("div");
+    line.className = "msg " + kind;
+    line.textContent = text;
+    log.appendChild(line);
+    botLine = kind === "bot" ? line : null;
+  }
+  window.scrollTo(0, document.body.scrollHeight);
+}
+
+function stopPlayback() {
+  for (const source of playing) source.stop();
+  playing.clear();
+  nextPlayTime = 0;
+  botLine = null;
+}
+
+function play(pcm) {
+  const samples = new Int16Array(pcm);
+  if (!samples.length) return;
+  const buffer = speakerContext.createBuffer(1, samples.length, OUTPUT_RATE);
+  const channel = buffer.getChannelData(0);
+  for (let i = 0; i < samples.length; i++) channel[i] = samples[i] / 0x8000;
+  const source = speakerContext.createBufferSource();
+  source.buffer = buffer;
+  source.connect(speakerContext.destination);
+  // Queue chunks back to back so speech has no gaps.
+  nextPlayTime = Math.max(nextPlayTime, speakerContext.currentTime + 0.02);
+  source.start(nextPlayTime);
+  nextPlayTime += buffer.duration;
+  playing.add(source);
+  source.onended = () => playing.delete(source);
+}
+
+function handleEvent(event) {
+  if (event.type === "interrupt") stopPlayback();
+  else if (event.type === "user") say("user", event.text);
+  else if (event.type === "bot") say("bot", event.text);
+  else if (event.type === "latency") latency.textContent = "Last reply\n" + event.lines.join("\n");
+}
+
+async function start() {
+  // The browser's echo cancellation is what lets the user talk over the
+  // assistant on laptop speakers without it hearing itself.
+  micStream = await navigator.mediaDevices.getUserMedia({
+    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 },
+  });
+  micContext = new AudioContext({ sampleRate: 16000 });
+  speakerContext = new AudioContext({ sampleRate: OUTPUT_RATE });
+  await micContext.audioWorklet.addModule("static/mic-worklet.js");
+  const capture = new AudioWorkletNode(micContext, "mic-capture");
+  micContext.createMediaStreamSource(micStream).connect(capture);
+
+  const scheme = location.protocol === "https:" ? "wss:" : "ws:";
+  socket = new WebSocket(`${scheme}//${location.host}/ws`);
+  socket.binaryType = "arraybuffer";
+  socket.onopen = () => { statusLine.textContent = "Listening…"; };
+  socket.onmessage = (message) => {
+    if (typeof message.data === "string") handleEvent(JSON.parse(message.data));
+    else play(message.data);
+  };
+  socket.onclose = () => { stop(); statusLine.textContent = "Call ended."; };
+  capture.port.onmessage = (packet) => {
+    if (socket.readyState === WebSocket.OPEN) socket.send(packet.data);
+  };
+  toggle.textContent = "Hang up";
+  toggle.classList.add("live");
+}
+
+function stop() {
+  stopPlayback();
+  if (socket && socket.readyState <= WebSocket.OPEN) socket.close();
+  if (micStream) micStream.getTracks().forEach((track) => track.stop());
+  if (micContext) micContext.close();
+  if (speakerContext) speakerContext.close();
+  socket = micStream = micContext = speakerContext = null;
+  toggle.textContent = "Start talking";
+  toggle.classList.remove("live");
+}
+
+toggle.addEventListener("click", () => {
+  if (socket) { stop(); return; }
+  start().catch((error) => {
+    statusLine.textContent = "Could not start: " + error.message;
+    stop();
+  });
+});
+</script>
+</body>
+</html>

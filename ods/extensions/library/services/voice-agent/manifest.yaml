@@ -1,0 +1,76 @@
+schema_version: ods.services.v1
+compatibility:
+  ods_min: 2.6.0
+service:
+  id: voice-agent
+  name: Voice Agent
+  aliases: [realtime-voice, voice-call]
+  container_name: ods-voice-agent
+  host_env: VOICE_AGENT_HOST
+  default_host: voice-agent
+  port: 8090
+  external_port_env: VOICE_AGENT_PORT
+  external_port_default: 11149
+  health: /health
+  type: docker
+  startup_check: true
+  startup_timeout: 120
+  gpu_backends:
+  - all
+  compose_file: compose.yaml
+  category: optional
+  depends_on:
+  - litellm
+  - whisper
+  - tts
+  description: Hands-free voice conversation with the current ODS model. Streams the
+    reply sentence by sentence, detects the end of a turn with Smart Turn, and stops
+    talking when you interrupt.
+  env_vars:
+  - key: VOICE_AGENT_SYSTEM_PROMPT
+    required: false
+    secret: false
+    description: Replaces the built-in friendly, short-sentence voice persona.
+  - key: VOICE_AGENT_TURN_STOP_TIMEOUT
+    required: false
+    secret: false
+    default: "1.5"
+    description: Seconds of silence after which a turn Smart Turn calls unfinished
+      is answered anyway. Raise it if the assistant cuts in while you think.
+  llm:
+    consumes: true
+    route: gateway
+    pinning: none
+    probe:
+      kind: chat
+      path: /v1/chat/completions
+      auth: env:LITELLM_KEY
+tags:
+- voice
+- speech
+- realtime
+- local
+- open-source
+features:
+- id: realtime-voice
+  name: Real-time Voice
+  description: Talk with your AI hands-free and interrupt it any time
+  icon: Mic
+  category: voice
+  requirements:
+    services:
+    - voice-agent
+    - litellm
+    - whisper
+    - tts
+    vram_gb: 0
+  enabled_services_all:
+  - voice-agent
+  - litellm
+  - whisper
+  - tts
+  setup_time: ~3 minutes (image build)
+  priority: 3
+  launch:
+    type: service
+    service: voice-agent

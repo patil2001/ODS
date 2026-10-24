@@ -1,0 +1,12 @@
+{
+  "repository": "https://github.com/pipecat-ai/pipecat",
+  "license": "BSD-2-Clause",
+  "image": "python:3.11-slim@sha256:e41613d42d4891e4930f79523f93f81bbc7632584ec65e36ab055f41a800b41e",
+  "registry_checked_at": "2026-10-24",
+  "platforms": [
+    "linux/amd64",
+    "linux/arm64"
+  ],
+  "runtime_validation": "pending",
+  "notes": "ODS-built image: pipecat-ai 1.14.0 from a hash-locked requirements.lock on the base image already used by privacy-shield. Silero VAD (MIT) and Smart Turn v3.2 ONNX models ship inside the pipecat wheel; no runtime model downloads. Calls the existing whisper, litellm (ods/current) and tts services. Verified with fake STT/LLM/TTS services, not yet on real hardware."
+}

@@ -1,0 +1,51 @@
+services:
+  voice-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ods-voice-agent
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    user: "1000:1000"
+    environment:
+      VOICE_AGENT_LLM_BASE_URL: http://litellm:4000/v1
+      VOICE_AGENT_LLM_API_KEY: ${LITELLM_KEY:?Configure the ODS model gateway key}
+      VOICE_AGENT_LLM_MODEL: ods/current
+      VOICE_AGENT_STT_BASE_URL: http://whisper:8000/v1
+      # Reuse the model the installer already chose and downloaded for Open WebUI.
+      VOICE_AGENT_STT_MODEL: ${AUDIO_STT_MODEL:-Systran/faster-whisper-base}
+      VOICE_AGENT_TTS_BASE_URL: http://tts:8880/v1
+      VOICE_AGENT_TTS_VOICE: ${AUDIO_TTS_VOICE:-af_heart}
+      VOICE_AGENT_SYSTEM_PROMPT: ${VOICE_AGENT_SYSTEM_PROMPT:-}
+      VOICE_AGENT_TURN_STOP_TIMEOUT: ${VOICE_AGENT_TURN_STOP_TIMEOUT:-1.5}
+      # The call page's own address. Any other page is refused the socket.
+      VOICE_AGENT_ALLOWED_ORIGINS: http://localhost:${VOICE_AGENT_PORT:-11149},http://127.0.0.1:${VOICE_AGENT_PORT:-11149}
+    ports:
+      - "127.0.0.1:${VOICE_AGENT_PORT:-11149}:8090"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8090/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
+    networks:
+      - ods-network
+
+networks:
+  ods-network:
+    external: true
+    name: ods-network

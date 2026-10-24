@@ -34,6 +34,7 @@ Each extension is a self-contained directory with a `manifest.yaml` (service met
 | [`piper-audio/`](services/piper-audio/) | Piper — fast, lightweight TTS for edge devices | AMD, NVIDIA, Apple |
 | [`rvc/`](services/rvc/) | RVC — real-time voice conversion/cloning | AMD, NVIDIA |
 | [`audiocraft/`](services/audiocraft/) | Meta AudioCraft — text-to-music and sound effects | NVIDIA |
+| [`voice-agent/`](services/voice-agent/) | Voice Agent — hands-free talk with the current model, interruptible | CPU |
 
 ### Image Generation
 
@@ -126,6 +127,7 @@ Quick reference for hardware requirements. Data sourced from each service's `man
 | rvc | ✓ | ✓ | — | — | 6 GB |
 | sillytavern | ✓ | ✓ | ✓ | — | — |
 | text-generation-webui | ✓ | ✓ | — | — | 4 GB |
+| voice-agent | — | — | — | ✓ | — |
 | weaviate | — | — | — | ✓ | — |
 | xtts | ✓ | ✓ | — | — | — |
 
