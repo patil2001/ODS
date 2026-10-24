@@ -37,7 +37,7 @@
       "properties": {
         "vendor": {
           "type": "string",
-          "enum": ["nvidia", "amd", "apple", "none", "unknown"]
+          "enum": ["nvidia", "amd", "apple", "intel", "none", "unknown"]
         },
         "name": {
           "type": "string"
@@ -63,7 +63,7 @@
       "properties": {
         "llm_backend": {
           "type": "string",
-          "enum": ["nvidia", "amd", "apple", "cpu"]
+          "enum": ["nvidia", "amd", "apple", "intel", "cpu"]
         },
         "llm_health_url": {
           "type": "string"
@@ -94,7 +94,7 @@
       "properties": {
         "recommended": {
           "type": "string",
-          "enum": ["T0", "T1", "T2", "T3", "T4", "SH_COMPACT", "SH_LARGE", "NV_ULTRA"]
+          "enum": ["T0", "T1", "T2", "T3", "T4", "SH_COMPACT", "SH_LARGE", "NV_ULTRA", "ARC", "ARC_LITE"]
         }
       },
       "additionalProperties": false

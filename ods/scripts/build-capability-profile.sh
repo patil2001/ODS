@@ -122,6 +122,9 @@ elif gpu_type == "jetson" and experimental_jetson:
 elif gpu_type == "apple":
     llm_backend = "apple"
     overlays = ["docker-compose.base.yml", "docker-compose.amd.yml"]
+elif gpu_type == "intel":
+    llm_backend = "intel"
+    overlays = ["docker-compose.base.yml", "docker-compose.arc.yml"]
 else:
     llm_backend = "cpu"
     overlays = ["docker-compose.base.yml", "docker-compose.cpu.yml"]
@@ -129,7 +132,7 @@ else:
 tier = (hardware.get("tier") or "T1").upper()
 if tier in {"T1", "T2", "T3", "T4"}:
     recommended = tier
-elif tier in {"SH_COMPACT", "SH_LARGE"}:
+elif tier in {"SH_COMPACT", "SH_LARGE", "ARC", "ARC_LITE"}:
     recommended = tier
 else:
     recommended = "T1"
@@ -148,7 +151,7 @@ profile = {
         "family": family,
     },
     "gpu": {
-        "vendor": gpu_type if gpu_type in {"nvidia", "amd", "apple", "none"} else "unknown",
+        "vendor": gpu_type if gpu_type in {"nvidia", "amd", "apple", "intel", "none"} else "unknown",
         "name": gpu_name,
         "memory_type": memory_type if memory_type in {"discrete", "unified", "none"} else "unknown",
         "count": gpu_count,

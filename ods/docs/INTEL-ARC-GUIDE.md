@@ -31,9 +31,10 @@ known limitations, and performance expectations.
 
 ### Future / untested
 
-Intel Arc B-series (Battlemage) cards are untested. Hardware detection does not
-map any Arc card to these tiers yet (see [Installation](#installation)), so pass
-`--tier ARC` for cards with 12 GB or more and `--tier ARC_LITE` below that.
+Intel Arc B-series (Battlemage) cards are untested, and hardware detection
+recognises only A-series (Alchemist) device IDs (see [Installation](#installation)).
+On a B-series card pass `--tier ARC` for 12 GB or more and `--tier ARC_LITE`
+below that.
 
 ---
 
@@ -98,7 +99,11 @@ sudo intel_gpu_top
 
 ## Installation
 
-Hardware detection does not identify Intel Arc yet, so pass the tier yourself:
+The installer detects A-series (Alchemist) cards from sysfs: vendor `0x8086`,
+device IDs `0x5690`–`0x569f` and `0x56a0`–`0x56cf`. It picks `ARC` when
+`lmem_total_bytes` reports 12 GB or more and `ARC_LITE` otherwise, including
+when the driver does not report the size. Other Intel GPUs, B-series cards
+among them, need the tier passed explicitly:
 
 ```bash
 ./install.sh --tier ARC        # Arc cards with 12 GB or more (A770)

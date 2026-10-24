@@ -79,6 +79,7 @@ OVERLAY_MAP = {
     "nvidia": ["docker-compose.base.yml", "docker-compose.nvidia.yml"],
     "apple":  ["docker-compose.base.yml", "docker-compose.apple.yml"],
     "cpu":    ["docker-compose.base.yml", "docker-compose.cpu.yml"],
+    "intel":  ["docker-compose.base.yml", "docker-compose.arc.yml"],
 }
 
 # --- Pass 1: Match known_gpus by device_id then name_patterns ---

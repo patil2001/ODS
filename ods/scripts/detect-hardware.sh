@@ -164,6 +164,35 @@ detect_nvidia() {
     fi
 }
 
+# Intel Arc discrete GPU via sysfs. Prints "name|vram_bytes|device_id".
+# Same vendor/device check as detect_gpu in installers/lib/detection.sh:
+# 0x8086 with Alchemist/DG2 device ids 0x5690-0x569f and 0x56a0-0x56cf.
+detect_intel_arc() {
+    local _drm_sys="${ODS_DRM_SYS:-/sys/class/drm}"
+    local card vendor device name vram_bytes
+    for card in "$_drm_sys"/card*/device; do
+        [[ -f "$card/vendor" && -f "$card/device" ]] || continue
+        vendor=$(cat "$card/vendor" 2>/dev/null) || continue
+        device=$(cat "$card/device" 2>/dev/null) || continue
+        [[ "$vendor" == "0x8086" && "$device" =~ ^0x(56[a-c][0-9a-f]|569[0-9a-f])$ ]] || continue
+        # lmem_total_bytes is the i915 local-memory size; absent means unknown.
+        vram_bytes=$(cat "$card/lmem_total_bytes" 2>/dev/null) || vram_bytes=0
+        name=$(cat "$card/product_name" 2>/dev/null) || name=""
+        [[ -n "$name" ]] || name="Intel Arc ($device)"
+        printf '%s|%s|%s\n' "$name" "$vram_bytes" "$device"
+        return 0
+    done
+    return 1
+}
+
+get_intel_arc_tier() {
+    if [[ "${1:-0}" -ge 12288 ]]; then
+        echo "ARC"
+    else
+        echo "ARC_LITE"
+    fi
+}
+
 # Parse PCI device id from nvidia-smi output, normalize to 0x1234
 nvidia_device_id() {
     if command -v nvidia-smi &>/dev/null; then
@@ -493,6 +522,8 @@ tier_description() {
         NV_ULTRA)   echo "NVIDIA Ultra (90GB+ unified or discrete): flagship local profile (Grace Blackwell or multi-GPU)" ;;
         SH_LARGE)   echo "Strix Halo 90+: flagship unified-memory local profile" ;;
         SH_COMPACT) echo "Strix Halo Compact: balanced unified-memory local profile" ;;
+        ARC)        echo "Intel Arc (12GB+): SYCL local profile" ;;
+        ARC_LITE)   echo "Intel Arc Lite (<12GB): compact SYCL local profile" ;;
         AP_ULTRA)   echo "Apple Ultra (96GB+): high-end local profile via CPU inference in Docker" ;;
         AP_PRO)     echo "Apple Pro (36GB+): balanced local profile via CPU inference in Docker" ;;
         AP_BASE)    echo "Apple Base (<36GB): compact local profile via CPU inference in Docker" ;;
@@ -539,6 +570,8 @@ tier_model() {
         NV_ULTRA)   echo "qwen3-coder-next" ;;
         SH_LARGE)   echo "qwen3.6-35b-a3b" ;;
         SH_COMPACT) echo "qwen3.6-35b-a3b" ;;
+        ARC)        echo "qwen3.5-9b" ;;
+        ARC_LITE)   echo "qwen3.5-4b" ;;
         AP_ULTRA)   echo "qwen3-coder-next-Q4_K_M.gguf" ;;
         AP_PRO)     echo "qwen3.5-9b-Q4_K_M.gguf" ;;
         AP_BASE)    echo "qwen3.5-2b-Q4_K_M.gguf" ;;
@@ -682,6 +715,19 @@ main() {
         fi
     fi
 
+    # Try Intel Arc if no NVIDIA or AMD
+    if [[ -z "$gpu_name" ]]; then
+        local intel_out="" _intel_vram_bytes
+        if intel_out=$(detect_intel_arc); then
+            IFS='|' read -r gpu_name _intel_vram_bytes device_id <<< "$intel_out"
+            gpu_vram_mb=$(( $(as_int "$_intel_vram_bytes") / 1048576 ))
+            gpu_count=1
+            gpu_type="intel"
+            gpu_architecture="xe"
+            memory_type="discrete"
+        fi
+    fi
+
     # Try Apple Silicon if macOS
     if [[ -z "$gpu_name" && "$os" == "macos" ]]; then
         local apple_out
@@ -711,6 +757,8 @@ main() {
         local unified_gb
         unified_gb=$((gpu_vram_mb / 1024))
         tier=$(get_apple_tier "$unified_gb")
+    elif [[ "$gpu_type" == "intel" ]]; then
+        tier=$(get_intel_arc_tier "$gpu_vram_mb")
     else
         tier=$(get_tier "$gpu_vram_mb")
     fi
