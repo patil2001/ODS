@@ -183,6 +183,7 @@ canonical source and treat older recipes as context.
 | [WSL2-GPU-TROUBLESHOOTING.md](WSL2-GPU-TROUBLESHOOTING.md) | Operators | WSL2 GPU issues |
 | [WINDOWS-WSL2-GPU-GUIDE.md](WINDOWS-WSL2-GPU-GUIDE.md) | Operators | Combined WSL2 GPU guide |
 | [DOCKER-DESKTOP-OPTIMIZATION.md](DOCKER-DESKTOP-OPTIMIZATION.md) | Operators | Docker Desktop tuning |
+| [VOICE-REALTIME-PLAN.md](VOICE-REALTIME-PLAN.md) | Contributors | Proposal: low-latency voice assistant, Windows first |
 
 ## Operations
 
