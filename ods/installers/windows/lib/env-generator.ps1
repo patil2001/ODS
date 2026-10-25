@@ -921,8 +921,10 @@ litellm_settings:
     # Windows has no Python at this point, so drop the hybrid-only provider
     # routes here. Otherwise a local install routes cloud/minimax* to the
     # providers whenever their keys are in .env.
-    if ($effectiveODSMode -notin @("cloud", "hybrid")) {
-        $switchboardPath = Join-Path (Join-Path (Join-Path $InstallDir "config") "litellm") "switchboard.yaml"
+    # Fixture and partial installs may not ship the template; there is then
+    # nothing for LiteLLM to load and nothing to strip.
+    $switchboardPath = Join-Path (Join-Path (Join-Path $InstallDir "config") "litellm") "switchboard.yaml"
+    if ($effectiveODSMode -notin @("cloud", "hybrid") -and (Test-Path -LiteralPath $switchboardPath -PathType Leaf)) {
         $switchboard = Get-Content -LiteralPath $switchboardPath -Raw
         Write-Utf8NoBom -Path $switchboardPath -Content (Remove-SwitchboardHybridRoutes -Content $switchboard)
     }

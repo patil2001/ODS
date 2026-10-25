@@ -85,6 +85,8 @@ def test_new_ods_env_filters_only_local_installs() -> None:
     text = ENV_GENERATOR.read_text(encoding="utf-8")
     body = text.split("function New-ODSEnv {", 1)[1].split("\nfunction ", 1)[0]
     assert '$effectiveODSMode -notin @("cloud", "hybrid")' in body
+    # A missing template must not abort .env generation (it broke CI fixtures).
+    assert "Test-Path -LiteralPath $switchboardPath -PathType Leaf" in body
     assert "Remove-SwitchboardHybridRoutes -Content $switchboard" in body
     assert '"switchboard.yaml"' in body
 
