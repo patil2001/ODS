@@ -5358,6 +5358,47 @@ class TestHandleEnvUpdate:
         backup_files = list((data_dir / "config-backups").glob(".env.backup.*"))
         assert len(backup_files) == 1
 
+    @pytest.mark.skipif(os.name == "nt", reason="POSIX file modes")
+    def test_secrets_are_never_written_to_a_readable_file(self, env_update_env, monkeypatch):
+        install_dir, _ = env_update_env
+        old_umask = os.umask(0o022)
+        seen_modes = []
+        real_replace = _mod.os.replace
+
+        def replace(src, dst):
+            seen_modes.append(stat.S_IMODE(os.stat(src).st_mode))
+            real_replace(src, dst)
+
+        def chmod_after_write(path, mode, *args, **kwargs):
+            raise AssertionError(f"{path} was written first and tightened afterwards")
+
+        monkeypatch.setattr(_mod.os, "replace", replace)
+        monkeypatch.setattr(_mod.os, "chmod", chmod_after_write)
+        try:
+            handler = _FakeHandler(_make_body("ODS_AGENT_KEY=s3cret\n", backup=False))
+            _mod.AgentHandler._handle_env_update(handler)
+        finally:
+            os.umask(old_umask)
+
+        assert handler.response_code == 200
+        assert seen_modes == [0o600]
+        assert stat.S_IMODE((install_dir / ".env").stat().st_mode) == 0o600
+
+    @pytest.mark.skipif(os.name == "nt", reason="POSIX symlinks")
+    def test_leftover_tmp_link_is_not_followed(self, env_update_env, tmp_path):
+        install_dir, _ = env_update_env
+        elsewhere = tmp_path / "elsewhere"
+        elsewhere.write_text("untouched\n", encoding="utf-8")
+        (install_dir / ".env.tmp").symlink_to(elsewhere)
+
+        handler = _FakeHandler(_make_body("ODS_AGENT_KEY=s3cret\n", backup=False))
+        _mod.AgentHandler._handle_env_update(handler)
+
+        assert handler.response_code == 200
+        assert elsewhere.read_text(encoding="utf-8") == "untouched\n"
+        assert (install_dir / ".env").read_text(encoding="utf-8") == "ODS_AGENT_KEY=s3cret\n"
+        assert not (install_dir / ".env").is_symlink()
+
     def test_same_second_updates_create_distinct_backups(
         self, env_update_env, monkeypatch,
     ):
