@@ -96,6 +96,86 @@ _phase11_refresh_litellm() {
     fi
 }
 
+# A host whose resolver containers cannot use (e.g. the systemd-resolved stub
+# with a public fallback blocked by the network) passes the host curl
+# preflight, then fails every registry step of every build attempt. Resolve
+# the build registries once in a container on the default bridge, the network
+# legacy builds use, and stop before building with the cause and the fix.
+# The probe image is the dashboard build's own digest-pinned base image, so it
+# adds no download beyond what the build pulls anyway.
+_phase11_check_build_dns() {
+    local -a build_services=("$@") hosts=()
+    local dockerfile="$INSTALL_DIR/extensions/services/dashboard/Dockerfile"
+    local resolv_conf="${ODS_HOST_RESOLV_CONF:-/etc/resolv.conf}"
+    local image probe_output probe_rc line loopback_stub=false resolvers="" resolvectl_output failures=""
+    local -a message=()
+
+    if [[ "${OFFLINE_MODE:-false}" == "true" ]]; then
+        log "Skipping container DNS check: offline mode."
+        return 0
+    fi
+    if [[ " ${build_services[*]} " != *" dashboard "* ]]; then
+        log "Skipping container DNS check: dashboard is not being built."
+        return 0
+    fi
+    image="$(ods_dockerfile_first_from_image < "$dockerfile")"
+    [[ "$image" == *@sha256:* ]] || {
+        ai_bad "Dashboard build base image is not pinned by digest: ${image:-<none>}"
+        return 1
+    }
+    # DOCKER_CMD is intentionally either docker or the phase-05 sudo docker.
+    # A missing image is the normal fresh-install case, so inspect is quiet.
+    # shellcheck disable=SC2086
+    if ! $DOCKER_CMD image inspect "$image" >/dev/null 2>&1 &&
+       ! $DOCKER_CMD pull "$image" >>"$LOG_FILE" 2>&1; then
+        ai_warn "Could not pull $image for the container DNS check; skipping it. The dashboard build will report the error."
+        return 0
+    fi
+
+    mapfile -t hosts < <(ods_container_dns_probe_hosts)
+    ai "Checking DNS inside containers before building local images..."
+    # The probe bounds each lookup itself; timeout only guards a hung daemon.
+    # shellcheck disable=SC2086
+    probe_output="$(timeout 60s $DOCKER_CMD run --rm --pull never --entrypoint node \
+        "$image" -e "$ODS_CONTAINER_DNS_PROBE_JS" "${hosts[@]}" 2>&1)" && probe_rc=0 || probe_rc=$?
+    printf '%s\n' "$probe_output" >> "$LOG_FILE"
+    if (( probe_rc == 0 )); then
+        ai_ok "Containers can resolve ${hosts[*]}"
+        return 0
+    fi
+
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^FAIL\ ([^ ]+)\ ([^ ]+)$ ]]; then
+            failures="${failures:+$failures, }${BASH_REMATCH[1]}: ${BASH_REMATCH[2]}"
+        fi
+    done <<< "$probe_output"
+    if [[ -z "$failures" ]]; then
+        # Docker could not run the probe (no lookup result). That is not DNS
+        # evidence; the builds below report their own errors.
+        ai_warn "Container DNS check could not run (exit $probe_rc); continuing. See $LOG_FILE."
+        return 0
+    fi
+
+    if [[ -r "$resolv_conf" ]] && ods_resolv_conf_is_loopback_only < "$resolv_conf"; then
+        loopback_stub=true
+    fi
+    if command -v resolvectl >/dev/null 2>&1; then
+        if resolvectl_output="$(resolvectl dns 2>>"$LOG_FILE")"; then
+            resolvers="$(ods_resolvectl_dns_servers <<< "$resolvectl_output")"
+        else
+            log "resolvectl dns failed (non-fatal); the resolver list is omitted from the DNS fix."
+        fi
+    fi
+
+    mapfile -t message < <(ods_container_dns_failure_message "$failures" "$loopback_stub" "$resolvers")
+    ui_status_line error "Container DNS cannot resolve package registries"
+    ai_bad "${message[0]}"
+    for line in "${message[@]:1}"; do
+        ai "$line"
+    done
+    return 1
+}
+
 _phase11_build_local_images() {
     local -a build_services=("$@")
     local -a failed_build_services=()
@@ -1471,6 +1551,9 @@ MODELS_INI_EOF
     done
     if [[ "$GPU_BACKEND" == "nvidia" && " ${_build_services[*]} " == *" comfyui "* ]]; then
         ai "ComfyUI is compiling from source for NVIDIA — this takes 25-40 minutes on first run."
+    fi
+    if ! _phase11_check_build_dns "${_build_services[@]}"; then
+        exit 1
     fi
     if ! _phase11_build_local_images "${_build_services[@]}"; then
         exit 1

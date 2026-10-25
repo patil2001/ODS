@@ -42,6 +42,13 @@ connectivity preflight and a successful image pull do not prove that a build's
 `RUN npm ci`, `apt-get`, or `pip` step can resolve names. npm's `Exit handler never
 called!` message alone does not establish a DNS problem.
 
+Before building, the Linux installer resolves `registry.npmjs.org` and `pypi.org`
+in a temporary container (the dashboard build's pinned base image, default
+bridge network). If that fails it stops before any build, names the unresolved
+host, notes a loopback-only `/etc/resolv.conf` stub, and lists `resolvectl dns`
+resolvers when available. Offline installs skip this check. A passing check does
+not prove BuildKit or a custom build network resolves names.
+
 ODS keeps the per-service Compose build log beside the install log and prints
 its path on failure. Pixel's image build streams its output above the error.
 Retain the first name-resolution error and its hostname; a later package error
