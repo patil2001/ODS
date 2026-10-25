@@ -22,6 +22,21 @@ prompt-cache stays warm across messages, so the second "hey" doesn't pay the
 30-60s prefill of the 16k-token agent system prompt. An idle sweeper closes
 connections that have been quiet for >5 minutes so a fleet of one-time
 visitors doesn't pin Hermes resources forever.
+
+Conversation continuity (issue #8137): the pooled WebSocket is a transport,
+not the conversation. The browser keeps the visible transcript and sends only
+the new turn, so when a pooled connection is replaced (stale WS) or evicted
+(idle sweeper), the next turn must land in the SAME Hermes conversation. The
+bridge therefore remembers, per Talk session_key, the durable Hermes session
+key that ``session.create`` returned (``stored_session_id``) and reattaches a
+new WebSocket with ``session.resume`` instead of creating a new session. If
+the conversation cannot be restored, the turn fails with
+``HermesConversationLost`` — a fresh Hermes session never silently stands in
+for the conversation the phone still shows. ODS never replays a submitted
+prompt, and upstream Hermes auto-continues (re-submits) a crash-interrupted
+turn on a cold resume, so a conversation whose last turn never concluded is
+not resumed at all, and a resume that still reports ``auto_continue`` is
+interrupted and refused.
 """
 
 from __future__ import annotations
@@ -59,6 +74,25 @@ _IDLE_EXPIRY_SECONDS = _env_int("ODS_TALK_IDLE_EXPIRY", 300)  # 5 min default
 _IDLE_SWEEP_INTERVAL = 60  # how often the background sweeper runs
 _APPROVAL_SEND_TIMEOUT = 5.0
 _APPROVAL_DISPLAY_LIMIT = 500
+_SESSION_RPC_TIMEOUT = 30.0
+# Upstream session.resume refusals that mean "try again", not "gone"
+# (tui_gateway/session_lifecycle.py::_reattach_refusal at the pinned tag).
+_RESUME_SETTLING_CODE = 4009
+_RESUME_RETRY_HINT = "retry resume"
+# Conversation metadata outlives pooled connections so a reconnect can resume.
+# The TTL equals the 12h ODS Talk cookie lifetime (routers/auth.py,
+# routers/magic_link.py): a record touched while its cookie is valid cannot
+# expire before the cookie does. The size cap fails closed (new conversations
+# are refused) instead of evicting a live one.
+_CONVERSATION_TTL_SECONDS = 12 * 3600
+_MAX_CONVERSATIONS = 1024
+
+CONVERSATION_LOST_CODE = "talk_conversation_lost"
+CONVERSATION_LOST_MESSAGE = (
+    "ODS Talk could not restore this conversation with Hermes after reconnecting, "
+    "so your message was not sent. Hermes no longer has the earlier messages shown "
+    "here as context; sending again starts a new conversation."
+)
 
 
 class HermesBridgeError(RuntimeError):
@@ -67,6 +101,29 @@ class HermesBridgeError(RuntimeError):
 
 class HermesUnavailable(HermesBridgeError):
     """Hermes is not reachable or did not expose the expected dashboard API."""
+
+
+class HermesRpcError(HermesBridgeError):
+    """Hermes answered a JSON-RPC request with an error object."""
+
+    def __init__(self, message: str, code: Any = None) -> None:
+        super().__init__(message)
+        self.code = code
+
+
+class HermesConversationLost(HermesBridgeError):
+    """The Hermes conversation behind a Talk session could not be resumed.
+
+    Raised before the new prompt is submitted. The stored conversation is
+    forgotten, so the user is told continuity was lost instead of a fresh
+    Hermes session silently answering under the old visible transcript.
+    """
+
+    code = CONVERSATION_LOST_CODE
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(CONVERSATION_LOST_MESSAGE)
+        self.reason = reason
 
 
 class HermesConnectionStale(HermesUnavailable):
@@ -178,32 +235,154 @@ async def _recv_json(ws: aiohttp.ClientWebSocketResponse, timeout: float) -> dic
     return {}
 
 
-async def _create_session_on_ws(ws: aiohttp.ClientWebSocketResponse, *, timeout: float = 30) -> str:
-    """Run session.create over an already-open WS and return the session_id."""
-    request_id = "ods-talk-create"
+async def _session_rpc_on_ws(
+    ws: aiohttp.ClientWebSocketResponse, method: str, params: dict[str, Any], *, timeout: float,
+) -> dict[str, Any]:
+    """Send one session-level JSON-RPC request and return its result object."""
+    request_id = f"ods-talk-{method.replace('.', '-')}"
     await ws.send_str(json.dumps({
         "jsonrpc": "2.0",
         "id": request_id,
-        "method": "session.create",
-        "params": {},
+        "method": method,
+        "params": params,
     }))
     while True:
         frame = await _recv_json(ws, timeout)
         if frame.get("id") != request_id:
             # Pre-create events (gateway.ready etc.) can arrive before the
-            # session.create result lands. Ignore them and keep reading.
+            # result lands. Ignore them and keep reading.
             continue
         if frame.get("error"):
             err = frame["error"]
             message = err.get("message") if isinstance(err, dict) else str(err)
-            raise HermesBridgeError(message or "Hermes session.create failed")
+            code = err.get("code") if isinstance(err, dict) else None
+            raise HermesRpcError(message or f"Hermes {method} failed", code)
         result = frame.get("result")
         if not isinstance(result, dict):
-            raise HermesBridgeError("Hermes session.create returned an unexpected shape")
-        session_id = str(result.get("session_id") or result.get("id") or "").strip()
-        if not session_id:
-            raise HermesBridgeError("Hermes did not return a session id")
-        return session_id
+            raise HermesBridgeError(f"Hermes {method} returned an unexpected shape")
+        return result
+
+
+def _result_str(result: dict[str, Any], *keys: str) -> str:
+    for key in keys:
+        value = result.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
+async def _create_conversation_on_ws(
+    ws: aiohttp.ClientWebSocketResponse, *, timeout: float | None = None,
+) -> tuple[str, str | None]:
+    """Run session.create; return (runtime session_id, stored session key).
+
+    The runtime id addresses the live session on this WebSocket. The stored
+    key is the durable conversation id ``session.resume`` needs later; an
+    image that does not report one cannot be resumed.
+    """
+    result = await _session_rpc_on_ws(ws, "session.create", {}, timeout=timeout or _SESSION_RPC_TIMEOUT)
+    session_id = _result_str(result, "session_id", "id")
+    if not session_id:
+        raise HermesBridgeError("Hermes did not return a session id")
+    return session_id, _result_str(result, "stored_session_id") or None
+
+
+async def _create_session_on_ws(ws: aiohttp.ClientWebSocketResponse, *, timeout: float | None = None) -> str:
+    """Run session.create over an already-open WS and return the session_id."""
+    session_id, _stored = await _create_conversation_on_ws(ws, timeout=timeout)
+    return session_id
+
+
+async def _refuse_auto_continued_resume(ws: aiohttp.ClientWebSocketResponse, session_id: str) -> None:
+    """Stop the turn Hermes auto-continued while resuming, before refusing it.
+
+    Upstream schedules a re-submission of a crash-interrupted prompt as part
+    of a cold ``session.resume``. ODS never replays a submitted prompt, so
+    ask Hermes to interrupt that turn (which also retires its crash marker)
+    on this socket, which nothing else is reading yet.
+    """
+    try:
+        await asyncio.wait_for(
+            _session_rpc_on_ws(ws, "session.interrupt", {"session_id": session_id}, timeout=_SESSION_RPC_TIMEOUT),
+            timeout=_SESSION_RPC_TIMEOUT,
+        )
+    except (HermesBridgeError, asyncio.TimeoutError, aiohttp.ClientError, ConnectionError):
+        logger.warning(
+            "hermes-bridge: could not interrupt auto-continued turn on resumed session %s",
+            session_id, exc_info=True,
+        )
+
+
+async def _resume_conversation_on_ws(
+    ws: aiohttp.ClientWebSocketResponse, stored_session_id: str, *, timeout: float | None = None,
+) -> tuple[str, str]:
+    """Reattach an existing Hermes conversation; return (runtime id, stored key).
+
+    Raises HermesConversationLost when Hermes answers but the conversation
+    cannot be continued safely. A closed socket stays HermesUnavailable:
+    nothing was decided, so the stored key is kept for a later attempt.
+    """
+    try:
+        result = await _session_rpc_on_ws(ws, "session.resume", {
+            "session_id": stored_session_id,
+            # The phone already shows the transcript; don't ship it back.
+            "omit_messages": True,
+        }, timeout=timeout or _SESSION_RPC_TIMEOUT)
+    except HermesUnavailable:
+        raise
+    except asyncio.TimeoutError as exc:
+        raise HermesConversationLost("session.resume timed out") from exc
+    except HermesRpcError as exc:
+        if exc.code == _RESUME_SETTLING_CODE or _RESUME_RETRY_HINT in str(exc):
+            # Upstream's transient reattach refusals: a disconnect interrupt
+            # is still settling, or the live session was reaped mid-claim.
+            # Nothing is lost yet; keep the stored key for the next turn.
+            raise HermesBridgeError(
+                "Hermes is still settling this conversation after the reconnect. Try again in a moment."
+            ) from exc
+        raise HermesConversationLost(f"session.resume failed: {exc}") from exc
+    except HermesBridgeError as exc:
+        raise HermesConversationLost(f"session.resume failed: {exc}") from exc
+
+    session_id = _result_str(result, "session_id")
+    if not session_id:
+        raise HermesConversationLost("session.resume returned no session id")
+    if result.get("auto_continue") is not None:
+        await _refuse_auto_continued_resume(ws, session_id)
+        raise HermesConversationLost("Hermes auto-continued an interrupted turn on resume")
+    if result.get("running") is True:
+        # A turn ODS Talk is not reading is still running on this
+        # conversation; a new prompt.submit would queue behind it and its
+        # completion would be mistaken for this reply.
+        raise HermesBridgeError(
+            "Hermes is still finishing an earlier turn in this conversation. Try again in a moment."
+        )
+    # Compression can move the conversation to a new stored tip.
+    stored = _result_str(result, "session_key", "resumed") or stored_session_id
+    return session_id, stored
+
+
+@dataclass
+class _TalkConversation:
+    """The Hermes conversation behind one Talk session_key.
+
+    Lives independently of the pooled WebSocket so a replaced or evicted
+    connection can ``session.resume`` it. Holds only the durable Hermes key
+    and bookkeeping; never prompt text.
+    """
+    # Durable key from session.create; None when the Hermes image did not
+    # report one (that conversation cannot be resumed).
+    stored_session_id: str | None
+    # Set once a prompt.submit was sent: from then on Hermes holds context
+    # the phone's transcript depends on, so a reconnect must resume it.
+    submitted: bool = False
+    # True from prompt.submit until Hermes reports the turn concluded
+    # (message.complete, an error event, or an acknowledged interrupt).
+    # Upstream leaves a crash marker only for a turn that never concluded,
+    # and a cold resume auto-continues (re-submits) such a turn. So a
+    # reconnect while this is set refuses to resume at all.
+    turn_open: bool = False
+    last_used: float = field(default_factory=time.monotonic)
 
 
 @dataclass
@@ -232,6 +411,7 @@ class _HermesConnection:
     # one of the two choices accepted by ``respond_approval``.
     pending_approval: dict[str, Any] | None = None
     closed: bool = False
+    conversation: _TalkConversation | None = None
 
     async def aclose(self) -> None:
         if self.closed:
@@ -254,15 +434,57 @@ _POOL_GUARD = asyncio.Lock()
 # share one open instead of racing, without holding the global guard.
 _OPENING_LOCKS: dict[str, asyncio.Lock] = {}
 _SWEEPER_TASK: asyncio.Task | None = None
+# Per-session_key Hermes conversation metadata (issue #8137). Keyed exactly
+# like the pool, so one cookie can never resume another cookie's
+# conversation. Bounded by _CONVERSATION_TTL_SECONDS and _MAX_CONVERSATIONS.
+_CONVERSATIONS: dict[str, _TalkConversation] = {}
+
+
+def _conversation_expired(conversation: _TalkConversation, now: float) -> bool:
+    return now - conversation.last_used > _CONVERSATION_TTL_SECONDS
+
+
+def _prune_conversations(now: float) -> None:
+    """Drop expired conversation records that no pooled connection uses."""
+    for key, conversation in list(_CONVERSATIONS.items()):
+        if key not in _CONNECTION_POOL and _conversation_expired(conversation, now):
+            del _CONVERSATIONS[key]
+
+
+def _forget_conversation(session_key: str, conversation: _TalkConversation) -> None:
+    if _CONVERSATIONS.get(session_key) is conversation:
+        del _CONVERSATIONS[session_key]
 
 
 async def _open_connection(session_key: str) -> _HermesConnection:
-    """Open one fresh WS + run session.create.
+    """Open one fresh WS and attach it to this Talk session's conversation.
 
-    Caller holds the per-key opening lock, NOT _POOL_GUARD — this does
-    network I/O that can hang for the full client timeout when Hermes is
-    slow or down, and must never stall other phones' pool lookups.
+    A conversation that already received a prompt is reattached with
+    ``session.resume``; only a brand-new (or never-used) conversation runs
+    ``session.create``. Caller holds the per-key opening lock, NOT
+    _POOL_GUARD — this does network I/O that can hang for the full client
+    timeout when Hermes is slow or down, and must never stall other phones'
+    pool lookups.
     """
+    now = time.monotonic()
+    conversation = _CONVERSATIONS.get(session_key)
+    if conversation is not None and _conversation_expired(conversation, now):
+        _forget_conversation(session_key, conversation)
+        conversation = None
+    resume = conversation is not None and conversation.submitted
+    if resume and not conversation.stored_session_id:
+        _forget_conversation(session_key, conversation)
+        raise HermesConversationLost("Hermes did not report a resumable session key")
+    if resume and conversation.turn_open:
+        # The last turn's connection died before Hermes concluded it. If the
+        # Hermes process died too, resuming would auto-continue that prompt.
+        _forget_conversation(session_key, conversation)
+        raise HermesConversationLost("the previous turn never concluded; resuming could re-run it")
+    if conversation is None:
+        _prune_conversations(now)
+        if len(_CONVERSATIONS) >= _MAX_CONVERSATIONS:
+            raise HermesUnavailable("ODS Talk has too many open conversations. Try again later.")
+
     timeout_seconds = _request_timeout()
     timeout = aiohttp.ClientTimeout(total=timeout_seconds + 20)
     http_session = aiohttp.ClientSession(timeout=timeout)
@@ -272,13 +494,33 @@ async def _open_connection(session_key: str) -> _HermesConnection:
         await http_session.close()
         raise
     try:
-        session_id = await _create_session_on_ws(ws, timeout=30)
+        if resume:
+            session_id, stored = await _resume_conversation_on_ws(ws, conversation.stored_session_id)
+            conversation.stored_session_id = stored
+        else:
+            session_id, stored = await _create_conversation_on_ws(ws)
+            conversation = _TalkConversation(stored_session_id=stored)
+            _CONVERSATIONS[session_key] = conversation
+    except HermesConversationLost as exc:
+        _forget_conversation(session_key, conversation)
+        logger.warning(
+            "hermes-bridge: conversation for %s could not be resumed: %s", session_key[:8], exc.reason,
+        )
+        await ws.close()
+        await http_session.close()
+        raise
     except Exception:
         await ws.close()
         await http_session.close()
         raise
-    conn = _HermesConnection(http_session=http_session, ws=ws, session_id=session_id)
-    logger.info("hermes-bridge: opened pooled connection for %s (session_id=%s)", session_key[:8], session_id)
+    conversation.last_used = time.monotonic()
+    conn = _HermesConnection(
+        http_session=http_session, ws=ws, session_id=session_id, conversation=conversation,
+    )
+    logger.info(
+        "hermes-bridge: opened pooled connection for %s (session_id=%s, %s)",
+        session_key[:8], session_id, "resumed" if resume else "created",
+    )
     return conn
 
 
@@ -358,6 +600,9 @@ async def _sweep_idle_connections() -> None:
                 for key, lock in list(_OPENING_LOCKS.items()):
                     if not lock.locked() and key not in _CONNECTION_POOL:
                         del _OPENING_LOCKS[key]
+                # Conversation records survive connection eviction (that is
+                # what lets the next turn resume) but expire with the cookie.
+                _prune_conversations(now)
             for key, conn in stale:
                 logger.info("hermes-bridge: evicting idle connection for %s", key[:8])
                 await conn.aclose()
@@ -394,6 +639,7 @@ async def shutdown_pool() -> None:
         connections = list(_CONNECTION_POOL.values())
         _CONNECTION_POOL.clear()
         _OPENING_LOCKS.clear()
+        _CONVERSATIONS.clear()
     for conn in connections:
         await conn.aclose()
 
@@ -418,6 +664,12 @@ async def _submit_on_connection(
                 "method": "prompt.submit",
                 "params": {"session_id": conn.session_id, "text": text},
             }))
+        if conn.conversation is not None:
+            # Hermes now holds context this phone's transcript depends on;
+            # a later reconnect must resume it, never create a new session.
+            conn.conversation.submitted = True
+            conn.conversation.turn_open = True
+            conn.conversation.last_used = time.monotonic()
     except (aiohttp.ClientError, ConnectionResetError, ConnectionError) as exc:
         # Pooled WS was closed under us between the freshness check and this
         # send (Hermes restart, network blip, idle timeout that hadn't been
@@ -518,6 +770,9 @@ async def _submit_on_connection(
             if not isinstance(final_text, str) or not final_text.strip():
                 final_text = "".join(chunks)
             conn.last_used = time.monotonic()
+            if conn.conversation is not None:
+                conn.conversation.turn_open = False
+                conn.conversation.last_used = conn.last_used
             conn.pending_approval = None
             yield {
                 "type": "complete",
@@ -529,6 +784,8 @@ async def _submit_on_connection(
             return
         elif event_type == "error":
             conn.pending_approval = None
+            if conn.conversation is not None:
+                conn.conversation.turn_open = False
             message = payload.get("message") if isinstance(payload.get("message"), str) else "Hermes reported an error"
             raise HermesBridgeError(message)
 
@@ -745,6 +1002,8 @@ async def interrupt_active_prompt(session_key: str) -> bool:
         await _interrupt_session_with_ack(conn.session_id)
         conn.pending_approval = None
         conn.last_used = time.monotonic()
+        if conn.conversation is not None:
+            conn.conversation.turn_open = False
         acknowledged = True
         logger.info(
             "hermes-bridge: Hermes acknowledged interrupt for abandoned prompt %s",

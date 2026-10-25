@@ -557,6 +557,10 @@ async def _send_to_hermes(session_key: str, text: str) -> dict[str, Any]:
         reply = await hermes_bridge.submit_prompt(session_key, text)
     except hermes_bridge.HermesUnavailable as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except hermes_bridge.HermesConversationLost as exc:
+        # The earlier conversation could not be resumed and the message was
+        # not sent; never let a fresh Hermes session pose as the old chat.
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except (hermes_bridge.HermesBridgeError, asyncio.TimeoutError) as exc:
         raise HTTPException(status_code=502, detail=str(exc) or "Hermes did not finish the response.") from exc
 
@@ -754,6 +758,12 @@ async def _stream_hermes_sse(session_key: str, text: str, request: Request):
                 yield _sse_event("error", {"status_code": 503, "detail": str(exc)})
                 pending = None
                 break
+            except hermes_bridge.HermesConversationLost as exc:
+                # Shown in the assistant bubble: the earlier context is gone
+                # and this message was not sent to a substitute session.
+                yield _sse_event("error", {"status_code": 409, "detail": str(exc), "code": exc.code})
+                pending = None
+                break
             except (hermes_bridge.HermesBridgeError, asyncio.TimeoutError) as exc:
                 yield _sse_event("error", {"status_code": 502, "detail": str(exc) or "Hermes did not finish the response."})
                 pending = None
@@ -922,6 +932,8 @@ async def talk_message_stream(payload: dict[str, Any], request: Request) -> Stre
       {"type": "complete", "session_id": "<id>", "text": "...",
                            "status": "ok", "warning": null}
       {"type": "error",    "status_code": 502|503, "detail": "..."}  # on failure
+      {"type": "error",    "status_code": 409, "detail": "...",
+                           "code": "talk_conversation_lost"}   # earlier context lost; not sent
       {"type": "done"}                                                # always last
 
     The endpoint sets ``X-Accel-Buffering: no`` and ``Cache-Control: no-cache``

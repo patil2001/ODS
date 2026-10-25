@@ -184,3 +184,15 @@ compression:
   # (~10 user/assistant exchanges); bumped to 40 so a longer back-and-forth
   # stays granular even after a compression pass.
   protect_last_n: 40
+
+# Crash auto-continue. On a cold session.resume within the freshness window
+# of a backend process death, upstream Hermes re-submits the interrupted
+# prompt by itself (tui_gateway/session_auto_continue.py, enabled by default).
+# ODS Talk resumes the same Hermes conversation after a reconnect (#8137) and
+# never replays a submitted prompt: a re-run could repeat tool calls and
+# other user actions. Independently of this setting, the dashboard-api bridge
+# never resumes a conversation whose last turn did not conclude, and refuses
+# any resume that reports an auto-continued turn.
+desktop:
+  auto_continue:
+    enabled: false

@@ -483,6 +483,41 @@ def test_talk_message_stream_emits_error_frame_and_done_on_bridge_failure(talk_c
     assert types[-1] == "done"
 
 
+def test_talk_message_stream_reports_lost_conversation_instead_of_answering(talk_client, monkeypatch):
+    """#8137: a Hermes conversation that cannot be resumed is a distinct,
+    user-visible outcome — never a reply from a substitute session."""
+    import hermes_bridge as bridge
+
+    async def lost_stream(session_key, text):
+        if False:
+            yield  # pragma: no cover — needed to make this an async generator
+        raise bridge.HermesConversationLost("session.resume failed: session not found")
+
+    monkeypatch.setattr("hermes_bridge.stream_prompt", lost_stream)
+
+    resp = talk_client.post("/api/talk/message/stream", json={"text": "hello again"})
+    assert resp.status_code == 200, resp.text
+    frames = _parse_sse_frames(resp.content)
+    assert frames == [
+        {"type": "error", "status_code": 409, "detail": bridge.CONVERSATION_LOST_MESSAGE,
+         "code": "talk_conversation_lost"},
+        {"type": "done"},
+    ]
+
+
+def test_talk_message_reports_lost_conversation_as_conflict(talk_client, monkeypatch):
+    import hermes_bridge as bridge
+
+    async def lost_submit(session_key, text):
+        raise bridge.HermesConversationLost("session.resume timed out")
+
+    monkeypatch.setattr("hermes_bridge.submit_prompt", lost_submit)
+
+    resp = talk_client.post("/api/talk/message", json={"text": "hello again"})
+    assert resp.status_code == 409
+    assert resp.json()["detail"] == bridge.CONVERSATION_LOST_MESSAGE
+
+
 def test_talk_message_stream_emits_503_when_hermes_unavailable(talk_client, monkeypatch):
     import hermes_bridge as bridge
 
