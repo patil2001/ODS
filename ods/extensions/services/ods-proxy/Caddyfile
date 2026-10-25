@@ -118,6 +118,9 @@ http://auth.{$ODS_DEVICE_NAME:ods}.local {
 	reverse_proxy dashboard-api:3002 {
 		header_up X-Forwarded-Proto {scheme}
 		header_up X-Forwarded-Host {host}
+		# dashboard-api rate-limits sign-in per X-Real-IP; never pass a
+		# client-supplied value through.
+		header_up X-Real-IP {remote_host}
 	}
 }
 
@@ -137,6 +140,9 @@ http://api.{$ODS_DEVICE_NAME:ods}.local {
 	reverse_proxy dashboard-api:3002 {
 		header_up X-Forwarded-Proto {scheme}
 		header_up X-Forwarded-Host {host}
+		# dashboard-api rate-limits sign-in per X-Real-IP; never pass a
+		# client-supplied value through.
+		header_up X-Real-IP {remote_host}
 	}
 }
 

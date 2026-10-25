@@ -15,9 +15,11 @@ COOKIE = ds.SESSION_COOKIE_NAME
 def _clean_state(tmp_path, monkeypatch):
     monkeypatch.setattr(dashboard_password, "PASSWORD_FILE", tmp_path / "dashboard-password.json")
     ds._FAILURES.clear()
+    ds._PASSWORD_FAILURES.clear()
     ds._LOGIN_LINKS.clear()
     yield
     ds._FAILURES.clear()
+    ds._PASSWORD_FAILURES.clear()
     ds._LOGIN_LINKS.clear()
 
 
@@ -97,6 +99,24 @@ def test_repeated_failures_are_rate_limited(test_client):
     for _ in range(ds._FAILURE_LIMIT):
         assert _login(test_client, key="wrong").status_code == 401
     assert _login(test_client, key=security.DASHBOARD_API_KEY).status_code == 429
+
+
+def test_forged_client_addresses_cannot_buy_unlimited_password_guesses(test_client):
+    dashboard_password.save("correct horse")
+    for attempt in range(ds._PASSWORD_FAILURE_LIMIT):
+        test_client.cookies.clear()
+        resp = test_client.post("/api/auth/dashboard-session/login", json={"password": "wrong"},
+                                headers={"X-Real-IP": f"198.51.100.{attempt}"})
+        assert resp.status_code == 401
+    test_client.cookies.clear()
+    resp = test_client.post("/api/auth/dashboard-session/login", json={"password": "correct horse"},
+                            headers={"X-Real-IP": "203.0.113.7"})
+    assert resp.status_code == 429
+    assert COOKIE not in _set_cookies(resp)
+    # The owner's recovery path stays open: a sign-in link is not a guessable
+    # password and is not counted by the ceiling.
+    token = test_client.post("/api/auth/dashboard-session/link", headers=test_client.auth_headers).json()["token"]
+    assert _login(test_client, token=token).status_code == 200
 
 
 def test_login_links_need_the_key_and_work_once(test_client):

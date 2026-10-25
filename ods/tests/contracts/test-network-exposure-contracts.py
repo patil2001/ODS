@@ -333,6 +333,18 @@ def test_ods_proxy_caps_request_body_sizes() -> None:
     )
 
 
+def test_ods_proxy_does_not_pass_forged_client_addresses_to_dashboard_api() -> None:
+    # dashboard-api keys its sign-in rate limit on X-Real-IP.
+    caddyfile = read(SERVICES / "ods-proxy" / "Caddyfile")
+    for host in ("auth", "api"):
+        block = caddy_block_body(caddyfile, "http://%s.{$ODS_DEVICE_NAME:ods}.local {" % host)
+        assert_true("reverse_proxy dashboard-api:3002" in block, f"{host} host must proxy dashboard-api")
+        assert_true(
+            re.search(r"header_up\s+X-Real-IP\s+\{remote_host\}", block) is not None,
+            f"ods-proxy {host} host must overwrite X-Real-IP with the peer address",
+        )
+
+
 def test_hermes_proxy_caps_request_body() -> None:
     caddyfile = read(SERVICES / "hermes-proxy" / "Caddyfile")
 
@@ -407,6 +419,7 @@ def main() -> int:
         test_dashboard_csp_allows_ods_talk_tts_blob_audio,
         test_dashboard_csp_allows_only_verified_pixel_preview_routes,
         test_ods_proxy_caps_request_body_sizes,
+        test_ods_proxy_does_not_pass_forged_client_addresses_to_dashboard_api,
         test_hermes_proxy_caps_request_body,
         test_dashboard_pre_stages_hsts,
         test_legacy_openclaw_extension_stays_removed,

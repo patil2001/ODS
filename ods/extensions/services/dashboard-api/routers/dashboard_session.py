@@ -53,6 +53,13 @@ _MAX_CREDENTIAL_LENGTH = 512
 _FAILURE_LIMIT = 10
 _FAILURE_WINDOW_SECONDS = 300
 _FAILURES: dict[str, list[float]] = {}
+# Failed password sign-ins from all clients together within the window. The
+# per-client key comes from X-Real-IP, which only the dashboard nginx is known
+# to overwrite; this ceiling bounds guessing even when a proxy passes a forged
+# value through. A locked-out owner can still sign in with an
+# `ods dashboard-login` link, which this ceiling does not count.
+_PASSWORD_FAILURE_LIMIT = 30
+_PASSWORD_FAILURES: list[float] = []
 _LOGIN_LINKS: dict[str, float] = {}  # sha256(token) -> expiry; single process
 _LOCK = threading.Lock()
 
@@ -147,6 +154,9 @@ def dashboard_login(request: Request, payload: Annotated[Any, Body()] = None) ->
     with _LOCK:
         if len(_recent_failures(client, now)) >= _FAILURE_LIMIT:
             raise HTTPException(status_code=429, detail="Too many sign-in attempts. Wait a few minutes and try again.")
+        _PASSWORD_FAILURES[:] = [at for at in _PASSWORD_FAILURES if now - at < _FAILURE_WINDOW_SECONDS]
+        if kind == "password" and len(_PASSWORD_FAILURES) >= _PASSWORD_FAILURE_LIMIT:
+            raise HTTPException(status_code=429, detail="Too many sign-in attempts. Wait a few minutes and try again.")
         if kind == "password":
             ok = dashboard_password.verify(value)
         elif kind == "key":
@@ -155,6 +165,8 @@ def dashboard_login(request: Request, payload: Annotated[Any, Body()] = None) ->
             ok = _consume_login_link(value, now)
         if not ok:
             _FAILURES.setdefault(client, []).append(now)
+            if kind == "password":
+                _PASSWORD_FAILURES.append(now)
         if not ok:
             logger.info("dashboard sign-in rejected method=%s client=%s", kind, client)
             detail = ("That sign-in link has expired or was already used. Run `ods dashboard-login` for a new one."
